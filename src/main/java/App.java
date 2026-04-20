@@ -20,6 +20,7 @@ public class App
                 new UserContextStrategyMock()
         );
 
+        // Test
 
         BufferedImage img = ImageIO.read(new File("src/main/resources/testScene.png"));
 
