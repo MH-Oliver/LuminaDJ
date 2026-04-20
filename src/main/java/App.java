@@ -20,6 +20,8 @@ public class App
                 new UserContextStrategyMock()
         );
 
+        // Spotify feature
+
         // Test
 
         BufferedImage img = ImageIO.read(new File("src/main/resources/testScene.png"));
