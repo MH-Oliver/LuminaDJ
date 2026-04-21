@@ -23,4 +23,10 @@ public class MusicPlayerAdapterMock implements MusicPlayerAdapter {
     public long getPlaybackPosition() {
         return 0;
     }
+
+    // NEU
+    @Override
+    public void addToQueue(Track track) {
+        System.out.println("Mock reiht in Warteschlange ein: " + track.name());
+    }
 }
