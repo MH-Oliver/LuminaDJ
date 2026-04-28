@@ -13,7 +13,10 @@ import java.io.IOException;
 public class App
 {
     public static void main( String[] args ) throws IOException {
-        VisionService visionService = new VisionService(new DetectionStrategyLangChain4j("MyKey"));
+        VisionService visionService = new VisionService(
+                new DetectionStrategyLangChain4j("MyKey"),
+                new UserContextStrategyMock()
+        );
 
         MusicPlayerAdapter spotifyPlayer = new SpotifyAdapter();
         MusicService musicService = new MusicService(
