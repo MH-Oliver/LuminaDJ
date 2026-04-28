@@ -1,12 +1,12 @@
 package modules.vision.strategies.detection;
 
-import dev.langchain4j.data.image.Image;
-import dev.langchain4j.model.googleai.GoogleAiGeminiChatModel;
-import dev.langchain4j.service.AiServices;
-import dev.langchain4j.service.UserMessage;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.langchain4j.data.message.ImageContent;
+import dev.langchain4j.data.message.TextContent;
+import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.model.openai.OpenAiChatModel;
 import modules.vision.strategies.core.DetectionStrategy;
 import modules.vision.structures.FrameDataDTO;
-import modules.vision.structures.Emotion;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -15,26 +15,21 @@ import java.util.Base64;
 
 public class DetectionStrategyLangChain4j implements DetectionStrategy {
 
-    interface VisionAnalyzer {
-        // Hier geben wir der KI nun eine glasklare Anweisung mit auf den Weg!
-        @UserMessage("Analysiere das angehängte Bild sehr genau. Zähle alle sichtbaren Personen im Raum, achte dabei besonders auf die dunklen Silhouetten und Personen im Hintergrund. Schätze zudem die grundlegende Stimmung (emotion) der Szene ein.")
-        FrameDataDTO analyze(Image image);
-    }
-
-    private final VisionAnalyzer analyzer;
-    // Mock als Sicherheitsnetz
+    private final OpenAiChatModel model;
     private final DetectionStrategy fallback = new DetectionStrategyMock();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public DetectionStrategyLangChain4j(String apiKey) {
-        var model = GoogleAiGeminiChatModel.builder()
+        this.model = OpenAiChatModel.builder()
                 .apiKey(apiKey)
-                // Nutze hier das aktuelle Modell, das auch im Free Tier unterstützt wird!
-                .modelName("gemini-2.5-flash")
-                .logRequestsAndResponses(true)
+                .baseUrl("https://api.groq.com/openai/v1")
+                .modelName("meta-llama/llama-4-scout-17b-16e-instruct")
+                .responseFormat("json_object")
+                .logRequests(true)
+                .logResponses(true)
                 .build();
-
-        this.analyzer = AiServices.create(VisionAnalyzer.class, model);
     }
+
     @Override
     public FrameDataDTO analyse(BufferedImage image) {
         try {
@@ -42,16 +37,18 @@ public class DetectionStrategyLangChain4j implements DetectionStrategy {
             ImageIO.write(image, "png", baos);
             String base64Image = Base64.getEncoder().encodeToString(baos.toByteArray());
 
-            Image langchainImage = Image.builder()
-                    .base64Data(base64Image)
-                    .mimeType("image/png")
-                    .build();
+            UserMessage userMessage = UserMessage.from(
+                    TextContent.from("Analysiere das angehängte Bild sehr genau. Zähle alle sichtbaren Personen im Raum, achte dabei besonders auf die dunklen Silhouetten und Personen im Hintergrund. Schätze zudem die grundlegende Stimmung (emotion) der Szene ein. Antworte AUSSCHLIESSLICH in validem JSON in exakt folgendem Format: {\"personCount\": <Zahl>, \"emotion\": \"Fear\" | \"Happy\" | \"Sad\" | \"Anger\"}"),
+                    ImageContent.from(base64Image, "image/png")
+            );
 
-            return analyzer.analyze(langchainImage);
+            String responseText = model.chat(userMessage).aiMessage().text();
+
+            return objectMapper.readValue(responseText, FrameDataDTO.class);
+
         } catch (Exception e) {
-            System.err.println("KI-Fehler (Quota/Limit): " + e.getMessage());
+            System.err.println("KI-Fehler: " + e.getMessage());
             System.out.println("Nutze Fallback-Daten (Mock)...");
-            // Bei Fehler (z.B. 429) werden Mock-Daten geliefert
             return fallback.analyse(image);
         }
     }
