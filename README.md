@@ -26,7 +26,11 @@ Folge diesen Schritten, um deinen Schlüssel zu erhalten:
 2. **API Keys öffnen:** Klicke in der linken Seitenleiste auf den Menüpunkt **"API Keys"**.
 3. **Key generieren:** Klicke auf den Button **"Create API Key"**.
 4. **Benennen & Speichern:** Gib dem Key einen Namen (z. B. `LuminaDJ-Key`). Sobald der Schlüssel generiert wurde, kopiere ihn sofort. **Wichtig:** Aus Sicherheitsgründen wird der Schlüssel danach nie wieder vollständig angezeigt!
-5. **In LuminaDJ einfügen:** Übergib diesen kopierten String beim Start der App an die `DetectionStrategyLangChain4j` (z.B. in der `App.java`).
+5. **In LuminaDJ einfügen:** Setze die Umgebungsvariable `GROQ_API_KEY` auf deinen kopierten Schlüssel, bevor du die App startest:
+   ```bash
+   export GROQ_API_KEY="dein-schlüssel-hier"
+   ```
+   Die App liest den Key automatisch beim Start aus dieser Variable aus.
 
 ---
 

@@ -13,8 +13,12 @@ import java.io.IOException;
 public class App
 {
     public static void main( String[] args ) throws IOException {
+        String apiKey = System.getenv("GROQ_API_KEY");
+        if (apiKey == null || apiKey.isBlank()) {
+            throw new IllegalStateException("Environment variable GROQ_API_KEY is missing or empty.");
+        }
         VisionService visionService = new VisionService(
-                new DetectionStrategyLangChain4j("MyKey"),
+                new DetectionStrategyLangChain4j(apiKey),
                 new UserContextStrategyMock()
         );
 

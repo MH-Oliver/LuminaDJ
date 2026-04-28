@@ -1,7 +1,6 @@
 package modules.vision.services;
 
 import modules.userContext.strategies.core.UserContextStrategy;
-import modules.userContext.strategies.impl.UserContextStrategyMock;
 import modules.vision.strategies.core.DetectionStrategy;
 import modules.vision.structures.FrameDataDTO;
 
@@ -12,7 +11,7 @@ public class VisionService {
     private DetectionStrategy detectionStrategy;
     private UserContextStrategy userContextStrategy;
 
-    public VisionService(DetectionStrategy detectionStrategy, UserContextStrategyMock userContextStrategy) {
+    public VisionService(DetectionStrategy detectionStrategy, UserContextStrategy userContextStrategy) {
         this.detectionStrategy = detectionStrategy;
         this.userContextStrategy = userContextStrategy;
     }

@@ -75,6 +75,7 @@ public class DetectionStrategyLangChain4j implements DetectionStrategy {
             return objectMapper.readValue(responseText, FrameDataDTO.class);
 
         } catch (Exception e) {
+            System.err.println("VLM analysis failed, falling back to mock: " + e.getMessage());
             return fallback.analyse(image, context);
         }
     }
