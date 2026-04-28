@@ -2,10 +2,9 @@ package modules.music.services;
 
 import modules.music.strategies.core.MusicPlayerAdapter;
 import modules.music.strategies.core.SongSelectorStrategy;
-import modules.music.strategies.core.UserContextStrategy;
+import modules.userContext.strategies.core.UserContextStrategy;
 import modules.music.structures.DataBundle;
 import modules.music.structures.Track;
-import modules.music.structures.UserContextDTO;
 import modules.vision.structures.FrameDataDTO;
 
 public class MusicService {

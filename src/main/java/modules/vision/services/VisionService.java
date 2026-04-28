@@ -1,7 +1,7 @@
 package modules.vision.services;
 
-import modules.music.strategies.core.UserContextStrategy;
-import modules.music.strategies.user_context.UserContextStrategyMock;
+import modules.userContext.strategies.core.UserContextStrategy;
+import modules.userContext.strategies.impl.UserContextStrategyMock;
 import modules.vision.strategies.core.DetectionStrategy;
 import modules.vision.structures.FrameDataDTO;
 

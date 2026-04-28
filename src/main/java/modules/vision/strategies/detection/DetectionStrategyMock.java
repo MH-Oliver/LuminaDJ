@@ -1,6 +1,6 @@
 package modules.vision.strategies.detection;
 
-import modules.music.structures.UserContextDTO;
+import modules.userContext.structures.UserContextDTO;
 import modules.vision.strategies.core.DetectionStrategy;
 import modules.vision.structures.Emotion;
 import modules.vision.structures.FrameDataDTO;

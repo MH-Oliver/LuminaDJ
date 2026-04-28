@@ -1,4 +1,4 @@
-package modules.music.structures;
+package modules.userContext.structures;
 
 public record UserContextDTO (
         int tempo,

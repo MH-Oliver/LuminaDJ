@@ -5,7 +5,7 @@ import dev.langchain4j.data.message.ImageContent;
 import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.openai.OpenAiChatModel;
-import modules.music.structures.UserContextDTO;
+import modules.userContext.structures.UserContextDTO;
 import modules.vision.strategies.core.DetectionStrategy;
 import modules.vision.structures.FrameDataDTO;
 

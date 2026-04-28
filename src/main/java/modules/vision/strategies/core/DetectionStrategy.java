@@ -1,6 +1,6 @@
 package modules.vision.strategies.core;
 
-import modules.music.structures.UserContextDTO;
+import modules.userContext.structures.UserContextDTO;
 import modules.vision.structures.FrameDataDTO;
 
 import java.awt.image.BufferedImage;
