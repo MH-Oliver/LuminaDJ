@@ -14,6 +14,12 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.util.Base64;
 
+/**
+ * Implementierung der {@link DetectionStrategy}, die LangChain4j nutzt, um Bilder
+ * über die GroqCloud (mit dem multimodalen Llama 4 Modell) zu analysieren.
+ * * Diese Strategie extrahiert die Anzahl der Personen sowie die vorherrschende Emotion
+ * aus einem Bild und berücksichtigt dabei den dynamischen User-Kontext (z. B. die Location).
+ */
 public class DetectionStrategyLangChain4j implements DetectionStrategy {
 
     private final OpenAiChatModel model;
@@ -31,8 +37,19 @@ public class DetectionStrategyLangChain4j implements DetectionStrategy {
                 .build();
     }
 
+    /**
+     * Analysiert das übergebene Bild mithilfe des LLMs und gibt strukturierte Daten zurück.
+     * Der Prompt wird dabei dynamisch anhand der übergebenen Location (Kontext) angepasst.
+     * Sollte die KI-Anfrage fehlschlagen (z. B. wegen Rate-Limits), wird auf eine
+     * Fallback-Strategie (Mock) zurückgegriffen.
+     *
+     * @param image   Das zu analysierende Bild (z.B. ein Frame aus einem Videostream).
+     * @param context Der aktuelle Nutzerkontext (enthält u. a. die Location wie Bar oder Party),
+     * der dem LLM hilft, das Bild umgebungsspezifisch zu interpretieren.
+     * @return Ein {@link FrameDataDTO}, das die Anzahl der Personen und die Stimmung (Emotion) enthält.
+     */
     @Override
-    public FrameDataDTO analyse(BufferedImage image, UserContextDTO context) { // <- Parameter angepasst
+    public FrameDataDTO analyse(BufferedImage image, UserContextDTO context) {
         try {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             ImageIO.write(image, "png", baos);
