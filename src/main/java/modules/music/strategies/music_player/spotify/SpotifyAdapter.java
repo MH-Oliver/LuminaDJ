@@ -16,7 +16,14 @@ public class SpotifyAdapter implements MusicPlayerAdapter {
     /**
      * Erstellt einen neuen Adapter mit einer bereits authentifizierten API-Instanz.
      */
-    public SpotifyAdapter(SpotifyApi spotifyApi) {
+    public SpotifyAdapter() {
+        SpotifyAuthenticator authenticator = new SpotifyAuthenticator();
+        SpotifyApi spotifyApi = authenticator.authenticate();
+
+        if (spotifyApi == null) {
+            throw new IllegalArgumentException("App wird beendet, da Spotify-Login fehlgeschlagen ist.");
+        }
+
         this.spotifyApi = spotifyApi;
     }
 
