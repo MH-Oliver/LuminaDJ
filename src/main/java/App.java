@@ -20,8 +20,7 @@ public class App
     public static void main( String[] args ) throws IOException {
 
 
-        // Spotify feature
-        // 1. Spotify Authentifizierung durchführen
+        //Spotify Authentifizierung
         SpotifyAuthenticator authenticator = new SpotifyAuthenticator();
         SpotifyApi spotifyApi = authenticator.authenticate();
 
@@ -30,13 +29,8 @@ public class App
             return;
         }
 
-
-        // ... (Dein Spotify Login Code davor bleibt gleich) ...
-
         VisionService visionService = new VisionService(new DetectionStrategyMock());
 
-        // Wir speichern den Adapter extra in einer Variable, damit wir in der main-Methode
-        // direkt darauf zugreifen können, um den zweiten Song hinzuzufügen.
         MusicPlayerAdapter spotifyPlayer = new SpotifyAdapter(spotifyApi);
 
         MusicService musicService = new MusicService(
@@ -49,10 +43,8 @@ public class App
 
         System.out.println("\n---- Starte normale Verarbeitung --- ");
 
-        // Dies spielt "In the End" ab (über den SongSelectorMock)
-        musicService.handleFrame(
-                visionService.processFrame(img)
-        );
+        //spielt "In the End" ab (über den SongSelectorMock)
+        musicService.handleFrame(visionService.processFrame(img));
 
         // --- SIMULATION FÜR DEN ZWEITEN SONG ---
         System.out.println("\nLasse Song 1 für 5 Sekunden laufen...");
@@ -66,10 +58,10 @@ public class App
         // Neuer Song, der nach dem aktuellen gespielt werden soll
         Track secondTrack = new Track("Numb", "Linkin Park", "2nLtzopw4rPReszdYBJU6h");
 
-        // Direkter Aufruf über den Adapter
+        //Aufruf über den Adapter
         spotifyPlayer.addToQueue(secondTrack);
 
-        System.out.println("Simulation abgeschlossen! Du kannst in deiner Spotify-App jetzt in die Warteschlange gucken.");
+        System.out.println("Simulation abgeschlossen!");
     }
 }
 
