@@ -28,13 +28,11 @@ public class SpotifyAuthenticator {
     private static final String PREF_REFRESH_TOKEN = "spotify_refresh_token";
 
     public SpotifyAuthenticator() {
-        // 1. Typesafe Config laden (Sucht automatisch die application.conf)
         Config conf = ConfigFactory.load();
         String clientId = conf.getString("spotify.clientId");
         String clientSecret = conf.getString("spotify.clientSecret");
         URI redirectUri = SpotifyHttpManager.makeUri(conf.getString("spotify.redirectUri"));
 
-        // 3. SpotifyApi mit den Werten aufbauen
         this.spotifyApi = new SpotifyApi.Builder()
                 .setClientId(clientId)
                 .setClientSecret(clientSecret)

@@ -1,14 +1,10 @@
 import modules.music.services.MusicService;
 import modules.music.strategies.core.MusicPlayerAdapter;
-import modules.music.strategies.music_player.MusicPlayerAdapterMock;
 import modules.music.strategies.music_player.spotify.SpotifyAdapter;
-import modules.music.strategies.music_player.spotify.SpotifyAuthenticator;
 import modules.music.strategies.song_selector.SongSelectorMock;
 import modules.music.strategies.user_context.UserContextStrategyMock;
-import modules.music.structures.Track;
 import modules.vision.services.VisionService;
 import modules.vision.strategies.detection.DetectionStrategyMock;
-import se.michaelthelin.spotify.SpotifyApi;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;

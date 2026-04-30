@@ -30,7 +30,6 @@ public class SpotifyAdapter implements MusicPlayerAdapter {
     @Override
     public void play(Track track) {
         try {
-            // Spotify erwartet URIs im Format "spotify:track:ID"
             String trackUri = track.id().startsWith("spotify:track:")
                     ? track.id()
                     : "spotify:track:" + track.id();
@@ -66,7 +65,6 @@ public class SpotifyAdapter implements MusicPlayerAdapter {
     @Override
     public void setVolume(int level) {
         try {
-            // Level muss zwischen 0 und 100 liegen
             int volume = Math.max(0, Math.min(100, level));
 
             SetVolumeForUsersPlaybackRequest volumeRequest = spotifyApi
@@ -94,16 +92,13 @@ public class SpotifyAdapter implements MusicPlayerAdapter {
         }
     }
 
-    // NEU
     @Override
     public void addToQueue(Track track) {
         try {
-            // Wieder sicherstellen, dass das Format stimmt
             String trackUri = track.id().startsWith("spotify:track:")
                     ? track.id()
                     : "spotify:track:" + track.id();
 
-            // Der API Call für die Warteschlange
             spotifyApi.addItemToUsersPlaybackQueue(trackUri).build().execute();
 
             System.out.println("Song zur Warteschlange hinzugefügt: " + track.name() + " (" + track.author() + ")");
@@ -111,13 +106,8 @@ public class SpotifyAdapter implements MusicPlayerAdapter {
             handleError("Fehler beim Hinzufügen zur Warteschlange", e);
         }
     }
-    
-    
-    
 
     private void handleError(String message, Exception e) {
         System.err.println(message + ": " + e.getMessage());
-        // Hier könnte man prüfen, ob das Token abgelaufen ist und ggf. eine
-        // Neu-Authentifizierung über den SpotifyAuthenticator anstoßen.
     }
 }
