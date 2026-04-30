@@ -7,4 +7,6 @@ public interface MusicPlayerAdapter {
     void pause();
     void setVolume(int level);
     long getPlaybackPosition();
+    // NEU: Methode für die Warteschlange
+    void addToQueue(Track track);
 }
