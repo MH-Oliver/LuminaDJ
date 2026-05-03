@@ -1,5 +1,6 @@
 import modules.music.services.MusicService;
 import modules.music.strategies.core.MusicPlayerAdapter;
+import modules.music.strategies.music_player.spotify.SpotifyAdapter;
 import modules.music.strategies.song_selector.SongSelectorMock;
 import modules.userContext.strategies.impl.UserContextStrategyMock;
 import modules.vision.services.VisionService;
@@ -13,12 +14,8 @@ import java.io.IOException;
 public class App
 {
     public static void main( String[] args ) throws IOException {
-        String apiKey = System.getenv("GROQ_API_KEY");
-        if (apiKey == null || apiKey.isBlank()) {
-            throw new IllegalStateException("Environment variable GROQ_API_KEY is missing or empty.");
-        }
         VisionService visionService = new VisionService(
-                new DetectionStrategyLangChain4j(apiKey),
+                new DetectionStrategyLangChain4j(),
                 new UserContextStrategyMock()
         );
 

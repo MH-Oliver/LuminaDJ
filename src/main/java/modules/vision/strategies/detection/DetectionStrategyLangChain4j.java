@@ -1,6 +1,8 @@
 package modules.vision.strategies.detection;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 import dev.langchain4j.data.message.ImageContent;
 import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.UserMessage;
@@ -26,13 +28,16 @@ public class DetectionStrategyLangChain4j implements DetectionStrategy {
     private final DetectionStrategy fallback = new DetectionStrategyMock();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public DetectionStrategyLangChain4j(String apiKey) {
+    public DetectionStrategyLangChain4j() {
+        Config conf = ConfigFactory.load();
+        String apiKey = conf.getString("groq.apiKey");
+
         this.model = OpenAiChatModel.builder()
                 .apiKey(apiKey)
                 .baseUrl("https://api.groq.com/openai/v1")
                 .modelName("meta-llama/llama-4-scout-17b-16e-instruct")
                 .responseFormat("json_object")
-                .logRequests(true)
+                .logRequests(false)
                 .logResponses(false)
                 .build();
     }

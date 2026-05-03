@@ -20,6 +20,7 @@ public class MusicService {
     }
 
     public void handleFrame(FrameDataDTO frameData) {
+        System.out.println("frameData: " + frameData);
         var dataBundle = new DataBundle(
                 frameData,
                 userContextStrategy.getUserContext()
