@@ -1,8 +1,8 @@
-package modules.music.strategies.user_context;
+package modules.userContext.strategies.impl;
 
-import modules.music.strategies.core.UserContextStrategy;
-import modules.music.structures.Location;
-import modules.music.structures.UserContextDTO;
+import modules.userContext.strategies.core.UserContextStrategy;
+import modules.userContext.structures.Location;
+import modules.userContext.structures.UserContextDTO;
 
 public class UserContextStrategyMock implements UserContextStrategy {
     @Override

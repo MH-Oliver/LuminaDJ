@@ -1,0 +1,112 @@
+@startuml
+skinparam handwritten false
+skinparam monochrome false
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+package "Vision" {
+    class VisionService {
+        - detectionStrategy: DetectionStrategy
+        - userContextStrategy: UserContextStrategy
+        + processFrame(image: BufferedImage): FrameDataDTO
+    }
+
+    interface DetectionStrategy {
+        + analyse(image: BufferedImage, userContext: UserContextDTO): FrameDataDTO
+    }
+
+    class DetectionStrategyMock implements DetectionStrategy
+    class DetectionStrategyVLM implements DetectionStrategy
+    class DetectionStrategyYOLO implements DetectionStrategy
+
+    class FrameDataDTO <<Record>> {
+        + personCount: int
+        + emotion: Emotion
+    }
+
+    enum Emotion {
+        Fear
+        Happy
+        Sad
+        Anger
+    }
+
+    VisionService --> "1" DetectionStrategy : uses
+    DetectionStrategy ..> FrameDataDTO : creates
+    FrameDataDTO --> "1" Emotion : contains
+}
+
+package "User Context" {
+    interface UserContextStrategy {
+            + getUserContext(): UserContextDTO
+        }
+
+    class UserContextStrategyMock implements UserContextStrategy
+
+    class UserContextDTO <<Record>> {
+        + tempo: int
+        + location: Location
+    }
+
+    enum Location {
+        Cafe
+        Bar
+        Office
+        Party
+    }
+
+    UserContextDTO --> "1" Location : contains
+}
+
+package "Music" {
+    class MusicService {
+        - musicPlayer: MusicPlayerAdapter
+        - selectionStrategy: SongSelectorStrategy
+        - userContextStrategy: UserContextStrategy
+        + handleFrame(frameData: FrameDataDTO)
+    }
+
+    interface MusicPlayerAdapter {
+        + play(track: Track)
+        + pause()
+        + setVolume(level: int)
+        + getPlaybackPosition(): long
+    }
+
+    class SpotifyAdapter implements MusicPlayerAdapter
+    class MusicPlayerAdapterMock implements MusicPlayerAdapter
+
+    interface SongSelectorStrategy {
+        + selectTrack(dataBundle: DataBundle): Track
+    }
+
+    class SongSelectorMock implements SongSelectorStrategy
+    class SongSelectorLLM implements SongSelectorStrategy
+    class SongSelectorDB implements SongSelectorStrategy
+
+    class DataBundle <<Record>> {
+        + dynamicData: FrameDataDTO
+        + staticData: UserContextDTO
+    }
+
+    class Track <<Record>> {
+        + name: String
+        + author: String
+        + id: String
+    }
+
+    MusicService --> "1" MusicPlayerAdapter : uses
+    MusicService --> "1" SongSelectorStrategy : uses
+    SongSelectorStrategy ..> Track : returns
+    MusicService ..> DataBundle : creates
+    SongSelectorStrategy ..> DataBundle : consumes
+}
+
+' Paketübergreifende Beziehungen
+DataBundle --> "1" FrameDataDTO : dynamicData
+DataBundle --> "1" UserContextDTO : staticData
+VisionService ..> FrameDataDTO : returns
+VisionService ..> UserContextStrategy : uses
+MusicService ..> UserContextStrategy : uses
+
+@enduml
