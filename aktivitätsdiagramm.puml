@@ -1,0 +1,67 @@
+@startuml
+'https://plantuml.com/activity-diagram-beta
+
+start
+
+:Pre-Caching: Spotify Audio Features
+& Cells für Track-Pool laden;
+
+repeat
+  partition "1. Kontinuierliche Datenerfassung" {
+    fork
+      :Kamera erfasst Dancefloor;
+      :VisionService erstellt FrameDataDTO
+      (Bewegung, Emotionen);
+    fork again
+      :Web-Frontend liefert Metadaten;
+      :Erstelle UserContextDTO
+      (Uhrzeit, Event-Typ);
+    end fork
+  }
+
+  partition "2. Lern-Modul (Preference Learner)" {
+    :Lese SessionHistory
+    (Gespielte Songs + Gebündeltes Kamera-Feedback zu einem Song);
+    :PreferenceLearner (Gaussian Mixture Models / Moving Average)
+    --> berechnet Vorhersage für ideale Merkmale von Songs (z.B. BPM und Energy)
+    auf Grundlage der Merkmale der zuvor gespielten Songs UND vom Kamera Feedback;
+    :Erstelle LearnedProfileDTO
+    (Gelernte Ziel-Energy/Tempo);
+  }
+
+  partition "3. Die Entscheidung (Song Selector)" {
+    :ContextAwareSongSelector erhält:
+    - FrameDataDTO
+    - UserContextDTO
+    - LearnedProfileDTO;
+
+    :ContextAwareSongSelector fasst die drei DTOs zu finalen Parametern zusammen:
+     1. LearnedProfileDTO als Basis (z.B. 125 BPM, 0.8 Energy)
+     2. Mit UserContextDTO die Basis-Parameter anpassen
+        (z.B: 3 Uhr nachts, Cooldown-Modus => Offset addieren: -5 BPM, -0,1 Energy)
+     3. Im aktuellen Kamera-Bild wird geprüft, ob Stimmung schlecht.
+        --> Falls ja, Notfall-Offset einberechnen: z.B. +0,15 Energy;
+
+    :Iteriere über Spotify-Track-Pool;
+    :Berechne Distanzfunktion:
+    Zielwerte vs. CellData der Tracks;
+    :Wähle Track mit geringster Distanz aus;
+  }
+
+  partition "4. Ausführung & Feedback-Schleife" {
+    :SpotifyAdapter: play(Track);
+    :Track wird abgespielt...;
+    :Kamera misst Reaktion (Crowd-Vibe)
+    während der Laufzeit;
+    :Speichere gespielten Track + Gebündeltes Kamera-Feedback zu einem Song (evt. über Steigung)
+    in SessionHistory;
+  }
+
+repeat while (Weiterer Song wird benötigt?) is (ja)
+-> nein;
+
+stop
+@enduml
+
+// Quelle: https://ieeexplore.ieee.org/document/6093850/citations?tabFilter=papers#citations
+// A system for dynamic playlist generation driven by multimodal control signals and descriptors
