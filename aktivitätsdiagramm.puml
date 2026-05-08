@@ -1,67 +1,69 @@
 @startuml
-'https://plantuml.com/activity-diagram-beta
+skinparam style strictuml
+skinparam defaultTextAlignment center
+skinparam ActivityBackgroundColor #EBF5FB
+skinparam ActivityBorderColor #2980B9
+skinparam NoteBackgroundColor #FDFEFE
+skinparam NoteBorderColor #BDC3C7
 
 start
 
-:Pre-Caching: Spotify Audio Features
-& Cells für Track-Pool laden;
+:<b>Systemstart</b>
+Initialen Einstiegs-Song laden;
 
 repeat
-  partition "1. Kontinuierliche Datenerfassung" {
-    fork
-      :Kamera erfasst Dancefloor;
-      :VisionService erstellt FrameDataDTO
-      (Bewegung, Emotionen);
-    fork again
-      :Web-Frontend liefert Metadaten;
-      :Erstelle UserContextDTO
-      (Uhrzeit, Event-Typ);
-    end fork
+  ' --- ZUSTAND: ABSPIELEN & BEOBACHTEN ---
+  fork
+    :<b>MusicPlayerAdapter</b>
+    Zustand: Song abspielen;
+  fork again
+    :<b>LiveFeedbackStrategy</b>
+    Zustand: Kamera wertet Publikums-Feedback
+    parallel zum Song aus;
+  end fork
+
+  ' --- TRIGGER: ENDE ---
+  :<i>Trigger: Song ist beendet</i>;
+
+  ' --- AUSWERTUNG ---
+  :Übergib bisherigen Song (Basis-Parameter)
+  an den <b>PredictionAggregator</b>;
+
+  partition "PredictionAggregator (Auswertung)" {
+    :Iteriere über <b>List<PredictionStrategy></b>
+    (z.B. UserContextStrategy, HistoryStrategy, LiveFeedbackStrategy);
+
+    note right
+      <b>Interface PredictionStrategy</b>
+      + weight: float
+      + calculate(currentSong): PredictionFactor
+    end note
+
+    :Jede Strategie liefert ein <b>PredictionFactor</b> Objekt
+    (Enthält Vektor-Multiplikatoren für z.B. Energy, BPM);
+
+    :Verechne Basis-Parameter des alten Songs
+    mit den gewichteten Faktoren aller Strategien;
+
+    :Generiere finale <b>PredictedAttributes</b>;
   }
 
-  partition "2. Lern-Modul (Preference Learner)" {
-    :Lese SessionHistory
-    (Gespielte Songs + Gebündeltes Kamera-Feedback zu einem Song);
-    :PreferenceLearner (Gaussian Mixture Models / Moving Average)
-    --> berechnet Vorhersage für ideale Merkmale von Songs (z.B. BPM und Energy)
-    auf Grundlage der Merkmale der zuvor gespielten Songs UND vom Kamera Feedback;
-    :Erstelle LearnedProfileDTO
-    (Gelernte Ziel-Energy/Tempo);
-  }
+  ' --- NÄCHSTER SONG FINDEN ---
+  :Übergib <b>PredictedAttributes</b> und <b>bisherigen Song</b>
+  an den <b>MusicSourceAdapter</b>;
 
-  partition "3. Die Entscheidung (Song Selector)" {
-    :ContextAwareSongSelector erhält:
-    - FrameDataDTO
-    - UserContextDTO
-    - LearnedProfileDTO;
+  note left
+    <b>Interface MusicSourceAdapter</b>
+    + getNextSong(predictedTarget, currentSong): Song
+    --
+    <i>(Austauschbar: Kann der MusicGraph-Adapter
+    sein oder direkt die Spotify API)</i>
+  end note
 
-    :ContextAwareSongSelector fasst die drei DTOs zu finalen Parametern zusammen:
-     1. LearnedProfileDTO als Basis (z.B. 125 BPM, 0.8 Energy)
-     2. Mit UserContextDTO die Basis-Parameter anpassen
-        (z.B: 3 Uhr nachts, Cooldown-Modus => Offset addieren: -5 BPM, -0,1 Energy)
-     3. Im aktuellen Kamera-Bild wird geprüft, ob Stimmung schlecht.
-        --> Falls ja, Notfall-Offset einberechnen: z.B. +0,15 Energy;
+  :MusicSourceAdapter liefert den <b>Neuen Song</b>;
 
-    :Iteriere über Spotify-Track-Pool;
-    :Berechne Distanzfunktion:
-    Zielwerte vs. CellData der Tracks;
-    :Wähle Track mit geringster Distanz aus;
-  }
-
-  partition "4. Ausführung & Feedback-Schleife" {
-    :SpotifyAdapter: play(Track);
-    :Track wird abgespielt...;
-    :Kamera misst Reaktion (Crowd-Vibe)
-    während der Laufzeit;
-    :Speichere gespielten Track + Gebündeltes Kamera-Feedback zu einem Song (evt. über Steigung)
-    in SessionHistory;
-  }
-
-repeat while (Weiterer Song wird benötigt?) is (ja)
+repeat while (DJ-Session aktiv?) is (ja)
 -> nein;
 
 stop
 @enduml
-
-// Quelle: https://ieeexplore.ieee.org/document/6093850/citations?tabFilter=papers#citations
-// A system for dynamic playlist generation driven by multimodal control signals and descriptors
