@@ -1,8 +1,10 @@
 package modules.music.structures;
 
 public record Track(
+        String id,
         String name,
         String author,
-        String id
+        double energy,
+        double bpm
 ){
 }
