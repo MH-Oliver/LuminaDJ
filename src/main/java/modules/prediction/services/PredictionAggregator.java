@@ -22,10 +22,7 @@ public class PredictionAggregator {
      * Berechnet die neuen Attribute des nächsten Tracks.
      * <p>
      * Der Einfluss der Strategien wird auf Basis der Gewichte berechnet.
-     * Am Ende wird der Durchschnitt des Verämderten Wertes über alle Gewichte genommen.
-     * @param currentSong
-     * @param feedback
-     * @return
+     * Am Ende wird der Durchschnitt des veränderten Wertes über alle Gewichte genommen.
      */
 
     public PredictedAttributes calculateNextAttributes(Track currentSong, FeedbackResult feedback) {
