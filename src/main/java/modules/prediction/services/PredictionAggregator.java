@@ -17,22 +17,37 @@ public class PredictionAggregator {
     }
 
     public PredictedAttributes calculateNextAttributes(Track currentSong, FeedbackResult feedback) {
-        double finalEnergy = currentSong.energy();
-        double finalBpm = currentSong.bpm();
-        System.out.println("Prediction-Aggregator (Starte Berechnung): Daten aus letztem Track -> Energy " + finalEnergy + " und BPM " + finalBpm);
+        double weightedEnergySum = 0.0;
+        double weightedBpmSum = 0.0;
+        double totalWeight = 0.0;
+        System.out.println("Prediction-Aggregator (Starte Berechnung): Daten aus letztem Track -> Energy " + currentSong.energy() + " und BPM " + currentSong.bpm());
 
         // Iteriere über alle aktiven Strategien
         for (PredictionStrategy strategy : strategies) {
             PredictionFactor factor = strategy.calculate(currentSong);
-            double weight = strategy.getWeight();
+            double weight = Math.max(0.0, strategy.getWeight());
 
-            // Vektor-Multiplikation: (Basis * Faktor * Gewicht)
-            finalEnergy += (currentSong.energy() * factor.energyMultiplier() * weight);
-            finalBpm += (currentSong.bpm() * factor.bpmMultiplier() * weight);
+            weightedEnergySum += factor.energyMultiplier() * weight;
+            weightedBpmSum += factor.bpmMultiplier() * weight;
+            totalWeight += weight;
         }
+
+        PredictionFactor generalFactor = totalWeight > 0
+                ? new PredictionFactor(
+                clamp01(weightedEnergySum / totalWeight),
+                clamp01(weightedBpmSum / totalWeight)
+        )
+                : new PredictionFactor(0.0, 0.0);
+
+        double finalEnergy = clamp01(currentSong.energy() + (currentSong.energy() * generalFactor.energyMultiplier()));
+        double finalBpm = currentSong.bpm() + (currentSong.bpm() * generalFactor.bpmMultiplier());
 
         // TODO Kamera-Feedback muss noch in Berechnung einbezogen werden
 
         return new PredictedAttributes(finalEnergy, finalBpm);
+    }
+
+    private static double clamp01(double value) {
+        return Math.max(0.0, Math.min(1.0, value));
     }
 }
