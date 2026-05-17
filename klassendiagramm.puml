@@ -15,7 +15,7 @@ package "modules.core" #F9EBEA {
 ' --- MODULE: PREDICTION ---
 package "modules.prediction" #E8F8F5 {
     class PredictionAggregator {
-        + calculateNextAttributes(currentSong: Track): PredictedAttributes
+        + calculateNextAttributes(currentSong: Track, FeedbackResult feedback): PredictedAttributes
     }
 
     interface PredictionStrategy <<Strategy>> {

@@ -6,7 +6,9 @@ import modules.vision.structures.FeedbackResult;
 import modules.prediction.structures.PredictedAttributes;
 import modules.prediction.structures.PredictionFactor;
 
+import java.util.Arrays;
 import java.util.List;
+import java.lang.reflect.Constructor;
 
 public class PredictionAggregator {
     private final List<PredictionStrategy> strategies;
@@ -16,38 +18,64 @@ public class PredictionAggregator {
         this.strategies = strategies;
     }
 
+    /**
+     * Berechnet die neuen Attribute des nächsten Tracks.
+     * <p>
+     * Der Einfluss der Strategien wird auf Basis der Gewichte berechnet.
+     * Am Ende wird der Durchschnitt des Verämderten Wertes über alle Gewichte genommen.
+     * @param currentSong
+     * @param feedback
+     * @return
+     */
+
     public PredictedAttributes calculateNextAttributes(Track currentSong, FeedbackResult feedback) {
-        double weightedEnergySum = 0.0;
-        double weightedBpmSum = 0.0;
-        double totalWeight = 0.0;
-        System.out.println("Prediction-Aggregator (Starte Berechnung): Daten aus letztem Track -> Energy " + currentSong.energy() + " und BPM " + currentSong.bpm());
+        double[] baseValues = new double[] { currentSong.energy(), currentSong.bpm() };
+
+        double[] finalValues = new double[baseValues.length];
+
+        System.out.println("Prediction-Aggregator (Starte Berechnung): Daten aus letztem Track -> Energy "
+                + baseValues[0] + " und BPM " + baseValues[1]);
 
         // Iteriere über alle aktiven Strategien
         for (PredictionStrategy strategy : strategies) {
             PredictionFactor factor = strategy.calculate(currentSong);
-            double weight = Math.max(0.0, strategy.getWeight());
+            double weight = strategy.getWeight();
 
-            weightedEnergySum += factor.energyMultiplier() * weight;
-            weightedBpmSum += factor.bpmMultiplier() * weight;
-            totalWeight += weight;
+            int index = 0;
+
+            // Die for-each Schleife läuft dynamisch über alle Attribute des PredictionFactors
+            for (double factorValue : factor) {
+                // Vektor-Multiplikation für das jeweilige Attribut: (Basis + [|(Basis*Faktor-120)| * Gewicht])
+                // --> Wenn Gewicht 1.0, wird neuer Zielwert für Durchschnitts-Berechnung übernommen
+                // --> Wenn Gewicht 0.0, wird alter Wert für Durchschnittsberechnung genommen
+                var baseValue = baseValues[index];
+                finalValues[index] += baseValue + ((baseValue * factorValue - baseValue) * weight);
+                index++;
+            }
         }
 
-        PredictionFactor generalFactor = totalWeight > 0
-                ? new PredictionFactor(
-                clamp01(weightedEnergySum / totalWeight),
-                clamp01(weightedBpmSum / totalWeight)
-        )
-                : new PredictionFactor(0.0, 0.0);
-
-        double finalEnergy = clamp01(currentSong.energy() + (currentSong.energy() * generalFactor.energyMultiplier()));
-        double finalBpm = currentSong.bpm() + (currentSong.bpm() * generalFactor.bpmMultiplier());
+        // Durchschnitt berechnen
+        int count = strategies.size();
+        Arrays.setAll(finalValues, i -> finalValues[i] / count);
 
         // TODO Kamera-Feedback muss noch in Berechnung einbezogen werden
 
-        return new PredictedAttributes(finalEnergy, finalBpm);
-    }
+        // Dynamisches Erzeugen des Rückgabe-Objekts (PredictedAttributes) via Reflection
+        try {
+            Class<?>[] paramTypes = new Class[finalValues.length];
+            Arrays.fill(paramTypes, double.class);
 
-    private static double clamp01(double value) {
-        return Math.max(0.0, Math.min(1.0, value));
+            // Primitive double-Werte in ein Object-Array packen für den Konstruktor
+            Object[] constructorArgs = new Object[finalValues.length];
+            for (int i = 0; i < finalValues.length; i++) {
+                constructorArgs[i] = finalValues[i];
+            }
+
+            Constructor<PredictedAttributes> constructor = PredictedAttributes.class.getDeclaredConstructor(paramTypes);
+            return constructor.newInstance(constructorArgs);
+
+        } catch (Exception e) {
+            throw new RuntimeException("Fehler beim dynamischen Erzeugen der PredictedAttributes", e);
+        }
     }
 }

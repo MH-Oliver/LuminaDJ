@@ -10,7 +10,8 @@ public class MacroCurveStrategyMock implements PredictionStrategy {
 
     @Override
     public PredictionFactor calculate(Track currentTrack) {
-        System.out.println("Marcro-Curve-Strategy: track \"" + currentTrack.name() + "\", die Energy und BPM muss stark erhöht werden");
-        return new PredictionFactor(0.10, 0.05);
+        var predictionFactor = new PredictionFactor(1.20, 1.20);
+        System.out.println("Macro-Curve-Strategy: track \"" + currentTrack.name() + "\", " + predictionFactor);
+        return predictionFactor;
     }
 }

@@ -6,11 +6,12 @@ import modules.prediction.structures.PredictionFactor;
 
 public class HistoryStrategyMock implements PredictionStrategy {
     @Override
-    public double getWeight() { return 0.25; }
+    public double getWeight() { return 0.2; }
 
     @Override
     public PredictionFactor calculate(Track currentTrack) {
-        System.out.println("History-Strategy: track \"" + currentTrack.name() + "\", die Energy und BPM muss etwas erhöht werden");
-        return new PredictionFactor(0.70, 0.6);
+        var predictionFactor = new PredictionFactor(1.04, 1.02);
+        System.out.println("History-Strategy: track \"" + currentTrack.name() + "\", " + predictionFactor);
+        return predictionFactor;
     }
 }
