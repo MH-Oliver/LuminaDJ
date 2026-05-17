@@ -1,112 +1,86 @@
 @startuml
-skinparam handwritten false
-skinparam monochrome false
+skinparam style strictuml
 skinparam packageStyle rectangle
-skinparam shadowing false
+skinparam linetype ortho
+skinparam defaultTextAlignment center
 
-package "Vision" {
-    class VisionService {
-        - detectionStrategy: DetectionStrategy
-        - userContextStrategy: UserContextStrategy
-        + processFrame(image: BufferedImage): FrameDataDTO
+' --- MODULE: CORE ---
+package "modules.core" #F9EBEA {
+    class DjSessionController {
+        - sessionActive: boolean
+        + startSession(entrySong: Track)
     }
-
-    interface DetectionStrategy {
-        + analyse(image: BufferedImage, userContext: UserContextDTO): FrameDataDTO
-    }
-
-    class DetectionStrategyMock implements DetectionStrategy
-    class DetectionStrategyVLM implements DetectionStrategy
-    class DetectionStrategyYOLO implements DetectionStrategy
-
-    class FrameDataDTO <<Record>> {
-        + personCount: int
-        + emotion: Emotion
-    }
-
-    enum Emotion {
-        Fear
-        Happy
-        Sad
-        Anger
-    }
-
-    VisionService --> "1" DetectionStrategy : uses
-    DetectionStrategy ..> FrameDataDTO : creates
-    FrameDataDTO --> "1" Emotion : contains
 }
 
-package "User Context" {
-    interface UserContextStrategy {
-            + getUserContext(): UserContextDTO
-        }
-
-    class UserContextStrategyMock implements UserContextStrategy
-
-    class UserContextDTO <<Record>> {
-        + tempo: int
-        + location: Location
+' --- MODULE: PREDICTION ---
+package "modules.prediction" #E8F8F5 {
+    class PredictionAggregator {
+        + calculateNextAttributes(currentSong: Track): PredictedAttributes
     }
 
-    enum Location {
-        Cafe
-        Bar
-        Office
-        Party
+    interface PredictionStrategy <<Strategy>> {
+        + getWeight(): double
+        + calculate(currentTrack: Track): PredictionFactor
     }
 
-    UserContextDTO --> "1" Location : contains
+    class HistoryStrategyMock implements PredictionStrategy
+    class MacroCurveStrategyMock implements PredictionStrategy
+
+    class PredictedAttributes <<Record>> {
+        + energy: double
+        + bpm: double
+    }
+    class PredictionFactor <<Record>> {
+        + energyMultiplier: double
+        + bpmMultiplier: double
+    }
+
+    PredictionAggregator *-- "*" PredictionStrategy : "nutzt Liste von"
 }
 
-package "Music" {
-    class MusicService {
-        - musicPlayer: MusicPlayerAdapter
-        - selectionStrategy: SongSelectorStrategy
-        - userContextStrategy: UserContextStrategy
-        + handleFrame(frameData: FrameDataDTO)
+' --- MODULE: VISION ---
+package "modules.vision" #FEF9E7 {
+    interface LiveFeedbackStrategy <<Strategy>> {
+        + startParallelEvaluation(song: Track)
+        + stopAndGetResult(): FeedbackResult
     }
+    class LiveFeedbackStrategyMock implements LiveFeedbackStrategy
 
-    interface MusicPlayerAdapter {
+    class FeedbackResult <<Record>> {
+        + isPositiveTrend: boolean
+        + intensity: double
+    }
+}
+
+' --- MODULE: MUSIC ---
+package "modules.music" #EBF5FB {
+    interface MusicPlayerAdapter <<Strategy>> {
         + play(track: Track)
-        + pause()
-        + setVolume(level: int)
-        + getPlaybackPosition(): long
     }
-
-    class SpotifyAdapter implements MusicPlayerAdapter
     class MusicPlayerAdapterMock implements MusicPlayerAdapter
 
-    interface SongSelectorStrategy {
-        + selectTrack(dataBundle: DataBundle): Track
+    interface MusicSourceAdapter <<Strategy>> {
+        + getNextSong(target: PredictedAttributes, current: Track): Track
     }
-
-    class SongSelectorMock implements SongSelectorStrategy
-    class SongSelectorLLM implements SongSelectorStrategy
-    class SongSelectorDB implements SongSelectorStrategy
-
-    class DataBundle <<Record>> {
-        + dynamicData: FrameDataDTO
-        + staticData: UserContextDTO
-    }
+    class MusicGraphAdapterMock implements MusicSourceAdapter
 
     class Track <<Record>> {
-        + name: String
-        + author: String
         + id: String
+        + energy: double
+        + bpm: double
     }
-
-    MusicService --> "1" MusicPlayerAdapter : uses
-    MusicService --> "1" SongSelectorStrategy : uses
-    SongSelectorStrategy ..> Track : returns
-    MusicService ..> DataBundle : creates
-    SongSelectorStrategy ..> DataBundle : consumes
 }
 
-' Paketübergreifende Beziehungen
-DataBundle --> "1" FrameDataDTO : dynamicData
-DataBundle --> "1" UserContextDTO : staticData
-VisionService ..> FrameDataDTO : returns
-VisionService ..> UserContextStrategy : uses
-MusicService ..> UserContextStrategy : uses
+' --- ABHÄNGIGKEITEN DES CONTROLLERS (Dependency Injection) ---
+DjSessionController --> MusicPlayerAdapter : player
+DjSessionController --> LiveFeedbackStrategy : liveFeedback
+DjSessionController --> PredictionAggregator : aggregator
+DjSessionController --> MusicSourceAdapter : sourceAdapter
+
+' --- DATENFLUSS (Zur Veranschaulichung) ---
+DjSessionController ..> Track : verwaltet
+LiveFeedbackStrategy ..> FeedbackResult : liefert
+PredictionAggregator ..> PredictedAttributes : liefert
+MusicSourceAdapter ..> Track : liefert
 
 @enduml
