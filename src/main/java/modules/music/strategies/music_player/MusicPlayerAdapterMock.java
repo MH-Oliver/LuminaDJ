@@ -6,7 +6,17 @@ import modules.music.structures.Track;
 public class MusicPlayerAdapterMock implements MusicPlayerAdapter {
     @Override
     public void play(Track track) {
-        System.out.println("Lautsprecher spielt: " + track);
+        System.out.println("Mock Player: Lade und spiele Song ab -> " + track.name());
+        System.out.println("Mock Player: Blockiere System für 10 Sekunden (Playback-Simulation läuft)...");
+
+        try {
+            Thread.sleep(10000);
+        } catch (InterruptedException e) {
+            System.err.println("Mock Player: Playback wurde unerwartet unterbrochen!");
+            Thread.currentThread().interrupt();
+        }
+
+        System.out.println("Mock Player: Song " + track.name() + " ist regulär beendet.");
     }
 
     @Override

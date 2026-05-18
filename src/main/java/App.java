@@ -1,34 +1,32 @@
-import modules.music.services.MusicService;
-import modules.music.strategies.core.MusicPlayerAdapter;
-import modules.music.strategies.music_player.spotify.SpotifyAdapter;
-import modules.music.strategies.song_selector.SongSelectorMock;
-import modules.userContext.strategies.impl.UserContextStrategyMock;
-import modules.vision.services.VisionService;
-import modules.vision.strategies.detection.DetectionStrategyLangChain4j;
+import modules.core.DjSessionController;
+import modules.music.strategies.music_player.MusicPlayerAdapterMock;
+import modules.music.strategies.music_source.MusicGraphAdapterMock;
+import modules.music.structures.Track;
+import modules.prediction.services.PredictionAggregator;
+import modules.prediction.strategies.prediction.HistoryStrategyMock;
+import modules.prediction.strategies.prediction.MacroCurveStrategyMock;
+import modules.vision.strategies.live_feedback.LiveFeedbackStrategyMock;
 
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
+import java.util.List;
 
 public class App
 {
-    public static void main( String[] args ) throws IOException {
-        VisionService visionService = new VisionService(
-                new DetectionStrategyLangChain4j(),
-                new UserContextStrategyMock()
+    public static void main( String[] args ) {
+        var playerMock = new MusicPlayerAdapterMock();
+        var liveFeedbackMock = new LiveFeedbackStrategyMock();
+        var graphAdapterMock = new MusicGraphAdapterMock();
+
+        var strategies = List.of(
+                new MacroCurveStrategyMock(),
+                new HistoryStrategyMock()
+        );
+        var aggregator = new PredictionAggregator(strategies);
+
+        DjSessionController controller = new DjSessionController(
+                playerMock, liveFeedbackMock, aggregator, graphAdapterMock
         );
 
-        MusicPlayerAdapter spotifyPlayer = new SpotifyAdapter();
-        MusicService musicService = new MusicService(
-                spotifyPlayer,
-                new SongSelectorMock(),
-                new UserContextStrategyMock()
-        );
-
-        BufferedImage img = ImageIO.read(new File("src/main/resources/testScene.png"));
-
-        System.out.println("\n---- Starte normale Verarbeitung --- ");
-        musicService.handleFrame(visionService.processFrame(img));
+        Track entrySong = new Track("3K4HG9evC7dg3N0R9cYqk4", "One Step Closer", "Linkin Park", 0.6, 120.0);
+        controller.startSession(entrySong);
     }
 }

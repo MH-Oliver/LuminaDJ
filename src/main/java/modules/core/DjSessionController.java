@@ -1,0 +1,53 @@
+package modules.core;
+
+import modules.music.strategies.core.MusicPlayerAdapter;
+import modules.music.strategies.core.MusicSourceAdapter;
+import modules.music.structures.Track;
+import modules.prediction.services.PredictionAggregator;
+import modules.vision.structures.FeedbackResult;
+import modules.prediction.structures.PredictedAttributes;
+import modules.vision.strategies.core.LiveFeedbackStrategy;
+
+public class DjSessionController {
+
+    private final MusicPlayerAdapter player;
+    private final LiveFeedbackStrategy liveFeedback;
+    private final PredictionAggregator aggregator;
+    private final MusicSourceAdapter sourceAdapter;
+
+    private boolean sessionActive = true;
+
+    // Dependency Injection über den Konstruktor
+    public DjSessionController(MusicPlayerAdapter player, LiveFeedbackStrategy liveFeedback,
+                               PredictionAggregator aggregator, MusicSourceAdapter sourceAdapter) {
+        this.player = player;
+        this.liveFeedback = liveFeedback;
+        this.aggregator = aggregator;
+        this.sourceAdapter = sourceAdapter;
+    }
+
+    public void startSession(Track entrySong) {
+        Track currentSong = entrySong;
+
+        while (sessionActive) {
+            // 1. ZUSTAND: Abspielen & parallel Beobachten (Fork)
+            liveFeedback.startParallelEvaluation(currentSong);
+
+            // Simuliert das Blockieren, bis der Song zu Ende ist
+            player.play(currentSong);
+
+            // 2. TRIGGER: Song beendet -> Ergebnisse einsammeln
+            FeedbackResult feedback = liveFeedback.stopAndGetResult();
+
+            // 3. AUSWERTUNG: Aggregator verrechnet alle Parameter
+            PredictedAttributes predictedTarget = aggregator.calculateNextAttributes(currentSong, feedback);
+
+            // 4. NEUEN SONG FINDEN: Über Graph oder API
+            Track nextSong = sourceAdapter.getNextSong(predictedTarget, currentSong);
+
+            currentSong = nextSong;
+
+            sessionActive = false; // DEBUG, damit nicht ewig läuft
+        }
+    }
+}

@@ -1,0 +1,69 @@
+@startuml
+skinparam style strictuml
+skinparam defaultTextAlignment center
+skinparam ActivityBackgroundColor #EBF5FB
+skinparam ActivityBorderColor #2980B9
+skinparam NoteBackgroundColor #FDFEFE
+skinparam NoteBorderColor #BDC3C7
+
+start
+
+:<b>Systemstart</b>
+Initialen Einstiegs-Song laden;
+
+repeat
+  ' --- ZUSTAND: ABSPIELEN & BEOBACHTEN ---
+  fork
+    :<b>MusicPlayerAdapter</b>
+    Zustand: Song abspielen;
+  fork again
+    :<b>LiveFeedbackStrategy</b>
+    Zustand: Kamera wertet Publikums-Feedback
+    parallel zum Song aus;
+  end fork
+
+  ' --- TRIGGER: ENDE ---
+  :<i>Trigger: Song ist beendet</i>;
+
+  ' --- AUSWERTUNG ---
+  :Übergib bisherigen Song (Basis-Parameter)
+  an den <b>PredictionAggregator</b>;
+
+  partition "PredictionAggregator (Auswertung)" {
+    :Iteriere über <b>List<PredictionStrategy></b>
+    (z.B. UserContextStrategy, HistoryStrategy, LiveFeedbackStrategy);
+
+    note right
+      <b>Interface PredictionStrategy</b>
+      + weight: float
+      + calculate(currentSong): PredictionFactor
+    end note
+
+    :Jede Strategie liefert ein <b>PredictionFactor</b> Objekt
+    (Enthält Vektor-Multiplikatoren für z.B. Energy, BPM);
+
+    :Verechne Basis-Parameter des alten Songs
+    mit den gewichteten Faktoren aller Strategien;
+
+    :Generiere finale <b>PredictedAttributes</b>;
+  }
+
+  ' --- NÄCHSTER SONG FINDEN ---
+  :Übergib <b>PredictedAttributes</b> und <b>bisherigen Song</b>
+  an den <b>MusicSourceAdapter</b>;
+
+  note left
+    <b>Interface MusicSourceAdapter</b>
+    + getNextSong(predictedTarget, currentSong): Song
+    --
+    <i>(Austauschbar: Kann der MusicGraph-Adapter
+    sein oder direkt die Spotify API)</i>
+  end note
+
+  :MusicSourceAdapter liefert den <b>Neuen Song</b>;
+
+repeat while (DJ-Session aktiv?) is (ja)
+-> nein;
+
+stop
+@enduml
