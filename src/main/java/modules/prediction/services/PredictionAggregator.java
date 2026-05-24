@@ -2,10 +2,12 @@ package modules.prediction.services;
 
 import modules.music.structures.Track;
 import modules.prediction.strategies.core.PredictionStrategy;
+import modules.prediction.strategies.prediction.LiveFeedbackAdapter;
 import modules.vision.structures.FeedbackResult;
 import modules.prediction.structures.PredictedAttributes;
 import modules.prediction.structures.PredictionFactor;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.lang.reflect.Constructor;
@@ -33,8 +35,11 @@ public class PredictionAggregator {
         System.out.println("Prediction-Aggregator (Starte Berechnung): Daten aus letztem Track -> Energy "
                 + baseValues[0] + " und BPM " + baseValues[1]);
 
+        List<PredictionStrategy> runStrategies = new ArrayList<>(this.strategies);
+        runStrategies.add(new LiveFeedbackAdapter(feedback, 0.8));
+
         // Iteriere über alle aktiven Strategien
-        for (PredictionStrategy strategy : strategies) {
+        for (PredictionStrategy strategy : runStrategies) {
             PredictionFactor factor = strategy.calculate(currentSong);
             double weight = strategy.getWeight();
 
@@ -52,10 +57,8 @@ public class PredictionAggregator {
         }
 
         // Durchschnitt berechnen
-        int count = strategies.size();
+        int count = runStrategies.size();
         Arrays.setAll(finalValues, i -> finalValues[i] / count);
-
-        // TODO Kamera-Feedback muss noch in Berechnung einbezogen werden
 
         // Dynamisches Erzeugen des Rückgabe-Objekts (PredictedAttributes) via Reflection
         try {
