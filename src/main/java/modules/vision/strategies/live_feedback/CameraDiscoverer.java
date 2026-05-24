@@ -6,13 +6,19 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
 
+/**
+ * Hilfsklasse, um automatisch die IP-Adresse von dem Smartphone mit dem Live-Kamera-Stream zu finden.
+ */
 public class CameraDiscoverer {
 
-    // Diese Methode wird von außen aufgerufen
+    /**
+     * Falls eine IP-Adresse mit einem Kamera-Stream gefunden wurde, wird diese zurückgegeben.
+     * Ansonsten kann diese über einen Dialog eingegeben werden, falls dies auch nicht passiert erfolgt ein sofortiger Programm-Abbruch.
+     * @return IP-Adresse vom Kamera Stream
+     */
     public static String resolveCameraIp() {
         String ip = autoDetectCameraIp();
 
-        // Fallback-Logik ist jetzt komplett hier gekapselt
         if (ip == null) {
             ip = JOptionPane.showInputDialog(
                     null,
@@ -29,7 +35,14 @@ public class CameraDiscoverer {
         return ip.replace("http://", "").replace("/shot.jpg", "");
     }
 
-    // Der eigentliche Scan-Algorithmus (jetzt private)
+    /**
+     * Algorithmus zum Scannen der IP-Adresse.
+     * Hier wird an alle Geräte im lokalen Netzwerk ein Request an den Port 8080 gesendet, und ein JPG-Bild als Ergebnis erwartet.
+     * Wurde dies gefunden, wird die IP-Adresse von diesem Gerät zurückgegeben.
+     * <p>
+     * Um die Laufzeit auf max 3 Sekunden zu verringern, werden die Requests in 50 parallelen Threads ausgeführt.
+     * @return IP-Adresse oder null
+     */
     private static String autoDetectCameraIp() {
         System.out.println("Suche automatisch nach der Smartphone-Kamera im WLAN...");
         try {

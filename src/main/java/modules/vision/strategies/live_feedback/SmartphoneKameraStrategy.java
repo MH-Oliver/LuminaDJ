@@ -1,7 +1,5 @@
 package modules.vision.strategies.live_feedback;
 
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
 import modules.music.structures.Track;
 import modules.vision.strategies.core.DetectionStrategy;
 import modules.vision.strategies.core.LiveFeedbackStrategy;
@@ -18,6 +16,10 @@ import java.net.http.HttpResponse;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+/**
+ * Live-Feedback wird über eine HTTP-Schnittstelle zu einem Smartphone realisiert.
+ * Die Kamera-Daten werden gemäß eine FrameRate durch eine DetectionStrategy ausgewertet.
+ */
 public class SmartphoneKameraStrategy implements LiveFeedbackStrategy {
 
     private final String cameraUrl;
@@ -39,6 +41,11 @@ public class SmartphoneKameraStrategy implements LiveFeedbackStrategy {
         this.httpClient = HttpClient.newHttpClient();
     }
 
+    /**
+     * Hier wird in einem eigenen Thread die Kamera-Auswertung realisiert.
+     * Dabei wird je nach Frame-Rate ein HTTP Request an das Smartphone gesendet, der das aktuelle Bild abfragt.
+     * Dieses Bild wird dann entsprechend der Detection-Strategy ausgewertet und das Ergebnis in einer History gespeichert.
+     */
     @Override
     public void startParallelEvaluation(Track song) {
         isRunning = true;
@@ -82,6 +89,12 @@ public class SmartphoneKameraStrategy implements LiveFeedbackStrategy {
         evaluationThread.start();
     }
 
+    /**
+     * Hier wird das FeedbackResult berechnet.
+     * Hierzu wird der Durchschnitt der Mesungen für die Intensity als Intensity übergeben.
+     * Der Trend ist positiv,
+     * wenn das letzte Frame eine höhere Intensity als der Durchschnitt über den letzten Song hatte.
+     */
     @Override
     public FeedbackResult stopAndGetResult() {
         isRunning = false;
