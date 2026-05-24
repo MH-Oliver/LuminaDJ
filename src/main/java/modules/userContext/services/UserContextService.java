@@ -4,13 +4,13 @@ import modules.userContext.strategies.core.UserContextStrategy;
 import modules.userContext.structures.UserContextDTO;
 
 /**
- * Singelton Klasse, um überall auf den UserContext zugreifen zu können.
+ * Singleton-Klasse, um überall auf den UserContext zugreifen zu können.
  * <p>
  * WICHTIG: Vor dem ersten Zugriff muss die UserContextStrategy gesetzt werden.
  */
 public class UserContextService {
     private static UserContextService instance;
-    private UserContextStrategy strategy;
+    private volatile UserContextStrategy strategy;
 
     private UserContextService() {}
 

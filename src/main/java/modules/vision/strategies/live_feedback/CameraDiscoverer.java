@@ -2,8 +2,6 @@ package modules.vision.strategies.live_feedback;
 
 import javax.swing.JOptionPane;
 import java.net.InetAddress;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.*;
 
 /**
@@ -13,7 +11,7 @@ public class CameraDiscoverer {
 
     /**
      * Falls eine IP-Adresse mit einem Kamera-Stream gefunden wurde, wird diese zurückgegeben.
-     * Ansonsten kann diese über einen Dialog eingegeben werden, falls dies auch nicht passiert erfolgt ein sofortiger Programm-Abbruch.
+     * Ansonsten kann diese über einen Dialog eingegeben werden, falls dies auch nicht passiert wird eine Exception geworfen.
      * @return IP-Adresse vom Kamera Stream
      */
     public static String resolveCameraIp() {
@@ -29,7 +27,7 @@ public class CameraDiscoverer {
 
             if (ip == null || ip.trim().isEmpty()) {
                 System.err.println("Abbruch durch Nutzer.");
-                System.exit(0);
+                throw new IllegalStateException("Keine Kamera-IP angegeben.");
             }
         }
         return ip.replace("http://", "").replace("/shot.jpg", "");
@@ -49,13 +47,14 @@ public class CameraDiscoverer {
             String localIp = InetAddress.getLocalHost().getHostAddress();
             String subnet = localIp.substring(0, localIp.lastIndexOf('.') + 1);
 
-            // Try-With-Ressources: Threads werdem im Anschluss alle automatisch wieder geschlossen.
+            // Try-With-Resources: Threads werden im Anschluss alle automatisch wieder geschlossen.
             try (ExecutorService executor = Executors.newFixedThreadPool(50)) {
-                List<Future<String>> futures = new ArrayList<>();
+                CompletionService<String> completionService = new ExecutorCompletionService<>(executor);
+                int submittedTasks = 0;
 
                 for (int i = 1; i < 255; i++) {
                     String targetIp = subnet + i;
-                    futures.add(executor.submit(() -> {
+                    completionService.submit(() -> {
                         try {
                             String testUrl = "http://" + targetIp + ":8080/shot.jpg";
                             java.net.HttpURLConnection connection = (java.net.HttpURLConnection) new java.net.URL(testUrl).openConnection();
@@ -63,18 +62,20 @@ public class CameraDiscoverer {
                             connection.setReadTimeout(300);
                             connection.setRequestMethod("HEAD");
 
-                            if (connection.getResponseCode() == 200 && connection.getContentType().startsWith("image/")) {
+                            String contentType = connection.getContentType();
+                            if (connection.getResponseCode() == 200 && contentType != null && contentType.startsWith("image/")) {
                                 return targetIp + ":8080";
                             }
                         } catch (Exception ignored) {
                         }
                         return null;
-                    }));
+                    });
+                    submittedTasks++;
                 }
 
                 // Ergebnisse auswerten
-                for (Future<String> future : futures) {
-                    String result = future.get(); // Wartet auf das Ergebnis dieses Threads
+                for (int i = 0; i < submittedTasks; i++) {
+                    String result = completionService.take().get();
                     if (result != null) {
                         executor.shutdownNow(); // Bricht alle noch laufenden Suchanfragen sofort ab
                         System.out.println("✅ Kamera automatisch gefunden unter: " + result);

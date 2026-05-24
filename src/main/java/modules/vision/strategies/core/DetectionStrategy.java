@@ -1,6 +1,5 @@
 package modules.vision.strategies.core;
 
-import modules.userContext.structures.UserContextDTO;
 import modules.vision.structures.FrameDataDTO;
 
 import java.awt.image.BufferedImage;

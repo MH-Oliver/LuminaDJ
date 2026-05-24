@@ -20,7 +20,7 @@ import java.util.Base64;
 /**
  * Implementierung der {@link DetectionStrategy}, die LangChain4j nutzt, um Bilder
  * über die GroqCloud (mit dem multimodalen Llama 4 Modell) zu analysieren.
- * * Diese Strategie extrahiert die Anzahl der Personen sowie die vorherrschende Emotion
+ * Diese Strategie extrahiert die Anzahl der Personen sowie die Bewegungsintensität
  * aus einem Bild und berücksichtigt dabei den dynamischen User-Kontext (z. B. die Location).
  */
 public class DetectionStrategyLangChain4j implements DetectionStrategy {
@@ -45,17 +45,22 @@ public class DetectionStrategyLangChain4j implements DetectionStrategy {
 
     /**
      * Analysiert das übergebene Bild mithilfe des LLMs und gibt strukturierte Daten zurück.
-     * Der Prompt wird dabei dynamisch anhand der übergebenen Location (Kontext) angepasst.
+     * Der Prompt wird dabei dynamisch anhand des aktuellen Kontexts aus dem
+     * {@link UserContextService} angepasst.
      * Sollte die KI-Anfrage fehlschlagen (z. B. wegen Rate-Limits), wird auf eine
      * Fallback-Strategie (Mock) zurückgegriffen.
      *
      * @param image   Das zu analysierende Bild (z.B. ein Frame aus einem Videostream).
-     * der dem LLM hilft, das Bild umgebungsspezifisch zu interpretieren.
-     * @return Ein {@link FrameDataDTO}, das die Anzahl der Personen und die Stimmung (Emotion) enthält.
+     * @return Ein {@link FrameDataDTO}, das die Anzahl der Personen und die Intensität enthält.
      */
     @Override
     public FrameDataDTO analyse(BufferedImage image) {
-        UserContextDTO context = UserContextService.getInstance().getCurrentContext();
+        UserContextDTO context = null;
+        try {
+            context = UserContextService.getInstance().getCurrentContext();
+        } catch (IllegalStateException e) {
+            // No user-context strategy is configured; continue without contextual prompt enrichment.
+        }
 
         try {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();

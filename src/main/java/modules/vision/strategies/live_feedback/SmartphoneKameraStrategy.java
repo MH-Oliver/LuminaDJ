@@ -13,6 +13,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -31,14 +32,15 @@ public class SmartphoneKameraStrategy implements LiveFeedbackStrategy {
 
     private final List<Integer> intensityHistory = new CopyOnWriteArrayList<>();
 
-    private final int FRAME_RATE = 10000;
+    private final int FRAME_INTERVAL_MS = 10000;
+    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(3);
 
     public SmartphoneKameraStrategy(DetectionStrategy detectionStrategy) {
         String resolvedIpAndPort = CameraDiscoverer.resolveCameraIp();
 
         this.cameraUrl = "http://" + resolvedIpAndPort + "/shot.jpg";
         this.detectionStrategy = detectionStrategy;
-        this.httpClient = HttpClient.newHttpClient();
+        this.httpClient = HttpClient.newBuilder().connectTimeout(REQUEST_TIMEOUT).build();
     }
 
     /**
@@ -57,7 +59,10 @@ public class SmartphoneKameraStrategy implements LiveFeedbackStrategy {
             while (isRunning) {
                 try {
                     // 1. Bild als Byte-Array vom Handy laden
-                    HttpRequest request = HttpRequest.newBuilder().uri(URI.create(cameraUrl)).build();
+                    HttpRequest request = HttpRequest.newBuilder()
+                            .uri(URI.create(cameraUrl))
+                            .timeout(REQUEST_TIMEOUT)
+                            .build();
                     HttpResponse<byte[]> response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
 
                     if (response.statusCode() == 200) {
@@ -76,10 +81,11 @@ public class SmartphoneKameraStrategy implements LiveFeedbackStrategy {
                         }
                     }
 
-                    Thread.sleep(this.FRAME_RATE);
+                    Thread.sleep(this.FRAME_INTERVAL_MS);
 
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
+                    break;
                 } catch (Exception e) {
                     System.err.println("Verbindung zur Kamera fehlgeschlagen: " + e.getMessage());
                     try { Thread.sleep(5000); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
@@ -100,6 +106,11 @@ public class SmartphoneKameraStrategy implements LiveFeedbackStrategy {
         isRunning = false;
         if (evaluationThread != null) {
             evaluationThread.interrupt();
+            try {
+                evaluationThread.join(1000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
         }
         return calculateFinalFeedback();
     }
@@ -115,10 +126,11 @@ public class SmartphoneKameraStrategy implements LiveFeedbackStrategy {
         }
         double averageIntensity = sum / intensityHistory.size();
         boolean isPositiveTrend = intensityHistory.get(intensityHistory.size() - 1) >= averageIntensity;
+        double normalizedAverageIntensity = Math.max(0.0, Math.min(1.0, averageIntensity / 100.0));
 
         System.out.printf("Song beendet. Ø Intensität: %.2f | Trend positiv: %b%n",
                 averageIntensity, isPositiveTrend);
 
-        return new FeedbackResult(isPositiveTrend, averageIntensity);
+        return new FeedbackResult(isPositiveTrend, normalizedAverageIntensity);
     }
 }

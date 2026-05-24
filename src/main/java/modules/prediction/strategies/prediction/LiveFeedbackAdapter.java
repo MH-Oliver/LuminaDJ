@@ -40,8 +40,8 @@ public class LiveFeedbackAdapter implements PredictionStrategy {
         double currentEnergy = currentTrack.energy();
 
         if (feedback.isPositiveTrend()) {
-            double energyPush = (currentIntensity > 80.0) ? 1.0 : 1.05;
-            double bpmPush    = (currentIntensity > 80.0) ? 1.0 : 1.02;
+            double energyPush = (currentIntensity > 0.80) ? 1.0 : 1.05;
+            double bpmPush    = (currentIntensity > 0.80) ? 1.0 : 1.02;
             System.out.println("LiveFeedback: Crowd motiviert, halten der Stimmung");
 
             return new PredictionFactor(energyPush, bpmPush);
@@ -51,7 +51,7 @@ public class LiveFeedbackAdapter implements PredictionStrategy {
             double bpmBreak;
 
             if (currentEnergy > 0.70) {
-                energyBreak = (currentIntensity < 40.0) ? 0.65 : 0.85;
+                energyBreak = (currentIntensity < 0.40) ? 0.65 : 0.85;
                 bpmBreak = 0.98;
                 System.out.println("LiveFeedback: Crowd erschöpft -> Bruch nach UNTEN.");
             } else {

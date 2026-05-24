@@ -30,5 +30,20 @@ Folge diesen Schritten, um deinen Schlüssel zu erhalten:
 
 ---
 
+## Live-Kamera-Feedback über Smartphone
+Als `LiveFeedbackStrategy` steht die Klasse `SmartphoneKameraStrategy` zur Verfügung.
+Hier wird eine Live-Verbindung zu der Kamera von einem Smartphone über eine HTTP Schnittstelle realisiert.
+
+**Einrichtung:**
+1. Für Android-Geräte kann über den Google-Play-Store die App `IP Webcam` installiert werden.
+2. Sicherstellen, dass PC und Smartphone im gleichen Netzwerk.
+3. In der App ganz nach unten scrollen, dort den Button `Server starten` klicken.
+4. Ist der Server gestartet, kann nun auch der Code ausgeführt werden.
+   - Die Verbindung zum Smartphone sollte innerhalb weniger Sekunden automatisch hergestellt werden.
+   - Falls automatische Verbindung fehlgeschlagen, 
+   muss die IP-Adresse (in der Smartphone App ganz unten zu finden) manuell im Dialog eingegeben werden.
+
+---
+
 ## Projekt starten
 *(Bisher noch kein richtiges Deployment umgesetzt)*
