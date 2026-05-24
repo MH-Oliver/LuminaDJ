@@ -32,10 +32,9 @@ public class SmartphoneKameraStrategy implements LiveFeedbackStrategy {
     private final int FRAME_RATE = 10000;
 
     public SmartphoneKameraStrategy(DetectionStrategy detectionStrategy) {
-        Config conf = ConfigFactory.load();
-        String cameraIpAndPort = conf.getString("camera.ipAndPort");
+        String resolvedIpAndPort = CameraDiscoverer.resolveCameraIp();
 
-        this.cameraUrl = "http://" + cameraIpAndPort + "/shot.jpg";
+        this.cameraUrl = "http://" + resolvedIpAndPort + "/shot.jpg";
         this.detectionStrategy = detectionStrategy;
         this.httpClient = HttpClient.newHttpClient();
     }
@@ -75,7 +74,7 @@ public class SmartphoneKameraStrategy implements LiveFeedbackStrategy {
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                 } catch (Exception e) {
-                    System.err.println("Kamera-Fehler: " + e.getMessage());
+                    System.err.println("Verbindung zur Kamera fehlgeschlagen: " + e.getMessage());
                     try { Thread.sleep(5000); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
                 }
             }
