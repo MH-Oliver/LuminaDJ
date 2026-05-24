@@ -11,13 +11,12 @@ public class VisionService {
     private DetectionStrategy detectionStrategy;
     private UserContextStrategy userContextStrategy;
 
-    public VisionService(DetectionStrategy detectionStrategy, UserContextStrategy userContextStrategy) {
+    public VisionService(DetectionStrategy detectionStrategy) {
         this.detectionStrategy = detectionStrategy;
-        this.userContextStrategy = userContextStrategy;
     }
 
     public FrameDataDTO processFrame(BufferedImage image) {
 
-        return detectionStrategy.analyse(image, userContextStrategy.getUserContext());
+        return detectionStrategy.analyse(image);
     }
 }

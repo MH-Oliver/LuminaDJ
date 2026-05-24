@@ -7,6 +7,7 @@ import dev.langchain4j.data.message.ImageContent;
 import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.openai.OpenAiChatModel;
+import modules.userContext.services.UserContextService;
 import modules.userContext.structures.UserContextDTO;
 import modules.vision.strategies.core.DetectionStrategy;
 import modules.vision.structures.FrameDataDTO;
@@ -49,27 +50,19 @@ public class DetectionStrategyLangChain4j implements DetectionStrategy {
      * Fallback-Strategie (Mock) zurückgegriffen.
      *
      * @param image   Das zu analysierende Bild (z.B. ein Frame aus einem Videostream).
-     * @param context Der aktuelle Nutzerkontext (enthält u. a. die Location wie Bar oder Party),
      * der dem LLM hilft, das Bild umgebungsspezifisch zu interpretieren.
      * @return Ein {@link FrameDataDTO}, das die Anzahl der Personen und die Stimmung (Emotion) enthält.
      */
     @Override
-    public FrameDataDTO analyse(BufferedImage image, UserContextDTO context) {
+    public FrameDataDTO analyse(BufferedImage image) {
+        UserContextDTO context = UserContextService.getInstance().getCurrentContext();
+
         try {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             ImageIO.write(image, "png", baos);
             String base64Image = Base64.getEncoder().encodeToString(baos.toByteArray());
 
-            // Prompt dynamisch anhand der Location aufbauen
-            String locationName = context != null ? context.location().name() : "Unbekannt";
-
-            String promptText = String.format(
-                    "Analysiere das angehängte Bild sehr genau. Der Nutzer hat angegeben, dass sich diese Szene in folgendem Kontext abspielt: '%s'. " +
-                            "Bitte passe deine visuelle Analyse an diese Umgebung an (z.B. erwarte schlechte Lichtverhältnisse in einer Bar, oder schnelle Bewegungen auf einer Party). " +
-                            "Zähle alle sichtbaren Personen im Raum. Schätze zudem die grundlegende Stimmung (emotion) der Szene ein. " +
-                            "Antworte AUSSCHLIESSLICH in validem JSON in exakt folgendem Format: {\"personCount\": <Zahl>, \"emotion\": \"Fear\" | \"Happy\" | \"Sad\" | \"Anger\"}",
-                    locationName
-            );
+            String promptText = getPromptText(context);
 
             UserMessage userMessage = UserMessage.from(
                     TextContent.from(promptText),
@@ -77,11 +70,29 @@ public class DetectionStrategyLangChain4j implements DetectionStrategy {
             );
 
             String responseText = model.chat(userMessage).aiMessage().text();
+
+            if (responseText.contains("```")) {
+                responseText = responseText.replaceAll("```json", "").replaceAll("```", "").trim();
+            }
+
             return objectMapper.readValue(responseText, FrameDataDTO.class);
 
         } catch (Exception e) {
             System.err.println("VLM analysis failed, falling back to mock: " + e.getMessage());
-            return fallback.analyse(image, context);
+            return fallback.analyse(image);
         }
+    }
+
+    private String getPromptText(UserContextDTO context) {
+        String locationName = context != null ? context.location().name() : "Unbekannt";
+
+        return String.format(
+                "Analysiere das angehängte Bild sehr genau. Der Nutzer hat angegeben, dass sich diese Szene in folgendem Kontext abspielt: '%s'. " +
+                        "Bitte passe deine visuelle Analyse an diese Umgebung an (z.B. erwarte schlechte Lichtverhältnisse in einer Bar, oder schnelle Bewegungen auf einer Party). " +
+                        "Zähle alle sichtbaren Personen im Raum (personCount). " +
+                        "Schätze zudem die Bewegungsintensität bzw. Energie der Szene (intensity) auf einer Skala von 0 bis 100 ein (0 = alle sitzen/stehen völlig ruhig, 100 = alle tanzen und springen wild). " +
+                        "Antworte AUSSCHLIESSLICH in validem JSON in exakt folgendem Format: {\"intensity\": <Zahl>, \"personCount\": <Zahl>}",
+                locationName
+        );
     }
 }

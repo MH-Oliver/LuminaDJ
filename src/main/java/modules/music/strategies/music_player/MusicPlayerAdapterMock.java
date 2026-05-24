@@ -10,7 +10,7 @@ public class MusicPlayerAdapterMock implements MusicPlayerAdapter {
         System.out.println("Mock Player: Blockiere System für 10 Sekunden (Playback-Simulation läuft)...");
 
         try {
-            Thread.sleep(10000);
+            Thread.sleep(60000);
         } catch (InterruptedException e) {
             System.err.println("Mock Player: Playback wurde unerwartet unterbrochen!");
             Thread.currentThread().interrupt();

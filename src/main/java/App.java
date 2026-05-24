@@ -5,7 +5,10 @@ import modules.music.structures.Track;
 import modules.prediction.services.PredictionAggregator;
 import modules.prediction.strategies.prediction.HistoryStrategyMock;
 import modules.prediction.strategies.prediction.MacroCurveStrategyMock;
-import modules.vision.strategies.live_feedback.LiveFeedbackStrategyMock;
+import modules.userContext.services.UserContextService;
+import modules.userContext.strategies.impl.UserContextStrategyMock;
+import modules.vision.strategies.detection.DetectionStrategyLangChain4j;
+import modules.vision.strategies.live_feedback.SmartphoneKameraStrategy;
 
 import java.util.List;
 
@@ -13,7 +16,12 @@ public class App
 {
     public static void main( String[] args ) {
         var playerMock = new MusicPlayerAdapterMock();
-        var liveFeedbackMock = new LiveFeedbackStrategyMock();
+        var liveFeedbackMock = new SmartphoneKameraStrategy(
+                new DetectionStrategyLangChain4j()
+        );
+
+        UserContextService.getInstance().setStrategy(new UserContextStrategyMock());
+
         var graphAdapterMock = new MusicGraphAdapterMock();
 
         var strategies = List.of(

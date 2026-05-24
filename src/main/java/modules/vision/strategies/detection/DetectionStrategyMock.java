@@ -9,11 +9,11 @@ import java.awt.image.BufferedImage;
 
 public class DetectionStrategyMock implements DetectionStrategy {
     @Override
-    public FrameDataDTO analyse(BufferedImage image, UserContextDTO userContext) {
-        var frameData = new FrameDataDTO(11, Emotion.Anger);
+    public FrameDataDTO analyse(BufferedImage image) {
+        var frameData = new FrameDataDTO(-1, -1);
 
-        System.out.println("Erkannte Frame-Data im Bild: " + frameData);
+        System.out.println("MOCK: Erkannte Frame-Data im Bild: " + frameData);
 
-        return new FrameDataDTO(3, Emotion.Happy);
+        return frameData;
     }
 }
