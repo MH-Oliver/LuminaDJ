@@ -4,13 +4,15 @@ import modules.music.strategies.core.MusicPlayerAdapter;
 import modules.music.structures.Track;
 
 public class MusicPlayerAdapterMock implements MusicPlayerAdapter {
+    private static final int PLAYBACK_SIMULATION_MS = 10_000;
+
     @Override
     public void play(Track track) {
         System.out.println("Mock Player: Lade und spiele Song ab -> " + track.name());
         System.out.println("Mock Player: Blockiere System für 10 Sekunden (Playback-Simulation läuft)...");
 
         try {
-            Thread.sleep(10000);
+            Thread.sleep(PLAYBACK_SIMULATION_MS);
         } catch (InterruptedException e) {
             System.err.println("Mock Player: Playback wurde unerwartet unterbrochen!");
             Thread.currentThread().interrupt();

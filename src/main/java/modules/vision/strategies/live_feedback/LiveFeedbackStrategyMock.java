@@ -40,8 +40,8 @@ public class LiveFeedbackStrategyMock implements LiveFeedbackStrategy {
             evaluationThread.interrupt();
         }
 
-        double intensity = 0.8;
-        System.out.println("Mock [Live-Kamera]: Song beendet. Stoppe Auswertung und liefere finales Feedback (intensity=" + intensity + ")." );
-        return new FeedbackResult(true, intensity);
+        var feedbackResult = new FeedbackResult(true, 0.8);
+        System.out.println("Mock [Live-Kamera]: Song beendet. Stoppe Auswertung und liefere finales Feedback (" + feedbackResult + ")." );
+        return feedbackResult;
     }
 }
