@@ -1,7 +1,12 @@
 package modules.userContext.structures;
 
+import java.time.LocalTime;
+import java.util.Map;
+
 public record UserContextDTO (
         int tempo,
-        Location location
+        Location location,
+        LocalTime currentTime,
+        Map<String, MacroCurve> attributeCurves
 ) {
 }
