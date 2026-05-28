@@ -41,6 +41,10 @@ public class MacroCurveStrategy implements PredictionStrategy {
         double energyFactor = targetEnergy / energyDivisor;
         double bpmFactor = targetBpm / bpmDivisor;
 
-        return new PredictionFactor(energyFactor, bpmFactor);
+        var predictionFactor = new PredictionFactor(energyFactor, bpmFactor);
+
+        System.out.println("Macro-Curve: " + predictionFactor);
+
+        return predictionFactor;
     }
 }

@@ -117,7 +117,7 @@ public class SmartphoneKameraStrategy implements LiveFeedbackStrategy {
 
     private FeedbackResult calculateFinalFeedback() {
         if (intensityHistory.isEmpty()) {
-            return new FeedbackResult(false, 0.0);
+            return new FeedbackResult(true, 1.0);
         }
 
         double sum = 0;
