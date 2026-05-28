@@ -4,7 +4,7 @@ import modules.music.strategies.music_source.MusicGraphAdapterMock;
 import modules.music.structures.Track;
 import modules.prediction.services.PredictionAggregator;
 import modules.prediction.strategies.prediction.HistoryStrategyMock;
-import modules.prediction.strategies.prediction.MacroCurveStrategyMock;
+import modules.prediction.strategies.prediction.MacroCurveStrategy;
 import modules.userContext.services.UserContextService;
 import modules.userContext.strategies.impl.UserContextStrategyMock;
 import modules.vision.strategies.detection.DetectionStrategyLangChain4j;
@@ -25,7 +25,7 @@ public class App
         var graphAdapterMock = new MusicGraphAdapterMock();
 
         var strategies = List.of(
-                new MacroCurveStrategyMock(),
+                new MacroCurveStrategy(),
                 new HistoryStrategyMock()
         );
         var aggregator = new PredictionAggregator(strategies);
