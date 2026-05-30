@@ -42,6 +42,7 @@ public class DjSessionController {
             // 3. AUSWERTUNG: Aggregator verrechnet alle Parameter
             PredictedAttributes predictedTarget = aggregator.calculateNextAttributes(currentSong, feedback);
 
+            System.out.println("General Predicted Target: " + predictedTarget);
             // 4. NEUEN SONG FINDEN: Über Graph oder API
             Track nextSong = sourceAdapter.getNextSong(predictedTarget, currentSong);
 

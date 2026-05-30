@@ -7,6 +7,9 @@ package modules.prediction.structures;
  */
 public record PredictedAttributes(
         double energy,
-        double bpm
-) {
-}
+        double bpm,
+        double danceability,
+        double acousticness,
+        double instrumentalness,
+        double speechiness
+) {}

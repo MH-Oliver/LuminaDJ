@@ -28,7 +28,14 @@ public class PredictionAggregator {
      */
 
     public PredictedAttributes calculateNextAttributes(Track currentSong, FeedbackResult feedback) {
-        double[] baseValues = new double[] { currentSong.energy(), currentSong.bpm() };
+        double[] baseValues = new double[] {
+                currentSong.energy(),
+                currentSong.bpm(),
+                currentSong.danceability(),
+                currentSong.acousticness(),
+                currentSong.instrumentalness(),
+                currentSong.speechiness()
+        };
 
         double[] finalValues = new double[baseValues.length];
 

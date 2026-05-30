@@ -5,6 +5,9 @@ public record Track(
         String name,
         String author,
         double energy,
-        double bpm
-){
-}
+        double bpm,
+        double danceability,
+        double acousticness,
+        double instrumentalness,
+        double speechiness
+) {}

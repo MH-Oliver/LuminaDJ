@@ -40,27 +40,52 @@ public class LiveFeedbackAdapter implements PredictionStrategy {
         double currentEnergy = currentTrack.energy();
 
         if (feedback.isPositiveTrend()) {
-            double energyPush = (currentIntensity > 0.80) ? 1.0 : 1.05;
-            double bpmPush    = (currentIntensity > 0.80) ? 1.0 : 1.02;
+            // Crowd ist motiviert -> Wir halten oder pushen das Momentum leicht.
+            double limitReached = currentIntensity > 0.80 ? 1.0 : 1.05;
+
+            double energyPush = limitReached;
+            double dancePush  = limitReached;
+            double bpmPush    = currentIntensity > 0.80 ? 1.0 : 1.02;
+
+            // Stimmung ist top, also reduzieren wir Akustik leicht für mehr Club-Vibe
+            double acousticPush = 0.95;
+            double instrumentalPush = 1.0; // Instrumental / Vocals bleiben im aktuellen Flow
+            double speechPush = 1.0;
+
             System.out.println("LiveFeedback: Crowd motiviert, halten der Stimmung");
 
-            return new PredictionFactor(energyPush, bpmPush);
+            return new PredictionFactor(
+                    energyPush, bpmPush, dancePush, acousticPush, instrumentalPush, speechPush
+            );
 
         } else {
-            double energyBreak;
-            double bpmBreak;
+            // Trend ist negativ -> Wir müssen reagieren (Reset / Bruch)
+            double energyBreak, bpmBreak, danceBreak, acousticBreak, instrumentalBreak, speechBreak;
 
             if (currentEnergy > 0.70) {
+                System.out.println("LiveFeedback: Crowd erschöpft -> Bruch nach UNTEN.");
+
                 energyBreak = (currentIntensity < 0.40) ? 0.65 : 0.85;
                 bpmBreak = 0.98;
-                System.out.println("LiveFeedback: Crowd erschöpft -> Bruch nach UNTEN.");
+                danceBreak = 0.90; // Etwas den Groove rausnehmen
+                acousticBreak = 1.30; // Deutlich mehr akustische, organische Sounds zur Erholung
+                instrumentalBreak = 1.15; // Mehr Instrumentals, weniger anstrengende Vocals
+                speechBreak = 1.0;
+
             } else {
-                energyBreak = 1.40;
-                bpmBreak = 1.10;
                 System.out.println("LiveFeedback: Crowd gelangweilt -> Bruch nach OBEN (Wake-Up Call!).");
+
+                energyBreak = 1.40; // Harter Push
+                bpmBreak = 1.10;
+                danceBreak = 1.30; // Drastisch mehr Groove erzwingen
+                acousticBreak = 0.70; // Harter Cut weg von chilliger Akustik, rein in elektronische Banger
+                instrumentalBreak = 0.80; // Deutlich weniger Instrumental -> Wir brauchen Vocals zum Mitsingen!
+                speechBreak = 1.10; // Evtl. ein paar Rap/Hype-Elemente reinbringen
             }
 
-            return new PredictionFactor(energyBreak, bpmBreak);
+            return new PredictionFactor(
+                    energyBreak, bpmBreak, danceBreak, acousticBreak, instrumentalBreak, speechBreak
+            );
         }
     }
 }
