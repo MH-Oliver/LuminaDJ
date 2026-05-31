@@ -10,6 +10,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.net.http.HttpTimeoutException;
 import java.time.Duration;
 
 public class ReccoBeatsAdapter implements MusicSourceAdapter {
@@ -46,6 +47,7 @@ public class ReccoBeatsAdapter implements MusicSourceAdapter {
 
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(url))
+                    .timeout(Duration.ofSeconds(10))
                     .header("Accept", "application/json")
                     .GET()
                     .build();
@@ -83,6 +85,8 @@ public class ReccoBeatsAdapter implements MusicSourceAdapter {
             } else {
                 System.err.println("Fehler von der ReccoBeats API: HTTP " + response.statusCode());
             }
+        } catch (HttpTimeoutException e) {
+            System.err.println("API Call Timeout: " + e.getMessage());
         } catch (Exception e) {
             System.err.println("API Call fehlgeschlagen: " + e.getMessage());
         }
