@@ -1,5 +1,6 @@
 package modules.core;
 
+import modules.music.repositories.SessionHistoryRepository;
 import modules.music.strategies.core.MusicPlayerAdapter;
 import modules.music.strategies.core.MusicSourceAdapter;
 import modules.music.structures.Track;
@@ -14,16 +15,18 @@ public class DjSessionController {
     private final LiveFeedbackStrategy liveFeedback;
     private final PredictionAggregator aggregator;
     private final MusicSourceAdapter sourceAdapter;
+    private final SessionHistoryRepository history;
 
     private boolean sessionActive = true;
 
     // Dependency Injection über den Konstruktor
     public DjSessionController(MusicPlayerAdapter player, LiveFeedbackStrategy liveFeedback,
-                               PredictionAggregator aggregator, MusicSourceAdapter sourceAdapter) {
+                               PredictionAggregator aggregator, MusicSourceAdapter sourceAdapter, SessionHistoryRepository history) {
         this.player = player;
         this.liveFeedback = liveFeedback;
         this.aggregator = aggregator;
         this.sourceAdapter = sourceAdapter;
+        this.history = history;
     }
 
     public void startSession(Track entrySong) {
@@ -39,15 +42,16 @@ public class DjSessionController {
             // 2. TRIGGER: Song beendet -> Ergebnisse einsammeln
             FeedbackResult feedback = liveFeedback.stopAndGetResult();
 
+            history.addEntry(currentSong, feedback);
+
             // 3. AUSWERTUNG: Aggregator verrechnet alle Parameter
             PredictedAttributes predictedTarget = aggregator.calculateNextAttributes(currentSong, feedback);
 
+            System.out.println("General Predicted Target: " + predictedTarget);
             // 4. NEUEN SONG FINDEN: Über Graph oder API
             Track nextSong = sourceAdapter.getNextSong(predictedTarget, currentSong);
 
             currentSong = nextSong;
-
-            sessionActive = false; // DEBUG, damit nicht ewig läuft
         }
     }
 }

@@ -8,11 +8,24 @@ import java.util.List;
  * @param energyMultiplier
  * @param bpmMultiplier
  */
-public record PredictionFactor(double energyMultiplier, double bpmMultiplier) implements Iterable<Double> {
+public record PredictionFactor (
+    double energyMultiplier,
+    double bpmMultiplier,
+    double danceabilityMultiplier,
+    double acousticnessMultiplier,
+    double instrumentalnessMultiplier,
+    double speechinessMultiplier
+) implements Iterable<Double> {
 
     @Override
     public Iterator<Double> iterator() {
-        // Wichtig: Wenn Werte hier verändert, muss auch die PredictionAggregator.calculateNextAttributes() verändert werden.
-        return List.of(energyMultiplier, bpmMultiplier).iterator();
+        return List.of(
+                energyMultiplier,
+                bpmMultiplier,
+                danceabilityMultiplier,
+                acousticnessMultiplier,
+                instrumentalnessMultiplier,
+                speechinessMultiplier
+        ).iterator();
     }
 }

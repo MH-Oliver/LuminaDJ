@@ -10,7 +10,7 @@ public class MacroCurveStrategyMock implements PredictionStrategy {
 
     @Override
     public PredictionFactor calculate(Track currentTrack) {
-        var predictionFactor = new PredictionFactor(1.20, 1.20);
+        var predictionFactor = new PredictionFactor(1.05, 1.02, 1.10, 0.9, 1.0, 1.0);
         System.out.println("Macro-Curve-Strategy: track \"" + currentTrack.name() + "\", " + predictionFactor);
         return predictionFactor;
     }

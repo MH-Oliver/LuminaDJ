@@ -12,10 +12,17 @@ package "modules.core" #F9EBEA {
     }
 }
 
+' --- MODULE: USER CONTEXT ---
+package "modules.userContext" #F4ECF7 {
+    class UserContextService <<Singleton>> {
+        + getCurrentContext()
+    }
+}
+
 ' --- MODULE: PREDICTION ---
 package "modules.prediction" #E8F8F5 {
     class PredictionAggregator {
-        + calculateNextAttributes(currentSong: Track, FeedbackResult feedback): PredictedAttributes
+        + calculateNextAttributes(currentSong: Track, feedback: FeedbackResult): PredictedAttributes
     }
 
     interface PredictionStrategy <<Strategy>> {
@@ -23,8 +30,14 @@ package "modules.prediction" #E8F8F5 {
         + calculate(currentTrack: Track): PredictionFactor
     }
 
-    class HistoryStrategyMock implements PredictionStrategy
-    class MacroCurveStrategyMock implements PredictionStrategy
+    class HistoryStrategy implements PredictionStrategy
+    class MacroCurveStrategy implements PredictionStrategy
+    class LiveFeedbackAdapter implements PredictionStrategy
+
+    class SessionHistoryRepository {
+        + addEntry(track: Track, feedback: FeedbackResult)
+        + getHistory()
+    }
 
     class PredictedAttributes <<Record>> {
         + energy: double
@@ -36,6 +49,9 @@ package "modules.prediction" #E8F8F5 {
     }
 
     PredictionAggregator *-- "*" PredictionStrategy : "nutzt Liste von"
+
+    HistoryStrategy --> SessionHistoryRepository : "liest Historie"
+    MacroCurveStrategy --> UserContextService : "liest Kontext"
 }
 
 ' --- MODULE: VISION ---
@@ -44,7 +60,19 @@ package "modules.vision" #FEF9E7 {
         + startParallelEvaluation(song: Track)
         + stopAndGetResult(): FeedbackResult
     }
-    class LiveFeedbackStrategyMock implements LiveFeedbackStrategy
+
+    class SmartphoneKameraStrategy implements LiveFeedbackStrategy
+
+    interface DetectionStrategy <<Strategy>> {
+       + analyse(BufferedImage image): FrameDataDTO
+    }
+
+    class DetectionStrategyLangChain4j implements DetectionStrategy
+
+
+    SmartphoneKameraStrategy *-- "*" DetectionStrategy : "verarbeitet Bild mit"
+    DetectionStrategyLangChain4j --> UserContextService : "liest Kontext"
+    PredictionAggregator ..> LiveFeedbackAdapter : "fügt dynamisch hinzu"
 
     class FeedbackResult <<Record>> {
         + isPositiveTrend: boolean
@@ -57,12 +85,12 @@ package "modules.music" #EBF5FB {
     interface MusicPlayerAdapter <<Strategy>> {
         + play(track: Track)
     }
-    class MusicPlayerAdapterMock implements MusicPlayerAdapter
+    class SpotifyAdapter implements MusicPlayerAdapter
 
     interface MusicSourceAdapter <<Strategy>> {
         + getNextSong(target: PredictedAttributes, current: Track): Track
     }
-    class MusicGraphAdapterMock implements MusicSourceAdapter
+    class ReccoBeatsAdapter implements MusicSourceAdapter
 
     class Track <<Record>> {
         + id: String
@@ -77,10 +105,6 @@ DjSessionController --> LiveFeedbackStrategy : liveFeedback
 DjSessionController --> PredictionAggregator : aggregator
 DjSessionController --> MusicSourceAdapter : sourceAdapter
 
-' --- DATENFLUSS (Zur Veranschaulichung) ---
-DjSessionController ..> Track : verwaltet
-LiveFeedbackStrategy ..> FeedbackResult : liefert
-PredictionAggregator ..> PredictedAttributes : liefert
-MusicSourceAdapter ..> Track : liefert
+DjSessionController --> SessionHistoryRepository : speichert Feedback
 
 @enduml

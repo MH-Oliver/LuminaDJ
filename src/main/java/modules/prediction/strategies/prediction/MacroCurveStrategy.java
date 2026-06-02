@@ -21,30 +21,29 @@ public class MacroCurveStrategy implements PredictionStrategy {
         LocalTime currentTime = context.currentTime();
         Map<String, MacroCurve> curves = context.attributeCurves();
 
-        double targetEnergy = currentTrack.energy();
-        double targetBpm = currentTrack.bpm();
-
-        if (curves != null) {
-            MacroCurve energyCurve = curves.get("energy");
-            if (energyCurve != null) {
-                targetEnergy = energyCurve.getTargetValueAt(currentTime);
-            }
-
-            MacroCurve bpmCurve = curves.get("bpm");
-            if (bpmCurve != null) {
-                targetBpm = bpmCurve.getTargetValueAt(currentTime);
-            }
-        }
-
-        double energyDivisor = Math.max(0.01, currentTrack.energy());
-        double bpmDivisor = Math.max(0.01, currentTrack.bpm());
-        double energyFactor = targetEnergy / energyDivisor;
-        double bpmFactor = targetBpm / bpmDivisor;
-
-        var predictionFactor = new PredictionFactor(energyFactor, bpmFactor);
+        var predictionFactor = new PredictionFactor(
+                getFactor("energy", currentTrack.energy(), curves, currentTime),
+                getFactor("bpm", currentTrack.bpm(), curves, currentTime),
+                getFactor("danceability", currentTrack.danceability(), curves, currentTime),
+                getFactor("acousticness", currentTrack.acousticness(), curves, currentTime),
+                getFactor("instrumentalness", currentTrack.instrumentalness(), curves, currentTime),
+                getFactor("speechiness", currentTrack.speechiness(), curves, currentTime)
+        );
 
         System.out.println("Macro-Curve: " + predictionFactor);
 
         return predictionFactor;
+    }
+
+    /**
+     * Hilfsmethode: Prüft ob eine Kurve für das Attribut existiert und berechnet den Faktor.
+     * Existiert keine Kurve, wird 1.0 (keine Veränderung) zurückgegeben.
+     */
+    private double getFactor(String curveKey, double currentValue, Map<String, MacroCurve> curves, LocalTime time) {
+        if (curves != null && curves.containsKey(curveKey)) {
+            double targetValue = curves.get(curveKey).getTargetValueAt(time);
+            return targetValue / Math.max(0.01, currentValue); // Teiler durch 0 verhindern
+        }
+        return 1.0;
     }
 }
