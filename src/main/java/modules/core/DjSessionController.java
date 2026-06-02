@@ -42,10 +42,10 @@ public class DjSessionController {
             // 2. TRIGGER: Song beendet -> Ergebnisse einsammeln
             FeedbackResult feedback = liveFeedback.stopAndGetResult();
 
+            history.addEntry(currentSong, feedback);
+
             // 3. AUSWERTUNG: Aggregator verrechnet alle Parameter
             PredictedAttributes predictedTarget = aggregator.calculateNextAttributes(currentSong, feedback);
-
-            history.addEntry(currentSong,feedback);
 
             System.out.println("General Predicted Target: " + predictedTarget);
             // 4. NEUEN SONG FINDEN: Über Graph oder API
