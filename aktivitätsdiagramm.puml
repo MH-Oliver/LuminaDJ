@@ -55,9 +55,6 @@ repeat
   note left
     <b>Interface MusicSourceAdapter</b>
     + getNextSong(predictedTarget, currentSong): Song
-    --
-    <i>(Austauschbar: Kann der MusicGraph-Adapter
-    sein oder direkt die Spotify API)</i>
   end note
 
   :MusicSourceAdapter liefert den <b>Neuen Song</b>;
