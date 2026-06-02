@@ -62,6 +62,24 @@ public class ReccoBeatsAdapter implements MusicSourceAdapter {
                     JsonNode trackNode = tracksNode.get(0);
 
                     String newId = trackNode.path("id").asText();
+                    // NEU: Die Spotify-ID aus dem 'href' Feld der ReccoBeats API extrahieren
+                    if (trackNode.has("href") && !trackNode.path("href").isNull()) {
+                        String href = trackNode.path("href").asText();
+                        // Nimmt den letzten Teil der URL, z.B. aus "https://api.spotify.com/v1/tracks/3K4HG9evC7dg3N0R9cYqk4"
+                        newId = href.substring(href.lastIndexOf("/") + 1);
+                    }
+
+                    // Falls es aus irgendeinem Grund schiefgeht und die ID immer noch Bindestriche hat (UUID)
+                    if (newId.contains("-")) {
+                        System.err.println("FEHLER: Konnte Spotify-ID nicht aus href extrahieren.");
+                        System.err.println("JSON-Antwort zur Fehlersuche: \n" + trackNode.toPrettyString());
+                        System.err.println("Nutze Fallback-Song, um Absturz zu verhindern...");
+
+                        return new Track("7oVEtyuv9NBmnytsCIsY5I", "BURN IT DOWN", "Linkin Park",
+                                target.energy(), target.bpm(), target.danceability(),
+                                target.acousticness(), target.instrumentalness(), target.speechiness());
+                    }
+
                     String newName = trackNode.has("trackTitle") ? trackNode.path("trackTitle").asText() : trackNode.path("name").asText("Unknown Track");
 
                     String artistName = "Unknown Artist";

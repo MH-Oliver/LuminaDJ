@@ -1,6 +1,7 @@
 import modules.core.DjSessionController;
 import modules.music.repositories.SessionHistoryRepository;
 import modules.music.strategies.music_player.MusicPlayerAdapterMock;
+import modules.music.strategies.music_player.spotify.SpotifyAdapter;
 import modules.music.strategies.music_source.ReccoBeatsAdapter;
 import modules.music.structures.Track;
 import modules.prediction.services.PredictionAggregator;
@@ -16,7 +17,7 @@ import java.util.List;
 public class App
 {
     public static void main( String[] args ) {
-        var playerMock = new MusicPlayerAdapterMock();
+        var playerMock = new SpotifyAdapter();
         var liveFeedbackMock = new SmartphoneKameraStrategy(
                 new DetectionStrategyLangChain4j()
         );

@@ -41,6 +41,7 @@ public class SpotifyAuthenticator {
     }
 
     public SpotifyApi authenticate() {
+
         // 1. VERSUCH: Automatischer Login über sicher gespeichertes Token
         String savedRefreshToken = prefs.get(PREF_REFRESH_TOKEN, null);
 
@@ -71,8 +72,9 @@ public class SpotifyAuthenticator {
 
         // 2. VERSUCH: Vollautomatischer Browser-Login
         try {
+
             AuthorizationCodeUriRequest uriRequest = spotifyApi.authorizationCodeUri()
-                    .scope("user-modify-playback-state")
+                    .scope("user-modify-playback-state user-read-playback-state")
                     .build();
 
             URI uri = uriRequest.execute();
