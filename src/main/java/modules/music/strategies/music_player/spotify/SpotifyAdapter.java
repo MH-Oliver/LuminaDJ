@@ -11,7 +11,7 @@ import se.michaelthelin.spotify.requests.data.player.StartResumeUsersPlaybackReq
 
 public class SpotifyAdapter implements MusicPlayerAdapter {
 
-    private final SpotifyApi spotifyApi;
+    public static SpotifyApi spotifyApi;
 
     // NEU: Variablen für das Threading (ähnlich wie SmartphoneKameraStrategy)
     private volatile boolean isRunning = false;
