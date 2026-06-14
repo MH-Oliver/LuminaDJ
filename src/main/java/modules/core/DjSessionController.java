@@ -37,7 +37,13 @@ public class DjSessionController {
             liveFeedback.startParallelEvaluation(currentSong);
 
             // Simuliert das Blockieren, bis der Song zu Ende ist
-            player.play(currentSong);
+            try {
+                player.play(currentSong);
+            } catch (IllegalArgumentException exception) {
+                liveFeedback.stopAndGetResult();
+                System.err.println("Player wirft Fehler: " + exception);
+                return;
+            }
 
             // 2. TRIGGER: Song beendet -> Ergebnisse einsammeln
             FeedbackResult feedback = liveFeedback.stopAndGetResult();

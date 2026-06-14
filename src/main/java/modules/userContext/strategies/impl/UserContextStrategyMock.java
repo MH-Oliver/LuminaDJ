@@ -29,7 +29,6 @@ public class UserContextStrategyMock implements UserContextStrategy {
                         "bpm", bpmCurve
                 )
         );
-        System.out.println("UserContext: " + userContext);
         return userContext;
     }
 }
