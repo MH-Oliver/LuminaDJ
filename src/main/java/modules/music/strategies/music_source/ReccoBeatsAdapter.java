@@ -31,15 +31,13 @@ public class ReccoBeatsAdapter implements MusicSourceAdapter {
         try {
             String cleanTrackId = currentSong.id().replace("spotify:track:", "");
 
-            // Formatierung sicherstellen (Punkte statt Kommas für die URL)
-            String tEnergy = String.valueOf(target.energy()).replace(",", ".");
-            String tTempo = String.valueOf(target.bpm()).replace(",", ".");
-            String tDance = String.valueOf(target.danceability()).replace(",", ".");
-            String tAcoustic = String.valueOf(target.acousticness()).replace(",", ".");
-            String tInstrumental = String.valueOf(target.instrumentalness()).replace(",", ".");
-            String tSpeech = String.valueOf(target.speechiness()).replace(",", ".");
+            String tEnergy = String.valueOf(target.features().getOrDefault("energy", 0.5)).replace(",", ".");
+            String tTempo = String.valueOf(target.features().getOrDefault("bpm", 120.0)).replace(",", ".");
+            String tDance = String.valueOf(target.features().getOrDefault("danceability", 0.5)).replace(",", ".");
+            String tAcoustic = String.valueOf(target.features().getOrDefault("acousticness", 0.5)).replace(",", ".");
+            String tInstrumental = String.valueOf(target.features().getOrDefault("instrumentalness", 0.0)).replace(",", ".");
+            String tSpeech = String.valueOf(target.features().getOrDefault("speechiness", 0.0)).replace(",", ".");
 
-            // Alle Parameter an die URL anhängen
             String url = String.format(
                     "https://api.reccobeats.com/v1/track/recommendation?seeds=%s&energy=%s&tempo=%s&danceability=%s&acousticness=%s&instrumentalness=%s&speechiness=%s&size=1",
                     cleanTrackId, tEnergy, tTempo, tDance, tAcoustic, tInstrumental, tSpeech
@@ -62,22 +60,18 @@ public class ReccoBeatsAdapter implements MusicSourceAdapter {
                     JsonNode trackNode = tracksNode.get(0);
 
                     String newId = trackNode.path("id").asText();
-                    // NEU: Die Spotify-ID aus dem 'href' Feld der ReccoBeats API extrahieren
+
                     if (trackNode.has("href") && !trackNode.path("href").isNull()) {
                         String href = trackNode.path("href").asText();
-                        // Nimmt den letzten Teil der URL, z.B. aus "https://api.spotify.com/v1/tracks/3K4HG9evC7dg3N0R9cYqk4"
                         newId = href.substring(href.lastIndexOf("/") + 1);
                     }
 
-                    // Falls es aus irgendeinem Grund schiefgeht und die ID immer noch Bindestriche hat (UUID)
                     if (newId.contains("-")) {
                         System.err.println("FEHLER: Konnte Spotify-ID nicht aus href extrahieren.");
                         System.err.println("JSON-Antwort zur Fehlersuche: \n" + trackNode.toPrettyString());
                         System.err.println("Nutze Fallback-Song, um Absturz zu verhindern...");
 
-                        return new Track("7oVEtyuv9NBmnytsCIsY5I", "BURN IT DOWN", "Linkin Park",
-                                target.energy(), target.bpm(), target.danceability(),
-                                target.acousticness(), target.instrumentalness(), target.speechiness());
+                        return new Track("7oVEtyuv9NBmnytsCIsY5I", "BURN IT DOWN", "Linkin Park", target.features());
                     }
 
                     String newName = trackNode.has("trackTitle") ? trackNode.path("trackTitle").asText() : trackNode.path("name").asText("Unknown Track");
@@ -89,13 +83,9 @@ public class ReccoBeatsAdapter implements MusicSourceAdapter {
                         artistName = trackNode.path("artists").get(0).path("name").asText();
                     }
 
-                    var newTrack = new Track(newId, newName, artistName,
-                            target.energy(), target.bpm(),
-                            target.danceability(), target.acousticness(),
-                            target.instrumentalness(), target.speechiness());
+                    var newTrack = new Track(newId, newName, artistName, target.features());
                     System.out.println("ReccoBeats API: Song gefunden -> " + newTrack);
 
-                    // Track mit allen 6 Werten zurückgeben
                     return newTrack;
                 } else {
                     System.out.println("ReccoBeats API: Keine Tracks gefunden.");
@@ -109,10 +99,6 @@ public class ReccoBeatsAdapter implements MusicSourceAdapter {
             System.err.println("API Call fehlgeschlagen: " + e.getMessage());
         }
 
-        // Fallback-Song mit den Ziel-Attributen
-        return new Track("7oVEtyuv9NBmnytsCIsY5I", "BURN IT DOWN", "Linkin Park",
-                target.energy(), target.bpm(),
-                target.danceability(), target.acousticness(),
-                target.instrumentalness(), target.speechiness());
+        return new Track("7oVEtyuv9NBmnytsCIsY5I", "BURN IT DOWN", "Linkin Park", target.features());
     }
 }

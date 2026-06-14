@@ -5,6 +5,9 @@ import modules.prediction.structures.PredictionFactor;
 import modules.vision.structures.FeedbackResult;
 import modules.music.structures.Track;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class LiveFeedbackAdapter implements PredictionStrategy {
 
     private final FeedbackResult feedback;
@@ -37,55 +40,39 @@ public class LiveFeedbackAdapter implements PredictionStrategy {
     @Override
     public PredictionFactor calculate(Track currentTrack) {
         double currentIntensity = feedback.intensity();
-        double currentEnergy = currentTrack.energy();
+        double currentEnergy = currentTrack.features().getOrDefault("energy", 0.5);
+
+        Map<String, Double> multipliers = new HashMap<>();
 
         if (feedback.isPositiveTrend()) {
-            // Crowd ist motiviert -> Wir halten oder pushen das Momentum leicht.
             double limitReached = currentIntensity > 0.80 ? 1.0 : 1.05;
 
-            double energyPush = limitReached;
-            double dancePush  = limitReached;
-            double bpmPush    = currentIntensity > 0.80 ? 1.0 : 1.02;
-
-            // Stimmung ist top, also reduzieren wir Akustik leicht für mehr Club-Vibe
-            double acousticPush = 0.95;
-            double instrumentalPush = 1.0; // Instrumental / Vocals bleiben im aktuellen Flow
-            double speechPush = 1.0;
-
-            System.out.println("LiveFeedback: Crowd motiviert, halten der Stimmung");
-
-            return new PredictionFactor(
-                    energyPush, bpmPush, dancePush, acousticPush, instrumentalPush, speechPush
-            );
+            multipliers.put("energy", limitReached);
+            multipliers.put("danceability", limitReached);
+            multipliers.put("bpm", currentIntensity > 0.80 ? 1.0 : 1.02);
+            multipliers.put("acousticness", 0.95);
+            multipliers.put("instrumentalness", 1.0);
+            multipliers.put("speechiness", 1.0);
 
         } else {
-            // Trend ist negativ -> Wir müssen reagieren (Reset / Bruch)
-            double energyBreak, bpmBreak, danceBreak, acousticBreak, instrumentalBreak, speechBreak;
-
             if (currentEnergy > 0.70) {
-                System.out.println("LiveFeedback: Crowd erschöpft -> Bruch nach UNTEN.");
-
-                energyBreak = (currentIntensity < 0.40) ? 0.65 : 0.85;
-                bpmBreak = 0.98;
-                danceBreak = 0.90; // Etwas den Groove rausnehmen
-                acousticBreak = 1.30; // Deutlich mehr akustische, organische Sounds zur Erholung
-                instrumentalBreak = 1.15; // Mehr Instrumentals, weniger anstrengende Vocals
-                speechBreak = 1.0;
+                multipliers.put("energy", (currentIntensity < 0.40) ? 0.65 : 0.85);
+                multipliers.put("bpm", 0.98);
+                multipliers.put("danceability", 0.90);
+                multipliers.put("acousticness", 1.30);
+                multipliers.put("instrumentalness", 1.15);
+                multipliers.put("speechiness", 1.0);
 
             } else {
-                System.out.println("LiveFeedback: Crowd gelangweilt -> Bruch nach OBEN (Wake-Up Call!).");
-
-                energyBreak = 1.40; // Harter Push
-                bpmBreak = 1.10;
-                danceBreak = 1.30; // Drastisch mehr Groove erzwingen
-                acousticBreak = 0.70; // Harter Cut weg von chilliger Akustik, rein in elektronische Banger
-                instrumentalBreak = 0.80; // Deutlich weniger Instrumental -> Wir brauchen Vocals zum Mitsingen!
-                speechBreak = 1.10; // Evtl. ein paar Rap/Hype-Elemente reinbringen
+                multipliers.put("energy", 1.40);
+                multipliers.put("bpm", 1.10);
+                multipliers.put("danceability", 1.30);
+                multipliers.put("acousticness", 0.70);
+                multipliers.put("instrumentalness", 0.80);
+                multipliers.put("speechiness", 1.10);
             }
-
-            return new PredictionFactor(
-                    energyBreak, bpmBreak, danceBreak, acousticBreak, instrumentalBreak, speechBreak
-            );
         }
+
+        return new PredictionFactor(multipliers);
     }
 }

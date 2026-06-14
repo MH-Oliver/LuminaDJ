@@ -7,6 +7,7 @@ import modules.userContext.services.UserContextService;
 import modules.userContext.structures.MacroCurve;
 
 import java.time.LocalTime;
+import java.util.HashMap;
 import java.util.Map;
 
 public class MacroCurveStrategy implements PredictionStrategy {
@@ -21,18 +22,14 @@ public class MacroCurveStrategy implements PredictionStrategy {
         LocalTime currentTime = context.currentTime();
         Map<String, MacroCurve> curves = context.attributeCurves();
 
-        var predictionFactor = new PredictionFactor(
-                getFactor("energy", currentTrack.energy(), curves, currentTime),
-                getFactor("bpm", currentTrack.bpm(), curves, currentTime),
-                getFactor("danceability", currentTrack.danceability(), curves, currentTime),
-                getFactor("acousticness", currentTrack.acousticness(), curves, currentTime),
-                getFactor("instrumentalness", currentTrack.instrumentalness(), curves, currentTime),
-                getFactor("speechiness", currentTrack.speechiness(), curves, currentTime)
-        );
+        Map<String, Double> multipliers = new HashMap<>();
 
-        System.out.println("Macro-Curve: " + predictionFactor);
+        for (String key : currentTrack.features().keySet()) {
+            double currentValue = currentTrack.features().get(key);
+            multipliers.put(key, getFactor(key, currentValue, curves, currentTime));
+        }
 
-        return predictionFactor;
+        return new PredictionFactor(multipliers);
     }
 
     /**

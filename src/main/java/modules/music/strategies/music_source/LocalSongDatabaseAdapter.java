@@ -8,10 +8,7 @@ import modules.prediction.structures.PredictedAttributes;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.PriorityQueue;
+import java.util.*;
 
 public class LocalSongDatabaseAdapter implements MusicSourceAdapter {
 
@@ -44,22 +41,7 @@ public class LocalSongDatabaseAdapter implements MusicSourceAdapter {
                 if (values.length < 20) continue;
 
                 try {
-                    String id = values[1].replace("\"", "").trim();
-                    String artists = values[2].replace("\"", "").trim();
-                    String name = values[4].replace("\"", "").trim();
-
-                    double danceability = Double.parseDouble(values[8]);
-                    double energy = Double.parseDouble(values[9]);
-                    double speechiness = Double.parseDouble(values[13]);
-                    double acousticness = Double.parseDouble(values[14]);
-                    double instrumentalness = Double.parseDouble(values[15]);
-                    double tempo = Double.parseDouble(values[18]);
-
-                    Track track = new Track(
-                            id, name, artists,
-                            energy, tempo, danceability,
-                            acousticness, instrumentalness, speechiness
-                    );
+                    Track track = getTrack(values);
 
                     database.add(track);
                 } catch (NumberFormatException e) {
@@ -72,6 +54,24 @@ public class LocalSongDatabaseAdapter implements MusicSourceAdapter {
             throw new IllegalArgumentException("Song Database | CSV kann nicht geladen werden, " +
                     "stelle sicher dass die Datei unter folgendem Pfad existiert");
         }
+    }
+
+    private static Track getTrack(String[] values) {
+        String id = values[1].replace("\"", "").trim();
+        String artists = values[2].replace("\"", "").trim();
+        String name = values[4].replace("\"", "").trim();
+
+        Map<String, Double> features = new HashMap<>();
+        features.put("danceability", Double.parseDouble(values[8]));
+        features.put("energy", Double.parseDouble(values[9]));
+        features.put("speechiness", Double.parseDouble(values[13]));
+        features.put("acousticness", Double.parseDouble(values[14]));
+        features.put("instrumentalness", Double.parseDouble(values[15]));
+        features.put("valence", Double.parseDouble(values[17]));
+
+        features.put("bpm", Double.parseDouble(values[18]) / 200.0);
+
+        return new Track(id, name, artists, features);
     }
 
 
@@ -113,13 +113,13 @@ public class LocalSongDatabaseAdapter implements MusicSourceAdapter {
      */
     private double calculateNormalizedDistance(PredictedAttributes target, Track track) {
         double sum = 0;
-        sum += Math.pow(target.energy() - track.energy(), 2);
-        sum += Math.pow((target.bpm() - track.bpm()) / 200.0, 2); // BPM Normalisierung
-        sum += Math.pow(target.danceability() - track.danceability(), 2);
-        sum += Math.pow(target.acousticness() - track.acousticness(), 2);
-        sum += Math.pow(target.instrumentalness() - track.instrumentalness(), 2);
-        sum += Math.pow(target.speechiness() - track.speechiness(), 2);
 
+        for (String key : target.features().keySet()) {
+            double targetValue = target.features().get(key);
+            double trackValue = track.features().getOrDefault(key, 0.0);
+
+            sum += Math.pow(targetValue - trackValue, 2);
+        }
         return Math.sqrt(sum);
     }
 }

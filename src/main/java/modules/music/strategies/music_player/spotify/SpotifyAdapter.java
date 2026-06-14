@@ -119,13 +119,14 @@ public class SpotifyAdapter implements MusicPlayerAdapter {
             System.out.println("Play-Methode für " + track.name() + " ist offiziell beendet.");
 
         } catch (Exception e) {
-            handleError("Fehler beim Starten der Wiedergabe", e);
-
             try {
                 Thread.sleep(5000);
             } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
-            }        }
+            }
+
+            throw new IllegalArgumentException("Fehler beim Starten der Wiedergabe", e);
+        }
     }
 
     @Override

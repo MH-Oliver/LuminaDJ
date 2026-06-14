@@ -12,14 +12,24 @@ import modules.userContext.services.UserContextService;
 import modules.userContext.strategies.impl.UserContextStrategyMock;
 import modules.vision.strategies.live_feedback.LiveFeedbackStrategyMock;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class App
 {
     public static void main( String[] args ) {
         DjSessionController controller = getDjSessionController();
 
-        Track entrySong = new Track("3K4HG9evC7dg3N0R9cYqk4", "One Step Closer", "Linkin Park", 0.60, 110.0, 0.55, 0.40, 0.00, 0.05);
+        Map<String, Double> entryFeatures = new HashMap<>();
+        entryFeatures.put("energy", 0.60);
+        entryFeatures.put("bpm", 110.0);
+        entryFeatures.put("danceability", 0.55);
+        entryFeatures.put("acousticness", 0.40);
+        entryFeatures.put("instrumentalness", 0.00);
+        entryFeatures.put("speechiness", 0.05);
+
+        Track entrySong = new Track("3K4HG9evC7dg3N0R9cYqk4", "One Step Closer", "Linkin Park", entryFeatures);
         controller.startSession(entrySong);
     }
 

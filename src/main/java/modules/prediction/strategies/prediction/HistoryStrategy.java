@@ -6,8 +6,9 @@ import modules.music.structures.Track;
 import modules.prediction.strategies.core.PredictionStrategy;
 import modules.prediction.structures.PredictionFactor;
 
+import java.util.HashMap;
 import java.util.List;
-import java.util.function.ToDoubleFunction;
+import java.util.Map;
 
 public class HistoryStrategy implements PredictionStrategy {
 
@@ -22,37 +23,33 @@ public class HistoryStrategy implements PredictionStrategy {
 
     @Override
     public double getWeight() {
-        return 0.4; // Relevanz der Historie im Gesamtmix
+        return 0.4;
     }
 
     @Override
     public PredictionFactor calculate(Track x) {
         List<HistoryEntry> history = repository.getHistory();
+        Map<String, Double> multipliers = new HashMap<>();
 
-        // Wenn noch kein Song in der Historie ist, verändern wir nichts
         if (history.isEmpty()) {
-            return new PredictionFactor(1.0, 1.0, 1.0, 1.0, 1.0, 1.0);
+            for (String key : x.features().keySet()) {
+                multipliers.put(key, 1.0);
+            }
+            return new PredictionFactor(multipliers);
         }
 
-        // Berechnet die Faktoren dynamisch für alle 6 Parameter
-        var newPredictionFactor = new PredictionFactor(
-                calculateOptimalFactor(Track::energy, x, history),
-                calculateOptimalFactor(Track::bpm, x, history),
-                calculateOptimalFactor(Track::danceability, x, history),
-                calculateOptimalFactor(Track::acousticness, x, history),
-                calculateOptimalFactor(Track::instrumentalness, x, history),
-                calculateOptimalFactor(Track::speechiness, x, history)
-        );
+        for (String key : x.features().keySet()) {
+            multipliers.put(key, calculateOptimalFactor(key, x, history));
+        }
 
-        System.out.println("History Strategy: " + newPredictionFactor);
-        return newPredictionFactor;
+        return new PredictionFactor(multipliers);
     }
 
     /**
      * Berechnet den Anpassungsfaktor für ein spezifisches Attribut mittels Locally Weighted Learning.
      */
-    private double calculateOptimalFactor(ToDoubleFunction<Track> attributeExtractor, Track x, List<HistoryEntry> history) {
-        double currentValue = attributeExtractor.applyAsDouble(x);
+    private double calculateOptimalFactor(String featureKey, Track x, List<HistoryEntry> history) {
+        double currentValue = x.features().getOrDefault(featureKey, 0.0);
         double weightedSum = 0;
         double totalWeight = 0;
 
@@ -73,7 +70,7 @@ public class HistoryStrategy implements PredictionStrategy {
             // 4. wi - Gesamtgewichtung für diesen historischen Beitrag
             double wi = gaussianKernel * feedbackReward;
 
-            weightedSum += wi * attributeExtractor.applyAsDouble(xi);
+            weightedSum += wi * xi.features().getOrDefault(featureKey, 0.0);
             totalWeight += wi;
         }
 
@@ -81,19 +78,16 @@ public class HistoryStrategy implements PredictionStrategy {
 
         // 5. y_hat - Der lokal gewichtete, geschätzte Zielwert
         double yHat = weightedSum / totalWeight;
-
-        // 6. Faktor_a = y_hat / x.a
         return yHat / Math.max(0.01, currentValue);
     }
 
     private double calculateDistance(Track x, Track xi) {
         double sum = 0;
-        sum += Math.pow(x.energy() - xi.energy(), 2);
-        sum += Math.pow((x.bpm() - xi.bpm()) / 200.0, 2); // BPM-Normalisierung
-        sum += Math.pow(x.danceability() - xi.danceability(), 2);
-        sum += Math.pow(x.acousticness() - xi.acousticness(), 2);
-        sum += Math.pow(x.instrumentalness() - xi.instrumentalness(), 2);
-        sum += Math.pow(x.speechiness() - xi.speechiness(), 2);
+        for (String key : x.features().keySet()) {
+            double valX = x.features().getOrDefault(key, 0.0);
+            double valXi = xi.features().getOrDefault(key, 0.0);
+            sum += Math.pow(valX - valXi, 2);
+        }
         return Math.sqrt(sum);
     }
 }

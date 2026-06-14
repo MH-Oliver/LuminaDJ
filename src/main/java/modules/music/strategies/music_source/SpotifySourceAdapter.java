@@ -30,12 +30,7 @@ public class SpotifySourceAdapter implements MusicSourceAdapter {
                         freshTrack.getId(),
                         freshTrack.getName(),
                         freshTrack.getArtists()[0].getName(),
-                        localCandidate.energy(),
-                        localCandidate.bpm(),
-                        localCandidate.danceability(),
-                        localCandidate.acousticness(),
-                        localCandidate.instrumentalness(),
-                        localCandidate.speechiness()
+                        localCandidate.features()
                 );
             } else {
                 return null; // Song existiert nicht mehr bei Spotify
