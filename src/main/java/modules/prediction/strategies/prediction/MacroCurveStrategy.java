@@ -60,15 +60,16 @@ public class MacroCurveStrategy implements PredictionStrategy {
             }
         }
 
-        // 4. Multiplikatoren (Faktor) für den aktuellen Song berechnen
+        // 4. Multiplikatoren (Faktor) für den aktuellen Song berechnen (
+        // --> nicht nötig, da MacroCurve eigentlich nur einfluss auf das genrelle Genre
         Map<String, Double> multipliers = new HashMap<>();
-        for (String key : currentTrack.features().keySet()) {
+        /*for (String key : currentTrack.features().keySet()) {
             double currentVal = currentTrack.features().getOrDefault(key, 0.0);
             double targetVal = targetFeatures.getOrDefault(key, currentVal);
 
             double factor = targetVal / Math.max(0.01, currentVal);
             multipliers.put(key, factor);
-        }
+        }*/
 
         Map<String, Double> stringGenreWeights = new HashMap<>();
         for (Map.Entry<Genre, Double> entry : genreWeights.entrySet()) {
