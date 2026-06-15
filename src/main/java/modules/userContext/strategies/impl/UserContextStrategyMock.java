@@ -1,34 +1,38 @@
 package modules.userContext.strategies.impl;
 
-import modules.userContext.services.CurveGenerator;
+import modules.music.structures.Genre;
 import modules.userContext.strategies.core.UserContextStrategy;
+import modules.userContext.structures.GenreTimeline;
 import modules.userContext.structures.Location;
+import modules.userContext.structures.TimelinePhase;
 import modules.userContext.structures.UserContextDTO;
 
 import java.time.LocalTime;
-import java.util.Map;
+import java.util.List;
 
 public class UserContextStrategyMock implements UserContextStrategy {
-    @Override
-    public UserContextDTO getUserContext() {
-        var energyCurve = CurveGenerator.createSmoothCurve(
-                new double[] {20.0, 22.0, 24.0, 26.0},
-                new double[] {0.5, 0.8, 1.0, 0.6}
-        );
-        var bpmCurve = CurveGenerator.createSmoothCurve(
-                new double[] {20.0, 22.0, 24.0, 26.0},
-                new double[] {110.0, 122.0, 128.0, 118.0}
-        );
+    private final UserContextDTO fixedContext;
 
-        var userContext = new UserContextDTO(
+    public UserContextStrategyMock() {
+        // 1. Spiele 2 Min ROCK (davon in der letzten 1 Minute weicher Übergang zu EDM)
+        // 2. Spiele 60 Min EDM (davon die letzten 15 Min weicher Übergang)
+        // 3. Spiele unendlich lange POP
+        var timeline = new GenreTimeline(List.of(
+                new TimelinePhase(Genre.ROCK, 1.0, 0.0),
+                new TimelinePhase(Genre.EDM, 60.0, 15.0),
+                new TimelinePhase(Genre.POP, 120.0, 0.0)
+        ));
+
+        this.fixedContext = new UserContextDTO(
                 105,
                 Location.Bar,
                 LocalTime.now(),
-                Map.of(
-                        "energy", energyCurve,
-                        "bpm", bpmCurve
-                )
+                timeline
         );
-        return userContext;
+    }
+
+    @Override
+    public UserContextDTO getUserContext() {
+        return fixedContext;
     }
 }

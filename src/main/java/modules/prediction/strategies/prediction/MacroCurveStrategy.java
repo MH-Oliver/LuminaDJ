@@ -1,46 +1,79 @@
 package modules.prediction.strategies.prediction;
 
+import modules.music.strategies.music_source.LocalSongDatabaseAdapter;
+import modules.music.structures.Genre;
 import modules.music.structures.Track;
 import modules.prediction.strategies.core.PredictionStrategy;
 import modules.prediction.structures.PredictionFactor;
 import modules.userContext.services.UserContextService;
-import modules.userContext.structures.MacroCurve;
 
 import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.Map;
 
 public class MacroCurveStrategy implements PredictionStrategy {
+
+    private final LocalSongDatabaseAdapter localDb;
+
+    // Wir brauchen Zugriff auf die Datenbank, um die Centroids der Genres abzufragen
+    public MacroCurveStrategy(LocalSongDatabaseAdapter localDb) {
+        this.localDb = localDb;
+    }
+
     @Override
     public double getWeight() {
-        return 0.7;
+        return 0.9;
     }
 
     @Override
     public PredictionFactor calculate(Track currentTrack) {
         var context = UserContextService.getInstance().getCurrentContext();
-        LocalTime currentTime = context.currentTime();
-        Map<String, MacroCurve> curves = context.attributeCurves();
 
+        // 1. Relative Zeit berechnen (Minuten seit Start)
+        double elapsedMinutes = ChronoUnit.SECONDS.between(context.startTime(), LocalTime.now()) / 60.0;
+
+        // 2. Aktuelle Genre-Mischung von der Timeline holen (z.B. 80% Rock, 20% Metal)
+        Map<Genre, Double> genreWeights = context.timeline().getWeightsAt(elapsedMinutes);
+
+        System.out.println("Macro-Curve-Strategy | Mischung folgender Genres:" + genreWeights);
+
+        // 3. Einen gemischten Ziel-Vektor aus den Centroids berechnen
+        Map<String, Double> targetFeatures = new HashMap<>();
+        double totalWeight = 0;
+
+        for (Map.Entry<Genre, Double> entry : genreWeights.entrySet()) {
+            Genre genre = entry.getKey();
+            double weight = entry.getValue();
+
+            Map<String, Double> centroid = localDb.getGenreCentroid(genre.getDisplayName()).features();
+            for (Map.Entry<String, Double> f : centroid.entrySet()) {
+                targetFeatures.merge(f.getKey(), f.getValue() * weight, Double::sum);
+            }
+            totalWeight += weight;
+        }
+
+        // Durchschnittswerte bilden
+        if (totalWeight > 0) {
+            for (String key : targetFeatures.keySet()) {
+                targetFeatures.put(key, targetFeatures.get(key) / totalWeight);
+            }
+        }
+
+        // 4. Multiplikatoren (Faktor) für den aktuellen Song berechnen
         Map<String, Double> multipliers = new HashMap<>();
-
         for (String key : currentTrack.features().keySet()) {
-            double currentValue = currentTrack.features().get(key);
-            multipliers.put(key, getFactor(key, currentValue, curves, currentTime));
+            double currentVal = currentTrack.features().getOrDefault(key, 0.0);
+            double targetVal = targetFeatures.getOrDefault(key, currentVal);
+
+            // Wie stark muss der aktuelle Wert multipliziert werden, um das Ziel-Genre zu erreichen?
+            double factor = targetVal / Math.max(0.01, currentVal);
+            multipliers.put(key, factor);
         }
 
-        return new PredictionFactor(multipliers);
-    }
 
-    /**
-     * Hilfsmethode: Prüft ob eine Kurve für das Attribut existiert und berechnet den Faktor.
-     * Existiert keine Kurve, wird 1.0 (keine Veränderung) zurückgegeben.
-     */
-    private double getFactor(String curveKey, double currentValue, Map<String, MacroCurve> curves, LocalTime time) {
-        if (curves != null && curves.containsKey(curveKey)) {
-            double targetValue = curves.get(curveKey).getTargetValueAt(time);
-            return targetValue / Math.max(0.01, currentValue); // Teiler durch 0 verhindern
-        }
-        return 1.0;
+        var newPredictionFactor = new PredictionFactor(multipliers);
+        System.out.println("Macro-Curve-Strategy: " + newPredictionFactor);
+        return newPredictionFactor;
     }
 }

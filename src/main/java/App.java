@@ -49,7 +49,7 @@ public class App
         var hybridAdapter = new HybridSourceAdapter(localSongDatabaseAdapter, spotifyApiAdapter);
 
         List<PredictionStrategy> strategies = List.of(
-                //new MacroCurveStrategy(),
+                new MacroCurveStrategy(localSongDatabaseAdapter),
                 new HistoryStrategy(history)
         );
         var aggregator = new PredictionAggregator(strategies);

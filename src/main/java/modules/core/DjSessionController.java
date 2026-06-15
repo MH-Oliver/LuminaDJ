@@ -57,6 +57,8 @@ public class DjSessionController {
             // 4. NEUEN SONG FINDEN: Über Graph oder API
             Track nextSong = sourceAdapter.getNextSong(predictedTarget, currentSong);
 
+            System.out.println("DJSessionController | Gefundener Song: " + nextSong);
+
             currentSong = nextSong;
         }
     }
