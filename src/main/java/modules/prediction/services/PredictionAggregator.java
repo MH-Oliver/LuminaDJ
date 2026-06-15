@@ -27,6 +27,7 @@ public class PredictionAggregator {
     public PredictedAttributes calculateNextAttributes(Track currentSong, FeedbackResult feedback) {
         Map<String, Double> baseValues = currentSong.features();
         Map<String, Double> finalValues = new HashMap<>();
+        Map<String, Double> finalGenreWeights = new HashMap<>();
 
         List<PredictionStrategy> runStrategies = new ArrayList<>(this.strategies);
         runStrategies.add(new LiveFeedbackAdapter(feedback, 0.8));
@@ -41,6 +42,11 @@ public class PredictionAggregator {
 
             for (int i = 0; i < strategyFactors.size(); i++) {
                 PredictionFactor factor = strategyFactors.get(i);
+
+                if (factor.genreWeights() != null && !factor.genreWeights().isEmpty()) {
+                    finalGenreWeights.putAll(factor.genreWeights());
+                }
+
                 double multiplier = factor.features().getOrDefault(featureKey, 1.0);
                 double weight = runStrategies.get(i).getWeight();
 
@@ -51,10 +57,9 @@ public class PredictionAggregator {
             double newValue = baseVal + averageDelta;
 
             newValue = Math.max(0.0, Math.min(1.0, newValue));
-
             finalValues.put(featureKey, newValue);
         }
 
-        return new PredictedAttributes(finalValues);
+        return new PredictedAttributes(finalValues, finalGenreWeights);
     }
 }

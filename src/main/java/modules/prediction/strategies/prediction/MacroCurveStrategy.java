@@ -66,13 +66,16 @@ public class MacroCurveStrategy implements PredictionStrategy {
             double currentVal = currentTrack.features().getOrDefault(key, 0.0);
             double targetVal = targetFeatures.getOrDefault(key, currentVal);
 
-            // Wie stark muss der aktuelle Wert multipliziert werden, um das Ziel-Genre zu erreichen?
             double factor = targetVal / Math.max(0.01, currentVal);
             multipliers.put(key, factor);
         }
 
+        Map<String, Double> stringGenreWeights = new HashMap<>();
+        for (Map.Entry<Genre, Double> entry : genreWeights.entrySet()) {
+            stringGenreWeights.put(entry.getKey().getDisplayName(), entry.getValue());
+        }
 
-        var newPredictionFactor = new PredictionFactor(multipliers);
+        var newPredictionFactor = new PredictionFactor(multipliers, stringGenreWeights);
         System.out.println("Macro-Curve-Strategy: " + newPredictionFactor);
         return newPredictionFactor;
     }

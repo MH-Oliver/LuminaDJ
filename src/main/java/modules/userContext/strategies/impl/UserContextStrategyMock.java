@@ -19,7 +19,7 @@ public class UserContextStrategyMock implements UserContextStrategy {
         // 3. Spiele unendlich lange POP
         var timeline = new GenreTimeline(List.of(
                 new TimelinePhase(Genre.ROCK, 1.0, 0.0),
-                new TimelinePhase(Genre.EDM, 60.0, 15.0),
+                new TimelinePhase(Genre.EDM, 1.0, 0.0),
                 new TimelinePhase(Genre.POP, 120.0, 0.0)
         ));
 

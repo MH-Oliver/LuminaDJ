@@ -152,11 +152,18 @@ public class LocalSongDatabaseAdapter implements MusicSourceAdapter {
             if (candidate.id().equals(currentSong.id())) continue;
 
             double distance = calculateNormalizedDistance(target, candidate);
+            double penalty = 0.0;
 
-            if (currentSong.genre() != null && !currentSong.genre().equalsIgnoreCase(candidate.genre())) {
-                distance += WRONG_GENRE_PENALITY;
+            if (target.genreWeights() != null && !target.genreWeights().isEmpty()) {
+                double targetWeight = target.genreWeights().getOrDefault(candidate.genre(), 0.0);
+                penalty = WRONG_GENRE_PENALITY * (1.0 - targetWeight);
+            } else {
+                if (currentSong.genre() != null && !currentSong.genre().equalsIgnoreCase(candidate.genre())) {
+                    penalty = WRONG_GENRE_PENALITY;
+                }
             }
 
+            distance += penalty;
             maxHeap.offer(new TrackDistance(candidate, distance));
 
             if (maxHeap.size() > k) {
