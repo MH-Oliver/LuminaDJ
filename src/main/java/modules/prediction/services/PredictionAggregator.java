@@ -31,20 +31,28 @@ public class PredictionAggregator {
         List<PredictionStrategy> runStrategies = new ArrayList<>(this.strategies);
         runStrategies.add(new LiveFeedbackAdapter(feedback, 0.8));
 
+        List<PredictionFactor> strategyFactors = runStrategies.stream()
+                .map(predictionStrategy -> predictionStrategy.calculate(currentSong))
+                .toList();
+
         for (String featureKey : baseValues.keySet()) {
             double baseVal = baseValues.get(featureKey);
-            double newValue = baseVal;
+            double totalDelta = 0.0;
 
-            for (PredictionStrategy strategy : runStrategies) {
-                PredictionFactor factor = strategy.calculate(currentSong);
-
+            for (int i = 0; i < strategyFactors.size(); i++) {
+                PredictionFactor factor = strategyFactors.get(i);
                 double multiplier = factor.features().getOrDefault(featureKey, 1.0);
-                double weight = strategy.getWeight();
+                double weight = runStrategies.get(i).getWeight();
 
-                newValue += ((baseVal * multiplier - baseVal) * weight);
+                totalDelta += ((baseVal * multiplier) - baseVal) * weight;
             }
 
-            finalValues.put(featureKey, newValue / runStrategies.size());
+            double averageDelta = totalDelta / runStrategies.size();
+            double newValue = baseVal + averageDelta;
+
+            newValue = Math.max(0.0, Math.min(1.0, newValue));
+
+            finalValues.put(featureKey, newValue);
         }
 
         return new PredictedAttributes(finalValues);

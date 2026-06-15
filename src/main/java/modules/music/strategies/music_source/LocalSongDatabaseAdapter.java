@@ -10,9 +10,12 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.util.*;
 
+// "Spotify Tracks Dataset" (von Maharshi Pandya) --> Kaggle
 public class LocalSongDatabaseAdapter implements MusicSourceAdapter {
 
     private final List<Track> database = new ArrayList<>();
+
+    private final double WRONG_GENRE_PENALITY = 0.15;
 
     private record TrackDistance(Track track, double distance) {}
 
@@ -60,6 +63,7 @@ public class LocalSongDatabaseAdapter implements MusicSourceAdapter {
         String id = values[1].replace("\"", "").trim();
         String artists = values[2].replace("\"", "").trim();
         String name = values[4].replace("\"", "").trim();
+        String genre = values[20].replace("\"", "").trim();
 
         Map<String, Double> features = new HashMap<>();
         features.put("danceability", Double.parseDouble(values[8]));
@@ -71,7 +75,7 @@ public class LocalSongDatabaseAdapter implements MusicSourceAdapter {
 
         features.put("bpm", Double.parseDouble(values[18]) / 200.0);
 
-        return new Track(id, name, artists, features);
+        return new Track(id, name, artists, genre, features);
     }
 
 
@@ -93,6 +97,10 @@ public class LocalSongDatabaseAdapter implements MusicSourceAdapter {
 
             double distance = calculateNormalizedDistance(target, candidate);
 
+            if (currentSong.genre() != null && !currentSong.genre().equalsIgnoreCase(candidate.genre())) {
+                distance += WRONG_GENRE_PENALITY;
+            }
+
             maxHeap.offer(new TrackDistance(candidate, distance));
 
             if (maxHeap.size() > k) {
@@ -104,7 +112,6 @@ public class LocalSongDatabaseAdapter implements MusicSourceAdapter {
         while (!maxHeap.isEmpty()) {
             topK.addFirst(maxHeap.poll().track());
         }
-
         return topK;
     }
 

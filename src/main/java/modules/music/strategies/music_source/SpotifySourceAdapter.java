@@ -30,6 +30,7 @@ public class SpotifySourceAdapter implements MusicSourceAdapter {
                         freshTrack.getId(),
                         freshTrack.getName(),
                         freshTrack.getArtists()[0].getName(),
+                        localCandidate.genre(),
                         localCandidate.features()
                 );
             } else {

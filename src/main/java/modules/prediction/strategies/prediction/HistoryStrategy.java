@@ -42,7 +42,9 @@ public class HistoryStrategy implements PredictionStrategy {
             multipliers.put(key, calculateOptimalFactor(key, x, history));
         }
 
-        return new PredictionFactor(multipliers);
+        var newPredictionFactor = new PredictionFactor(multipliers);
+        System.out.println("History Strategy: " + newPredictionFactor);
+        return newPredictionFactor;
     }
 
     /**
