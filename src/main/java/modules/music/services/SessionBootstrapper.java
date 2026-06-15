@@ -32,7 +32,9 @@ public class SessionBootstrapper {
                 dominantGenre = genre;
             }
 
-            Map<String, Double> attr = genre.getAttributes().features();
+            PredictedAttributes centroid = localDb.getGenreCentroid(genre.getDisplayName());
+            Map<String, Double> attr = centroid.features();
+
             for (Map.Entry<String, Double> featureEntry : attr.entrySet()) {
                 mixedFeatures.merge(featureEntry.getKey(), featureEntry.getValue() * weight, Double::sum);
             }
@@ -47,12 +49,13 @@ public class SessionBootstrapper {
         }
 
         PredictedAttributes mixedAttributes = new PredictedAttributes(mixedFeatures);
+
         Track dummyTrack = new Track(
-                dominantGenre.getSeedTrackId(),
+                dominantGenre.getSeedTrackId().isEmpty() ? "dummy-id" : dominantGenre.getSeedTrackId(),
                 "Seed",
-                "author",
-                dominantGenre.getDisplayName().toLowerCase(),
-                dominantGenre.getAttributes().features()
+                dominantGenre.getDisplayName(),
+                dominantGenre.getDisplayName(),
+                localDb.getGenreCentroid(dominantGenre.getDisplayName()).features()
         );
 
         return localDb.getNextSong(mixedAttributes, dummyTrack);

@@ -1,32 +1,64 @@
 package modules.music.structures;
 
-import modules.prediction.structures.PredictedAttributes;
-
-import java.util.Map;
-
 public enum Genre {
-    HIP_HOP("hip-hop", new PredictedAttributes(Map.of("energy", 0.75, "bpm", 90.0 / 200.0, "danceability", 0.85, "acousticness", 0.15, "instrumentalness", 0.00, "speechiness", 0.35)), "6AI3ezQ4o3HUoP6Dhudph3"),
-    POP("pop", new PredictedAttributes(Map.of("energy", 0.70, "bpm", 115.0 / 200.0, "danceability", 0.75, "acousticness", 0.20, "instrumentalness", 0.00, "speechiness", 0.10)), "7qiZfU4dY1lWllzX7mPBI3"),
-    ROCK("rock", new PredictedAttributes(Map.of("energy", 0.85, "bpm", 115.0 / 200.0, "danceability", 0.40, "acousticness", 0.05, "instrumentalness", 0.10, "speechiness", 0.05)), "2zYzyRzz6pRmhPzyfMEC8s"),
-    COUNTRY("country", new PredictedAttributes(Map.of("energy", 0.60, "bpm", 110.0 / 200.0, "danceability", 0.55, "acousticness", 0.40, "instrumentalness", 0.00, "speechiness", 0.05)), "1QbOvACeYanja5pbnJbAmk"),
-    EDM("edm", new PredictedAttributes(Map.of("energy", 0.92, "bpm", 132.0 / 200.0, "danceability", 0.80, "acousticness", 0.01, "instrumentalness", 0.85, "speechiness", 0.04)), "6gdDu39yYqPcaTgCwYEW8i"),
-    LATIN("latin", new PredictedAttributes(Map.of("energy", 0.80, "bpm", 105.0 / 200.0, "danceability", 0.85, "acousticness", 0.20, "instrumentalness", 0.00, "speechiness", 0.10)), "6habFhsOp2NvshLv26DqMb"),
-    K_POP("k-pop", new PredictedAttributes(Map.of("energy", 0.85, "bpm", 120.0 / 200.0, "danceability", 0.80, "acousticness", 0.10, "instrumentalness", 0.00, "speechiness", 0.10)), "1CPZ5BxNNd0n0nF4Orb9JS"),
-    RNB_SOUL("r-n-b", new PredictedAttributes(Map.of("energy", 0.50, "bpm", 85.0 / 200.0, "danceability", 0.65, "acousticness", 0.30, "instrumentalness", 0.00, "speechiness", 0.10)), "0I3q5fE6wg7LIfHGngUTnV"),
-    JAZZ("jazz", new PredictedAttributes(Map.of("energy", 0.35, "bpm", 100.0 / 200.0, "danceability", 0.45, "acousticness", 0.75, "instrumentalness", 0.40, "speechiness", 0.05)), "43iIQbw5hx986dUEZbr3eN"),
-    CLASSICAL("classical", new PredictedAttributes(Map.of("energy", 0.15, "bpm", 80.0 / 200.0, "danceability", 0.20, "acousticness", 0.95, "instrumentalness", 0.90, "speechiness", 0.02)), "17mTPR6CmBQu8AsgBRPsw4");
+    HIP_HOP("hip-hop", "6AI3ezQ4o3HUoP6Dhudph3"),
+    POP("pop", "7qiZfU4dY1lWllzX7mPBI3"),
+    ROCK("rock", "2zYzyRzz6pRmhPzyfMEC8s"),
+    COUNTRY("country", "1QbOvACeYanja5pbnJbAmk"),
+    EDM("edm", "6gdDu39yYqPcaTgCwYEW8i"),
+    LATIN("latin", "6habFhsOp2NvshLv26DqMb"),
+    K_POP("k-pop", "1CPZ5BxNNd0n0nF4Orb9JS"),
+    RNB_SOUL("r-n-b", "0I3q5fE6wg7LIfHGngUTnV"),
+    JAZZ("jazz", "43iIQbw5hx986dUEZbr3eN"),
+    CLASSICAL("classical", "17mTPR6CmBQu8AsgBRPsw4"),
+
+    ACOUSTIC("acoustic", ""), AFROBEAT("afrobeat", ""), ALT_ROCK("alt-rock", ""), ALTERNATIVE("alternative", ""),
+    AMBIENT("ambient", ""), ANIME("anime", ""), BLACK_METAL("black-metal", ""), BLUEGRASS("bluegrass", ""),
+    BLUES("blues", ""), BOSSANOVA("bossanova", ""), BRAZIL("brazil", ""), BREAKBEAT("breakbeat", ""),
+    BRITISH("british", ""), CANTOPOP("cantopop", ""), CHICAGO_HOUSE("chicago-house", ""), CHILDREN("children", ""),
+    CHILL("chill", ""), CLUB("club", ""), COMEDY("comedy", ""), DANCEHALL("dancehall", ""),
+    DEATH_METAL("death-metal", ""), DEEP_HOUSE("deep-house", ""), DETROIT_TECHNO("detroit-techno", ""), DISCO("disco", ""),
+    DISNEY("disney", ""), DRUM_AND_BASS("drum-and-bass", ""), DUB("dub", ""), DUBSTEP("dubstep", ""),
+    ELECTRO("electro", ""), ELECTRONIC("electronic", ""), EMO("emo", ""), FOLK("folk", ""),
+    FORRO("forro", ""), FRENCH("french", ""), FUNK("funk", ""), GARAGE("garage", ""),
+    GERMAN("german", ""), GOSPEL("gospel", ""), GOTH("goth", ""), GRINDCORE("grindcore", ""),
+    GROOVE("groove", ""), GRUNGE("grunge", ""), GUITAR("guitar", ""), HAPPY("happy", ""),
+    HARD_ROCK("hard-rock", ""), HARDCORE("hardcore", ""), HARDSTYLE("hardstyle", ""), HEAVY_METAL("heavy-metal", ""),
+    HOLIDAYS("holidays", ""), HONKY_TONK("honky-tonk", ""), HOUSE("house", ""), IDM("idm", ""),
+    INDIAN("indian", ""), INDIE("indie", ""), INDIE_POP("indie-pop", ""), INDUSTRIAL("industrial", ""),
+    IRANIAN("iranian", ""), J_DANCE("j-dance", ""), J_IDOL("j-idol", ""), J_POP("j-pop", ""),
+    J_ROCK("j-rock", ""), KIDS("kids", ""), LATINO("latino", ""), MALAY("malay", ""),
+    MANDOPOP("mandopop", ""), METAL("metal", ""), METAL_MISC("metal-misc", ""), METALCORE("metalcore", ""),
+    MINIMAL_TECHNO("minimal-techno", ""), MOVIES("movies", ""), MPB("mpb", ""), NEW_AGE("new-age", ""),
+    NEW_RELEASE("new-release", ""), OPERA("opera", ""), PAGODE("pagode", ""), PARTY("party", ""),
+    PIANO("piano", ""), POP_FILM("pop-film", ""), POST_DUBSTEP("post-dubstep", ""), POWER_POP("power-pop", ""),
+    PROGRESSIVE_HOUSE("progressive-house", ""), PSYCH_ROCK("psych-rock", ""), PUNK("punk", ""), PUNK_ROCK("punk-rock", ""),
+    RAIN("rain", ""), REGGAE("reggae", ""), REGGAETON("reggaeton", ""), ROAD_TRIP("road-trip", ""),
+    ROCK_N_ROLL("rock-n-roll", ""), ROCKABILLY("rockabilly", ""), ROMANCE("romance", ""), SAD("sad", ""),
+    SALSA("salsa", ""), SAMBA("samba", ""), SERTANEJO("sertanejo", ""), SHOW_TUNES("show-tunes", ""),
+    SINGER_SONGWRITER("singer-songwriter", ""), SKA("ska", ""), SLEEP("sleep", ""), SONGWRITER("songwriter", ""),
+    SOUL("soul", ""), SOUNDTRACKS("soundtracks", ""), SPANISH("spanish", ""), STUDY("study", ""),
+    SUMMER("summer", ""), SWEDISH("swedish", ""), SYNTH_POP("synth-pop", ""), TANGO("tango", ""),
+    TECHNO("techno", ""), TRANCE("trance", ""), TRIP_HOP("trip-hop", ""), TURKISH("turkish", ""),
+    WORLD_MUSIC("world-music", "");
 
     private final String displayName;
-    private final PredictedAttributes attributes;
     private final String seedTrackId;
 
-    Genre(String displayName, PredictedAttributes attributes, String seedTrackId) {
+    Genre(String displayName, String seedTrackId) {
         this.displayName = displayName;
-        this.attributes = attributes;
         this.seedTrackId = seedTrackId;
     }
 
     public String getDisplayName() { return displayName; }
-    public PredictedAttributes getAttributes() { return attributes; }
     public String getSeedTrackId() { return seedTrackId; }
+
+    public static Genre fromString(String text) {
+        for (Genre genre : Genre.values()) {
+            if (genre.displayName.equalsIgnoreCase(text)) {
+                return genre;
+            }
+        }
+        return POP;
+    }
 }
