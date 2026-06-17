@@ -2,10 +2,9 @@ name: Java CI with Maven
 
 # Wann soll die Pipeline starten?
 on:
-  push:
-    branches: [ "main" ] # Startet, wenn etwas direkt in den main-Branch gepusht wird
+  push: # Läuft bei jedem Push auf JEDEN Branch
   pull_request:
-    branches: [ "main" ] # Startet bei jedem Pull Request, der in 'main' gemerged werden soll
+    branches: [ "main" ]
 
 jobs:
   build-and-test:
