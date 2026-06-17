@@ -1,0 +1,30 @@
+name: Java CI with Maven
+
+# Wann soll die Pipeline starten?
+on:
+  push:
+    branches: [ "main" ] # Startet, wenn etwas direkt in den main-Branch gepusht wird
+  pull_request:
+    branches: [ "main" ] # Startet bei jedem Pull Request, der in 'main' gemerged werden soll
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest # Der Server, der im Hintergrund hochgefahren wird
+
+    steps:
+      # 1. Lade deinen Code aus dem Repository auf den Server
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # 2. Installiere Java (Passe die Version '21' an deine genutzte Java-Version an, z.B. '17')
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven' # Macht die Pipeline viel schneller, da Abhängigkeiten gespeichert werden
+
+      # 3. Führe den Maven Build und alle JUnit-Tests aus
+      - name: Build and Test with Maven
+        # 'verify' führt die Tests aus und prüft, ob das Paket fehlerfrei gebaut werden kann
+        run: mvn clean verify
