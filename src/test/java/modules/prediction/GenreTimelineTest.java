@@ -14,7 +14,6 @@ class GenreTimelineTest {
 
     @Test
     public void testGetWeightsAt_Phase1_NoTransition() {
-        // Arrange (Vorbereiten)
         GenreTimeline timeline = new GenreTimeline(List.of(
                 new TimelinePhase(Genre.ROCK, 30.0, 10.0),
                 new TimelinePhase(Genre.EDM, 60.0, 0.0)
