@@ -31,6 +31,13 @@ public class LocalSongDatabaseAdapter implements MusicSourceAdapter {
     }
 
     /**
+     * Konstruktor für Unit-Tests
+     */
+    public LocalSongDatabaseAdapter(String customCsvPath) {
+        loadDatabase(customCsvPath);
+    }
+
+    /**
      * Lädt den 114k Spotify-Datensatz beim Programmstart in den Arbeitsspeicher
      * und stößt die Berechnung der Genre-Durchschnittswerte an.
      */

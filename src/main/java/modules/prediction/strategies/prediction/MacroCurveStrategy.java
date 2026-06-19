@@ -5,7 +5,7 @@ import modules.music.structures.Genre;
 import modules.music.structures.Track;
 import modules.prediction.strategies.core.PredictionStrategy;
 import modules.prediction.structures.PredictionFactor;
-import modules.userContext.services.UserContextService;
+import modules.userContext.strategies.core.UserContextStrategy;
 
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
@@ -15,10 +15,11 @@ import java.util.Map;
 public class MacroCurveStrategy implements PredictionStrategy {
 
     private final LocalSongDatabaseAdapter localDb;
+    private final UserContextStrategy contextStrategy;
 
-    // Wir brauchen Zugriff auf die Datenbank, um die Centroids der Genres abzufragen
-    public MacroCurveStrategy(LocalSongDatabaseAdapter localDb) {
+    public MacroCurveStrategy(LocalSongDatabaseAdapter localDb, UserContextStrategy contextStrategy) {
         this.localDb = localDb;
+        this.contextStrategy = contextStrategy;
     }
 
     @Override
@@ -28,7 +29,7 @@ public class MacroCurveStrategy implements PredictionStrategy {
 
     @Override
     public PredictionFactor calculate(Track currentTrack) {
-        var context = UserContextService.getInstance().getCurrentContext();
+        var context = contextStrategy.getUserContext();
 
         // 1. Relative Zeit berechnen (Minuten seit Start)
         double elapsedMinutes = ChronoUnit.SECONDS.between(context.startTime(), LocalTime.now()) / 60.0;
@@ -60,16 +61,7 @@ public class MacroCurveStrategy implements PredictionStrategy {
             }
         }
 
-        // 4. Multiplikatoren (Faktor) für den aktuellen Song berechnen (
-        // --> nicht nötig, da MacroCurve eigentlich nur einfluss auf das genrelle Genre
         Map<String, Double> multipliers = new HashMap<>();
-        /*for (String key : currentTrack.features().keySet()) {
-            double currentVal = currentTrack.features().getOrDefault(key, 0.0);
-            double targetVal = targetFeatures.getOrDefault(key, currentVal);
-
-            double factor = targetVal / Math.max(0.01, currentVal);
-            multipliers.put(key, factor);
-        }*/
 
         Map<String, Double> stringGenreWeights = new HashMap<>();
         for (Map.Entry<Genre, Double> entry : genreWeights.entrySet()) {

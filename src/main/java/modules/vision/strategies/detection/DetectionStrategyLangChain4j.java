@@ -7,7 +7,7 @@ import dev.langchain4j.data.message.ImageContent;
 import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.openai.OpenAiChatModel;
-import modules.userContext.services.UserContextService;
+import modules.userContext.strategies.core.UserContextStrategy;
 import modules.userContext.structures.UserContextDTO;
 import modules.vision.strategies.core.DetectionStrategy;
 import modules.vision.structures.FrameDataDTO;
@@ -29,7 +29,11 @@ public class DetectionStrategyLangChain4j implements DetectionStrategy {
     private final DetectionStrategy fallback = new DetectionStrategyMock();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public DetectionStrategyLangChain4j() {
+    private final UserContextStrategy contextStrategy;
+
+    public DetectionStrategyLangChain4j(UserContextStrategy contextStrategy) {
+        this.contextStrategy = contextStrategy;
+
         Config conf = ConfigFactory.load();
         String apiKey = conf.getString("groq.apiKey");
 
@@ -45,8 +49,8 @@ public class DetectionStrategyLangChain4j implements DetectionStrategy {
 
     /**
      * Analysiert das übergebene Bild mithilfe des LLMs und gibt strukturierte Daten zurück.
-     * Der Prompt wird dabei dynamisch anhand des aktuellen Kontexts aus dem
-     * {@link UserContextService} angepasst.
+     * Der Prompt wird dabei dynamisch anhand des aktuellen Kontexts aus der
+     * {@link UserContextStrategy} angepasst.
      * Sollte die KI-Anfrage fehlschlagen (z. B. wegen Rate-Limits), wird auf eine
      * Fallback-Strategie (Mock) zurückgegriffen.
      *
@@ -55,9 +59,7 @@ public class DetectionStrategyLangChain4j implements DetectionStrategy {
      */
     @Override
     public FrameDataDTO analyse(BufferedImage image) {
-        UserContextDTO context = null;
         try {
-            context = UserContextService.getInstance().getCurrentContext();
         } catch (IllegalStateException e) {
             // No user-context strategy is configured; continue without contextual prompt enrichment.
         }
@@ -67,7 +69,7 @@ public class DetectionStrategyLangChain4j implements DetectionStrategy {
             ImageIO.write(image, "png", baos);
             String base64Image = Base64.getEncoder().encodeToString(baos.toByteArray());
 
-            String promptText = getPromptText(context);
+            String promptText = getPromptText(contextStrategy.getUserContext());
 
             UserMessage userMessage = UserMessage.from(
                     TextContent.from(promptText),

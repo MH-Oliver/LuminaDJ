@@ -11,11 +11,9 @@ import modules.prediction.services.PredictionAggregator;
 import modules.prediction.strategies.core.PredictionStrategy;
 import modules.prediction.strategies.prediction.HistoryStrategy;
 import modules.prediction.strategies.prediction.MacroCurveStrategy;
-import modules.userContext.services.UserContextService;
 import modules.userContext.strategies.impl.UserContextStrategyMock;
 import modules.vision.strategies.live_feedback.LiveFeedbackStrategyMock;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -37,19 +35,19 @@ public class App
     }
 
     private static DjSessionController getDjSessionController(LocalSongDatabaseAdapter localSongDatabaseAdapter) {
+        var userContextStrategy = new UserContextStrategyMock();
+
         var playerMock = new SpotifyAdapter();
         var liveFeedbackMock = new LiveFeedbackStrategyMock();
 
         var history = new SessionHistoryRepository();
-
-        UserContextService.getInstance().setStrategy(new UserContextStrategyMock());
 
         var spotifyApiAdapter = new SpotifySourceAdapter();
 
         var hybridAdapter = new HybridSourceAdapter(localSongDatabaseAdapter, spotifyApiAdapter);
 
         List<PredictionStrategy> strategies = List.of(
-                new MacroCurveStrategy(localSongDatabaseAdapter),
+                new MacroCurveStrategy(localSongDatabaseAdapter, userContextStrategy),
                 new HistoryStrategy(history)
         );
         var aggregator = new PredictionAggregator(strategies);
