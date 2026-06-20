@@ -1,5 +1,6 @@
 package modules.core;
 
+import modules.music.repositories.PlayedSongRepository;
 import modules.music.repositories.SessionHistoryRepository;
 import modules.music.strategies.core.MusicPlayerAdapter;
 import modules.music.strategies.core.MusicSourceAdapter;
@@ -16,17 +17,24 @@ public class DjSessionController {
     private final PredictionAggregator aggregator;
     private final MusicSourceAdapter sourceAdapter;
     private final SessionHistoryRepository history;
+    private final PlayedSongRepository playedSongRepo;
 
     private boolean sessionActive = true;
 
     // Dependency Injection über den Konstruktor
-    public DjSessionController(MusicPlayerAdapter player, LiveFeedbackStrategy liveFeedback,
-                               PredictionAggregator aggregator, MusicSourceAdapter sourceAdapter, SessionHistoryRepository history) {
+    public DjSessionController(
+            MusicPlayerAdapter player,
+            LiveFeedbackStrategy liveFeedback,
+            PredictionAggregator aggregator,
+            MusicSourceAdapter sourceAdapter,
+            SessionHistoryRepository history,
+            PlayedSongRepository playedSongRepo) {
         this.player = player;
         this.liveFeedback = liveFeedback;
         this.aggregator = aggregator;
         this.sourceAdapter = sourceAdapter;
         this.history = history;
+        this.playedSongRepo = playedSongRepo;
     }
 
     public void startSession(Track entrySong) {
@@ -58,6 +66,8 @@ public class DjSessionController {
             Track nextSong = sourceAdapter.getNextSong(predictedTarget, currentSong);
 
             System.out.println("DJSessionController | Gefundener Song: " + nextSong);
+
+            playedSongRepo.markAsPlayed(nextSong.id());
 
             currentSong = nextSong;
         }

@@ -7,6 +7,7 @@ public record UserContextDTO (
         int tempo,
         Location location,
         LocalTime startTime,
-        GenreTimeline timeline
+        GenreTimeline timeline,
+        int songCooldownMinutes
 ) {
 }

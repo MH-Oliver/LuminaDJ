@@ -38,7 +38,7 @@ class MacroCurveStrategyTest {
 
         // 3. UserContext auf Minute 25 (Mitte des Übergangs) setzen
         LocalTime fakeStartTime = LocalTime.now().minusMinutes(25);
-        UserContextDTO fakeContext = new UserContextDTO(100, null, fakeStartTime, timeline);
+        UserContextDTO fakeContext = new UserContextDTO(100, null, fakeStartTime, timeline, 120);
 
         UserContextStrategy fakeContextStrategy = mock(UserContextStrategy.class);
         when(fakeContextStrategy.getUserContext()).thenReturn(fakeContext);

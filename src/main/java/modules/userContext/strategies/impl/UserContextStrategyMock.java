@@ -18,7 +18,7 @@ public class UserContextStrategyMock implements UserContextStrategy {
         // 2. Spiele 60 Min EDM (davon die letzten 15 Min weicher Übergang)
         // 3. Spiele unendlich lange POP
         var timeline = new GenreTimeline(List.of(
-                new TimelinePhase(Genre.ROCK, 1.0, 0.0),
+                new TimelinePhase(Genre.DEEP_HOUSE , 4.0, 1.0),
                 new TimelinePhase(Genre.EDM, 1.0, 0.0),
                 new TimelinePhase(Genre.POP, 120.0, 0.0)
         ));
@@ -27,7 +27,8 @@ public class UserContextStrategyMock implements UserContextStrategy {
                 105,
                 Location.Bar,
                 LocalTime.now(),
-                timeline
+                timeline,
+                120
         );
     }
 

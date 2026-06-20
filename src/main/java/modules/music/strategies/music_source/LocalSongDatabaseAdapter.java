@@ -2,9 +2,11 @@ package modules.music.strategies.music_source;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import modules.music.repositories.PlayedSongRepository;
 import modules.music.strategies.core.MusicSourceAdapter;
 import modules.music.structures.Track;
 import modules.prediction.structures.PredictedAttributes;
+import modules.userContext.strategies.core.UserContextStrategy;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -15,6 +17,9 @@ public class LocalSongDatabaseAdapter implements MusicSourceAdapter {
 
     private final List<Track> database = new ArrayList<>();
 
+    private final PlayedSongRepository playedRepo;
+    private final UserContextStrategy contextStrategy;
+
     private final double WRONG_GENRE_PENALITY = 0.15;
     private final Map<String, PredictedAttributes> genreCentroids = new HashMap<>();
 
@@ -23,18 +28,14 @@ public class LocalSongDatabaseAdapter implements MusicSourceAdapter {
     /**
      * Initialisiert den Adapter und lädt den Dateipfad der CSV-Datenbank aus der Konfiguration.
      */
-    public LocalSongDatabaseAdapter() {
+    public LocalSongDatabaseAdapter(PlayedSongRepository playedRepo, UserContextStrategy contextStrategy) {
+        this.playedRepo = playedRepo;
+        this.contextStrategy = contextStrategy;
+
         Config conf = ConfigFactory.load();
         String csvFilePath = conf.getString("songDatabase.path");
 
         loadDatabase(csvFilePath);
-    }
-
-    /**
-     * Konstruktor für Unit-Tests
-     */
-    public LocalSongDatabaseAdapter(String customCsvPath) {
-        loadDatabase(customCsvPath);
     }
 
     /**
@@ -155,8 +156,14 @@ public class LocalSongDatabaseAdapter implements MusicSourceAdapter {
                 k, Comparator.comparingDouble(TrackDistance::distance).reversed()
         );
 
+        int cooldown = contextStrategy.getUserContext().songCooldownMinutes();
+
         for (Track candidate : database) {
             if (candidate.id().equals(currentSong.id())) continue;
+
+            if (!playedRepo.isPlayable(candidate.id(), cooldown)) {
+                continue;
+            }
 
             double distance = calculateNormalizedDistance(target, candidate);
             double penalty = 0.0;

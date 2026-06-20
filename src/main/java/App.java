@@ -1,4 +1,5 @@
 import modules.core.DjSessionController;
+import modules.music.repositories.PlayedSongRepository;
 import modules.music.repositories.SessionHistoryRepository;
 import modules.music.services.SessionBootstrapper;
 import modules.music.strategies.music_player.spotify.SpotifyAdapter;
@@ -11,6 +12,7 @@ import modules.prediction.services.PredictionAggregator;
 import modules.prediction.strategies.core.PredictionStrategy;
 import modules.prediction.strategies.prediction.HistoryStrategy;
 import modules.prediction.strategies.prediction.MacroCurveStrategy;
+import modules.userContext.strategies.core.UserContextStrategy;
 import modules.userContext.strategies.impl.UserContextStrategyMock;
 import modules.vision.strategies.live_feedback.LiveFeedbackStrategyMock;
 
@@ -20,22 +22,29 @@ import java.util.Map;
 public class App
 {
     public static void main( String[] args ) {
-        var localSongDatabaseAdapter = new LocalSongDatabaseAdapter();
+        var userContextStrategy = new UserContextStrategyMock();
+        var playedSongRepo = new PlayedSongRepository();
 
-        DjSessionController controller = getDjSessionController(localSongDatabaseAdapter);
+        var localSongDatabaseAdapter = new LocalSongDatabaseAdapter(playedSongRepo, userContextStrategy);
+
+        DjSessionController controller = getDjSessionController(localSongDatabaseAdapter, userContextStrategy, playedSongRepo);
 
         var sessionBootstrapper = new SessionBootstrapper(localSongDatabaseAdapter);
         Map<Genre, Double> mixedGenre = Map.of(
-                Genre.ROCK, 1.0
+                Genre.DEEP_HOUSE, 1.0
         );
 
         Track entrySong = sessionBootstrapper.generateFirstTrack(mixedGenre);
+        playedSongRepo.markAsPlayed(entrySong.id());
         System.out.println("Gefundener Entry Song: " + entrySong);
         controller.startSession(entrySong);
     }
 
-    private static DjSessionController getDjSessionController(LocalSongDatabaseAdapter localSongDatabaseAdapter) {
-        var userContextStrategy = new UserContextStrategyMock();
+    private static DjSessionController getDjSessionController(
+            LocalSongDatabaseAdapter localSongDatabaseAdapter,
+            UserContextStrategy userContextStrategy,
+            PlayedSongRepository playedSongRepo
+    ) {
 
         var playerMock = new SpotifyAdapter();
         var liveFeedbackMock = new LiveFeedbackStrategyMock();
@@ -53,7 +62,7 @@ public class App
         var aggregator = new PredictionAggregator(strategies);
 
         return new DjSessionController(
-                playerMock, liveFeedbackMock, aggregator, hybridAdapter, history
+                playerMock, liveFeedbackMock, aggregator, hybridAdapter, history, playedSongRepo
         );
     }
 }
