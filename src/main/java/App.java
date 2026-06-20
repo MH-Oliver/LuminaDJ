@@ -30,11 +30,10 @@ public class App
         DjSessionController controller = getDjSessionController(localSongDatabaseAdapter, userContextStrategy, playedSongRepo);
 
         var sessionBootstrapper = new SessionBootstrapper(localSongDatabaseAdapter);
-        Map<Genre, Double> mixedGenre = Map.of(
-                Genre.DEEP_HOUSE, 1.0
-        );
+        Map<Genre, Double> startWeights = userContextStrategy.getUserContext().timeline().getWeightsAt(0.0);
 
-        Track entrySong = sessionBootstrapper.generateFirstTrack(mixedGenre);
+        System.out.println("Start Genre: " + startWeights);
+        Track entrySong = sessionBootstrapper.generateFirstTrack(startWeights);
         playedSongRepo.markAsPlayed(entrySong.id());
         System.out.println("Gefundener Entry Song: " + entrySong);
         controller.startSession(entrySong);
