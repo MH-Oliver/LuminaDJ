@@ -18,7 +18,7 @@ public class UserContextStrategyMock implements UserContextStrategy {
                 new TimelinePhase(Genre.EDM, 120.0, 0.0)
         ));*/
 
-        var generatedTimeline = TimelineFactory.createTimelineForVibe(SessionVibe.CHILLOUT_LOUNGE);
+        var generatedTimeline = TimelineFactory.createTimelineForVibe(SessionVibe.SUMMER_BBQ);
 
         this.fixedContext = new UserContextDTO(
                 105,
