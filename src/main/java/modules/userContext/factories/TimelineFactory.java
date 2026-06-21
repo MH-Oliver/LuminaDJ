@@ -48,9 +48,9 @@ public class TimelineFactory {
             ));
 
             case WORKOUT -> new GenreTimeline(List.of(
-                    new TimelinePhase(Genre.HARD_ROCK, 15.0, 5.0),
-                    new TimelinePhase(Genre.HEAVY_METAL, 15.0, 5.0),
-                    new TimelinePhase(Genre.METALCORE, 15.0, 5.0),
+                    new TimelinePhase(Genre.DEEP_HOUSE, 15.0, 5.0),
+                    new TimelinePhase(Genre.TECHNO, 15.0, 5.0),
+                    new TimelinePhase(Genre.EDM, 15.0, 5.0),
                     new TimelinePhase(Genre.HARDSTYLE, 60.0, 0.0)
             ));
 
