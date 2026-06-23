@@ -1,44 +1,67 @@
 import modules.core.DjSessionController;
+import modules.music.repositories.PlayedSongRepository;
 import modules.music.repositories.SessionHistoryRepository;
-import modules.music.strategies.music_player.MusicPlayerAdapterMock;
+import modules.music.services.SessionBootstrapper;
 import modules.music.strategies.music_player.spotify.SpotifyAdapter;
-import modules.music.strategies.music_source.ReccoBeatsAdapter;
+import modules.music.strategies.music_source.HybridSourceAdapter;
+import modules.music.strategies.music_source.LocalSongDatabaseAdapter;
+import modules.music.strategies.music_source.SpotifySourceAdapter;
+import modules.music.structures.Genre;
 import modules.music.structures.Track;
 import modules.prediction.services.PredictionAggregator;
+import modules.prediction.strategies.core.PredictionStrategy;
 import modules.prediction.strategies.prediction.HistoryStrategy;
 import modules.prediction.strategies.prediction.MacroCurveStrategy;
-import modules.userContext.services.UserContextService;
+import modules.userContext.strategies.core.UserContextStrategy;
 import modules.userContext.strategies.impl.UserContextStrategyMock;
-import modules.vision.strategies.detection.DetectionStrategyLangChain4j;
-import modules.vision.strategies.live_feedback.SmartphoneKameraStrategy;
+import modules.vision.strategies.live_feedback.LiveFeedbackStrategyMock;
 
 import java.util.List;
+import java.util.Map;
 
 public class App
 {
     public static void main( String[] args ) {
+        var userContextStrategy = new UserContextStrategyMock();
+        var playedSongRepo = new PlayedSongRepository();
+
+        var localSongDatabaseAdapter = new LocalSongDatabaseAdapter(playedSongRepo, userContextStrategy);
+
+        DjSessionController controller = getDjSessionController(localSongDatabaseAdapter, userContextStrategy, playedSongRepo);
+
+        var sessionBootstrapper = new SessionBootstrapper(localSongDatabaseAdapter);
+        Map<Genre, Double> startWeights = userContextStrategy.getUserContext().timeline().getWeightsAt(0.0);
+
+        System.out.println("Start Genre: " + startWeights);
+        Track entrySong = sessionBootstrapper.generateFirstTrack(startWeights);
+        playedSongRepo.markAsPlayed(entrySong.id());
+        System.out.println("Gefundener Entry Song: " + entrySong);
+        controller.startSession(entrySong);
+    }
+
+    private static DjSessionController getDjSessionController(
+            LocalSongDatabaseAdapter localSongDatabaseAdapter,
+            UserContextStrategy userContextStrategy,
+            PlayedSongRepository playedSongRepo
+    ) {
+
         var playerMock = new SpotifyAdapter();
-        var liveFeedbackMock = new SmartphoneKameraStrategy(
-                new DetectionStrategyLangChain4j()
-        );
+        var liveFeedbackMock = new LiveFeedbackStrategyMock();
 
         var history = new SessionHistoryRepository();
 
-        UserContextService.getInstance().setStrategy(new UserContextStrategyMock());
+        var spotifyApiAdapter = new SpotifySourceAdapter();
 
-        var graphAdapterMock = new ReccoBeatsAdapter();
+        var hybridAdapter = new HybridSourceAdapter(localSongDatabaseAdapter, spotifyApiAdapter);
 
-        var strategies = List.of(
-                new MacroCurveStrategy(),
+        List<PredictionStrategy> strategies = List.of(
+                new MacroCurveStrategy(localSongDatabaseAdapter, userContextStrategy),
                 new HistoryStrategy(history)
         );
         var aggregator = new PredictionAggregator(strategies);
 
-        DjSessionController controller = new DjSessionController(
-                playerMock, liveFeedbackMock, aggregator, graphAdapterMock, history
+        return new DjSessionController(
+                playerMock, liveFeedbackMock, aggregator, hybridAdapter, history, playedSongRepo
         );
-
-        Track entrySong = new Track("3K4HG9evC7dg3N0R9cYqk4", "One Step Closer", "Linkin Park", 0.6, 120.0, 0.4, 0.1, 0.8, 0.05);
-        controller.startSession(entrySong);
     }
 }

@@ -8,8 +8,12 @@ skinparam NoteBorderColor #BDC3C7
 
 start
 
-:<b>Systemstart</b>
-Initialen Einstiegs-Song laden;
+:<b>Systemstart</b> (App.java);
+:Wähle <b>SessionVibe</b> (z.B. Workout)
+und generiere Timeline via <b>TimelineFactory</b>, oder <b>custom</b>;
+
+:<b>SessionBootstrapper</b> berechnet perfekten
+Start-Song aus den Gewichten für Minute 0.0;
 
 repeat
   ' --- ZUSTAND: ABSPIELEN & BEOBACHTEN ---
@@ -23,44 +27,39 @@ repeat
   end fork
 
   ' --- TRIGGER: ENDE ---
-  :<i>Trigger: Song ist beendet</i>;
+  :<i>Trigger: Song ist fast beendet</i>;
 
   ' --- AUSWERTUNG ---
-  :Übergib bisherigen Song (Basis-Parameter)
+  :Übergib bisherigen Song
   an den <b>PredictionAggregator</b>;
 
-  partition "PredictionAggregator (Auswertung)" {
+  partition "Auswertung & Vorhersage" {
     :Iteriere über <b>List<PredictionStrategy></b>
-    (z.B. UserContextStrategy, HistoryStrategy, LiveFeedbackStrategy);
-
-    note right
-      <b>Interface PredictionStrategy</b>
-      + weight: float
-      + calculate(currentSong): PredictionFactor
-    end note
-
-    :Jede Strategie liefert ein <b>PredictionFactor</b> Objekt
-    (Enthält Vektor-Multiplikatoren für z.B. Energy, BPM);
+    (MacroCurve, History, LiveFeedback);
 
     :Verechne Basis-Parameter des alten Songs
-    mit den gewichteten Faktoren aller Strategien;
+    mit den Faktoren der Strategien;
 
-    :Generiere finale <b>PredictedAttributes</b>;
+    :Generiere Ziel-Vektor (<b>PredictedAttributes</b>);
   }
 
   ' --- NÄCHSTER SONG FINDEN ---
-  :Übergib <b>PredictedAttributes</b> und <b>bisherigen Song</b>
-  an den <b>MusicSourceAdapter</b>;
+  partition "Song-Auswahl (LocalSongDatabaseAdapter)" {
+      :Suche Top-Kandidaten in lokaler CSV;
 
-  note left
-    <b>Interface MusicSourceAdapter</b>
-    + getNextSong(predictedTarget, currentSong): Song
-  end note
+      :<b>Cooldown-Prüfung:</b>
+      Ist Song im <b>PlayedSongRepository</b> gesperrt?
+      -> Falls ja: Überspringen;
 
-  :MusicSourceAdapter liefert den <b>Neuen Song</b>;
+      :Verteile Strafen für falsches Genre
+      (Genre-Gravity) an verbleibende Kandidaten;
+  }
 
-repeat while (DJ-Session aktiv?) is (ja)
--> nein;
+  :Song gefunden;
+  :<b>PlayedSongRepository</b> markiert
+  neuen Song als gespielt;
+
+repeat while (Session aktiv?)
 
 stop
 @enduml

@@ -14,9 +14,17 @@ package "modules.core" #F9EBEA {
 
 ' --- MODULE: USER CONTEXT ---
 package "modules.userContext" #F4ECF7 {
-    class UserContextService <<Singleton>> {
-        + getCurrentContext()
+    interface UserContextStrategy <<Strategy>> {
+        + getUserContext(): UserContextDTO
     }
+
+    class TimelineFactory {
+        {static} + createTimelineForVibe(vibe: SessionVibe): GenreTimeline
+    }
+
+    enum SessionVibe {}
+
+    TimelineFactory .right.> SessionVibe : nutzt
 }
 
 ' --- MODULE: PREDICTION ---
@@ -34,50 +42,13 @@ package "modules.prediction" #E8F8F5 {
     class MacroCurveStrategy implements PredictionStrategy
     class LiveFeedbackAdapter implements PredictionStrategy
 
-    class SessionHistoryRepository {
-        + addEntry(track: Track, feedback: FeedbackResult)
-        + getHistory()
-    }
-
     class PredictedAttributes <<Record>> {
         + energy: double
         + bpm: double
     }
-    class PredictionFactor <<Record>> {
-        + energyMultiplier: double
-        + bpmMultiplier: double
-    }
 
-    PredictionAggregator *-- "*" PredictionStrategy : "nutzt Liste von"
-
-    HistoryStrategy --> SessionHistoryRepository : "liest Historie"
-    MacroCurveStrategy --> UserContextService : "liest Kontext"
-}
-
-' --- MODULE: VISION ---
-package "modules.vision" #FEF9E7 {
-    interface LiveFeedbackStrategy <<Strategy>> {
-        + startParallelEvaluation(song: Track)
-        + stopAndGetResult(): FeedbackResult
-    }
-
-    class SmartphoneKameraStrategy implements LiveFeedbackStrategy
-
-    interface DetectionStrategy <<Strategy>> {
-       + analyse(BufferedImage image): FrameDataDTO
-    }
-
-    class DetectionStrategyLangChain4j implements DetectionStrategy
-
-
-    SmartphoneKameraStrategy *-- "*" DetectionStrategy : "verarbeitet Bild mit"
-    DetectionStrategyLangChain4j --> UserContextService : "liest Kontext"
-    PredictionAggregator ..> LiveFeedbackAdapter : "fügt dynamisch hinzu"
-
-    class FeedbackResult <<Record>> {
-        + isPositiveTrend: boolean
-        + intensity: double
-    }
+    MacroCurveStrategy --> UserContextStrategy : liest Kontext
+    PredictionAggregator *-- "*" PredictionStrategy : bündelt
 }
 
 ' --- MODULE: MUSIC ---
@@ -85,26 +56,42 @@ package "modules.music" #EBF5FB {
     interface MusicPlayerAdapter <<Strategy>> {
         + play(track: Track)
     }
-    class SpotifyAdapter implements MusicPlayerAdapter
 
     interface MusicSourceAdapter <<Strategy>> {
         + getNextSong(target: PredictedAttributes, current: Track): Track
     }
-    class ReccoBeatsAdapter implements MusicSourceAdapter
+
+    class LocalSongDatabaseAdapter implements MusicSourceAdapter
+    class HybridSourceAdapter implements MusicSourceAdapter
+
+    class PlayedSongRepository {
+        + markAsPlayed(trackId: String)
+        + isPlayable(trackId: String, cooldown: int): boolean
+    }
+
+    class SessionHistoryRepository {
+        + addEntry(track: Track, feedback: FeedbackResult)
+    }
+
+    class SessionBootstrapper {
+        + generateFirstTrack(startWeights: Map): Track
+    }
 
     class Track <<Record>> {
         + id: String
-        + energy: double
-        + bpm: double
+        + genre: String
     }
+
+    LocalSongDatabaseAdapter --> PlayedSongRepository : filtert blockierte
+    LocalSongDatabaseAdapter --> UserContextStrategy : liest Cooldown
+    SessionBootstrapper --> LocalSongDatabaseAdapter : sucht Start-Song
 }
 
 ' --- ABHÄNGIGKEITEN DES CONTROLLERS (Dependency Injection) ---
 DjSessionController --> MusicPlayerAdapter : player
-DjSessionController --> LiveFeedbackStrategy : liveFeedback
 DjSessionController --> PredictionAggregator : aggregator
 DjSessionController --> MusicSourceAdapter : sourceAdapter
-
-DjSessionController --> SessionHistoryRepository : speichert Feedback
+DjSessionController --> SessionHistoryRepository : history
+DjSessionController --> PlayedSongRepository : playedRepo
 
 @enduml

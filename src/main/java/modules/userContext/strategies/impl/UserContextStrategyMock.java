@@ -1,35 +1,36 @@
 package modules.userContext.strategies.impl;
 
-import modules.userContext.services.CurveGenerator;
+import modules.music.structures.Genre;
+import modules.userContext.factories.TimelineFactory;
 import modules.userContext.strategies.core.UserContextStrategy;
-import modules.userContext.structures.Location;
-import modules.userContext.structures.UserContextDTO;
+import modules.userContext.structures.*;
 
 import java.time.LocalTime;
-import java.util.Map;
+import java.util.List;
 
 public class UserContextStrategyMock implements UserContextStrategy {
-    @Override
-    public UserContextDTO getUserContext() {
-        var energyCurve = CurveGenerator.createSmoothCurve(
-                new double[] {20.0, 22.0, 24.0, 26.0},
-                new double[] {0.5, 0.8, 1.0, 0.6}
-        );
-        var bpmCurve = CurveGenerator.createSmoothCurve(
-                new double[] {20.0, 22.0, 24.0, 26.0},
-                new double[] {110.0, 122.0, 128.0, 118.0}
-        );
+    private final UserContextDTO fixedContext;
 
-        var userContext = new UserContextDTO(
+    public UserContextStrategyMock() {
+        /*var customTimeline = new GenreTimeline(List.of(
+                new TimelinePhase(Genre.EDM , 6.0, 1.0),
+                new TimelinePhase(Genre.GERMAN, 6.0, 1.0),
+                new TimelinePhase(Genre.EDM, 120.0, 0.0)
+        ));*/
+
+        var generatedTimeline = TimelineFactory.createTimelineForVibe(SessionVibe.WORKOUT);
+
+        this.fixedContext = new UserContextDTO(
                 105,
                 Location.Bar,
                 LocalTime.now(),
-                Map.of(
-                        "energy", energyCurve,
-                        "bpm", bpmCurve
-                )
+                generatedTimeline,
+                500
         );
-        System.out.println("UserContext: " + userContext);
-        return userContext;
+    }
+
+    @Override
+    public UserContextDTO getUserContext() {
+        return fixedContext;
     }
 }

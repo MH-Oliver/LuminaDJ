@@ -6,7 +6,8 @@ import java.util.Map;
 public record UserContextDTO (
         int tempo,
         Location location,
-        LocalTime currentTime,
-        Map<String, MacroCurve> attributeCurves
+        LocalTime startTime,
+        GenreTimeline timeline,
+        int songCooldownMinutes
 ) {
 }

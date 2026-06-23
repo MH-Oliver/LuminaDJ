@@ -11,7 +11,7 @@ import se.michaelthelin.spotify.requests.data.player.StartResumeUsersPlaybackReq
 
 public class SpotifyAdapter implements MusicPlayerAdapter {
 
-    private final SpotifyApi spotifyApi;
+    public static SpotifyApi spotifyApi;
 
     // NEU: Variablen für das Threading (ähnlich wie SmartphoneKameraStrategy)
     private volatile boolean isRunning = false;
@@ -119,13 +119,14 @@ public class SpotifyAdapter implements MusicPlayerAdapter {
             System.out.println("Play-Methode für " + track.name() + " ist offiziell beendet.");
 
         } catch (Exception e) {
-            handleError("Fehler beim Starten der Wiedergabe", e);
-
             try {
                 Thread.sleep(5000);
             } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
-            }        }
+            }
+
+            throw new IllegalArgumentException("Fehler beim Starten der Wiedergabe", e);
+        }
     }
 
     @Override
