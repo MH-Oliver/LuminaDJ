@@ -10,6 +10,7 @@ function startBackend() {
   backendProcess = spawn('java', ['-jar', jarPath], {
     cwd: path.resolve(__dirname, '../..'),
     stdio: 'inherit',
+    windowsHide: true,
     env: {
       ...process.env,
       SPOTIFY_CLIENT_SECRET: "value1",
@@ -48,7 +49,10 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
-  startBackend();
+  if (!process.env.ELECTRON_START_URL) {
+    startBackend();
+  }
+
   createWindow();
 
   app.on('activate', () => {
