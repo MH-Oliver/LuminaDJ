@@ -2,6 +2,7 @@ package modules.music.repositories;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import modules.core.PathResolver;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -22,7 +23,7 @@ public class PlayedSongRepository {
 
     public PlayedSongRepository() {
         Config conf = ConfigFactory.load();
-        String filePath = conf.getString("playedSongs.path");
+        String filePath = PathResolver.resolve(conf.getString("playedSongs.path"));
 
         this.historyFile = new File(filePath);
         this.playedHistory = new ConcurrentHashMap<>();

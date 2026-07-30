@@ -2,6 +2,7 @@ package modules.music.strategies.music_source;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import modules.core.PathResolver;
 import modules.music.repositories.PlayedSongRepository;
 import modules.music.strategies.core.MusicSourceAdapter;
 import modules.music.structures.Track;
@@ -33,7 +34,7 @@ public class LocalSongDatabaseAdapter implements MusicSourceAdapter {
         this.contextStrategy = contextStrategy;
 
         Config conf = ConfigFactory.load();
-        String csvFilePath = conf.getString("songDatabase.path");
+        String csvFilePath = PathResolver.resolve(conf.getString("songDatabase.path"));
 
         loadDatabase(csvFilePath);
     }

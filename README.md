@@ -15,6 +15,7 @@ LuminaDJ ist eine intelligente Java-Anwendung, die visuelle Eindrücke (wie das 
 ## Voraussetzungen
 * Java 21
 * Maven
+* Node.js 20+ und npm
 
 ---
 
@@ -88,5 +89,36 @@ $$\text{Faktor}_a = \frac{\hat{y}_a}{x.a}$$
 
 ---
 
-## Projekt starten
-*(Bisher noch kein richtiges Deployment umgesetzt)*
+## Ganzes Projekt starten
+### 1) Frontend-Abhängigkeiten installieren
+```bash
+npm --prefix frontend ci
+```
+Erwartet:
+- Installation läuft ohne Fehler durch.
+- `frontend/node_modules` ist vorhanden.
+
+### 2) Frontend-Abhängigkeiten installieren
+In frontend/electron/main.js in startBackend() Funktion die Variablen SPOTIFY_CLIENT_SECRET und GROQ_API_KEY richtig setzen.
+(GROQ_API_KEY ist irrelevant wenn Smartphone nicht verbunden)
+
+### 2.2) Song auf Spotify kurz starten
+Es muss Spotify geöffnet werden, und ein beliebiger Song kurz gestartet werden, kann auch direkt wieder gestoppt werden.
+
+
+### 3) Skript starten
+Unter den Run-Configs findet sich "Start LuminaDJ (Full Build)".
+Diese normal über Intellij starten.
+
+Erwartet:
+- Electron-Fenster öffnet sich.
+- Im Terminal erscheint `LuminaDJ backend is running on http://localhost:8081`.
+- Beim Klick auf den Button in der UI erscheint ein Erfolgsstatus (`Dummy-Context erfolgreich an das Backend gesendet.`).
+- Es wird Musik abgespielt
+
+## Nur das Frontend starten
+### 1) Ganzes Projekt einmal starten
+### 2) Frontend-Start (mit Live-Update bei File-Changes)
+```bash
+npm run start:live
+```
