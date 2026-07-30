@@ -15,6 +15,7 @@ LuminaDJ ist eine intelligente Java-Anwendung, die visuelle Eindrücke (wie das 
 ## Voraussetzungen
 * Java 21
 * Maven
+* Node.js 20+ und npm
 
 ---
 
@@ -89,4 +90,27 @@ $$\text{Faktor}_a = \frac{\hat{y}_a}{x.a}$$
 ---
 
 ## Projekt starten
-*(Bisher noch kein richtiges Deployment umgesetzt)*
+### 1) Backend bauen (für Electron-Sidecar erforderlich)
+```bash
+mvn -f backend/pom.xml clean package
+```
+Erwartet:
+- Build endet mit `BUILD SUCCESS`.
+- Das ausführbare JAR liegt danach unter `backend/target/lumina-backend-1.0-SNAPSHOT.jar`.
+
+### 2) Frontend-Abhängigkeiten installieren
+```bash
+npm --prefix frontend ci
+```
+Erwartet:
+- Installation läuft ohne Fehler durch.
+- `frontend/node_modules` ist vorhanden.
+
+### 3) Desktop-App für lokale Entwicklung starten
+```bash
+npm --prefix frontend run start:desktop
+```
+Erwartet:
+- Electron-Fenster öffnet sich.
+- Im Terminal erscheint `LuminaDJ backend is running on http://localhost:8081`.
+- Beim Klick auf den Button in der UI erscheint ein Erfolgsstatus (`Context sent successfully`).
