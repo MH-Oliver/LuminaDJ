@@ -2,11 +2,28 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
+
+import modules.core.DjSessionController;
+import modules.music.services.SessionBootstrapper;
+import modules.music.strategies.music_player.spotify.SpotifyAdapter;
+import modules.music.strategies.music_source.HybridSourceAdapter;
+import modules.music.strategies.music_source.SpotifySourceAdapter;
 import modules.music.structures.Genre;
 import modules.userContext.structures.GenreTimeline;
 import modules.userContext.structures.Location;
 import modules.userContext.structures.TimelinePhase;
 import modules.userContext.structures.UserContextDTO;
+
+import modules.music.repositories.PlayedSongRepository;
+import modules.music.repositories.SessionHistoryRepository;
+import modules.music.strategies.music_source.LocalSongDatabaseAdapter;
+import modules.music.structures.Track;
+import modules.prediction.services.PredictionAggregator;
+import modules.prediction.strategies.core.PredictionStrategy;
+import modules.prediction.strategies.prediction.HistoryStrategy;
+import modules.prediction.strategies.prediction.MacroCurveStrategy;
+import modules.userContext.strategies.core.UserContextStrategy;
+import modules.vision.strategies.live_feedback.LiveFeedbackStrategyMock;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -14,6 +31,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class App {
 
@@ -35,6 +53,7 @@ public class App {
 
     private static void handleContext(HttpExchange exchange) throws IOException {
         addCorsHeaders(exchange);
+        System.out.println("Endpoint /api/context wurde aufgerufen!");
 
         if ("OPTIONS".equalsIgnoreCase(exchange.getRequestMethod())) {
             exchange.sendResponseHeaders(204, -1);
@@ -51,10 +70,66 @@ public class App {
             JsonNode payload = OBJECT_MAPPER.readTree(body);
             UserContextDTO context = mapUserContext(payload);
             latestUserContext = context;
+
             writeJson(exchange, 200, "{\"status\":\"ok\"}");
+
+            new Thread(() -> startMusicSession(context)).start();
+
         } catch (Exception e) {
+            System.err.println("Fehler beim Verarbeiten des Payloads:");
+            e.printStackTrace();
             writeJson(exchange, 400, "{\"error\":\"Invalid payload\"}");
         }
+    }
+
+    private static void startMusicSession(UserContextDTO context) {
+        System.out.println("Starte Musik-Session mit empfangenem Context...");
+
+        UserContextStrategy userContextStrategy = new UserContextStrategy() {
+            @Override
+            public UserContextDTO getUserContext() {
+                return context;
+            }
+        };
+
+        var playedSongRepo = new PlayedSongRepository();
+        var localSongDatabaseAdapter = new LocalSongDatabaseAdapter(playedSongRepo, userContextStrategy);
+
+        DjSessionController controller = getDjSessionController(localSongDatabaseAdapter, userContextStrategy, playedSongRepo);
+
+        var sessionBootstrapper = new SessionBootstrapper(localSongDatabaseAdapter);
+        Map<Genre, Double> startWeights = userContextStrategy.getUserContext().timeline().getWeightsAt(0.0);
+
+        System.out.println("Start Genre: " + startWeights);
+        Track entrySong = sessionBootstrapper.generateFirstTrack(startWeights);
+        playedSongRepo.markAsPlayed(entrySong.id());
+
+        System.out.println("Gefundener Entry Song: " + entrySong);
+
+        controller.startSession(entrySong);
+    }
+
+    private static DjSessionController getDjSessionController(
+            LocalSongDatabaseAdapter localSongDatabaseAdapter,
+            UserContextStrategy userContextStrategy,
+            PlayedSongRepository playedSongRepo
+    ) {
+
+        var playerMock = new SpotifyAdapter();
+        var liveFeedbackMock = new LiveFeedbackStrategyMock();
+        var history = new SessionHistoryRepository();
+        var spotifyApiAdapter = new SpotifySourceAdapter();
+        var hybridAdapter = new HybridSourceAdapter(localSongDatabaseAdapter, spotifyApiAdapter);
+
+        List<PredictionStrategy> strategies = List.of(
+                new MacroCurveStrategy(localSongDatabaseAdapter, userContextStrategy),
+                new HistoryStrategy(history)
+        );
+        var aggregator = new PredictionAggregator(strategies);
+
+        return new DjSessionController(
+                playerMock, liveFeedbackMock, aggregator, hybridAdapter, history, playedSongRepo
+        );
     }
 
     private static UserContextDTO mapUserContext(JsonNode payload) {

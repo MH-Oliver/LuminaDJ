@@ -10,6 +10,11 @@ function startBackend() {
   backendProcess = spawn('java', ['-jar', jarPath], {
     cwd: path.resolve(__dirname, '../..'),
     stdio: 'inherit',
+    env: {
+      ...process.env,
+      SPOTIFY_CLIENT_SECRET: "value1",
+      GROQ_API_KEY: "value2"
+    }
   });
 
   backendProcess.on('exit', () => {
