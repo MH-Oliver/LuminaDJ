@@ -3,6 +3,7 @@ import { ContextApiService } from './services/context-api.service';
 
 @Component({
   selector: 'app-root',
+  standalone: true,
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
