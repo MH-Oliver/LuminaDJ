@@ -113,4 +113,4 @@ npm --prefix frontend run start:desktop
 Erwartet:
 - Electron-Fenster öffnet sich.
 - Im Terminal erscheint `LuminaDJ backend is running on http://localhost:8081`.
-- Beim Klick auf den Button in der UI erscheint ein Erfolgsstatus (`Context sent successfully`).
+- Beim Klick auf den Button in der UI erscheint ein Erfolgsstatus (`Dummy-Context erfolgreich an das Backend gesendet.`).
