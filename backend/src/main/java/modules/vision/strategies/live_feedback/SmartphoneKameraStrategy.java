@@ -134,4 +134,28 @@ public class SmartphoneKameraStrategy implements LiveFeedbackStrategy {
 
         return new FeedbackResult(isPositiveTrend, normalizedAverageIntensity);
     }
+
+    /**
+     * Holt ein einzelnes Bild von der Kamera, ohne den automatischen Auswertungs-Thread zu starten.
+     * Ideal zum Sammeln von Offline-Trainingsdaten.
+     */
+    public BufferedImage fetchSingleFrame() {
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(cameraUrl))
+                    .timeout(REQUEST_TIMEOUT)
+                    .build();
+            HttpResponse<byte[]> response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
+
+            if (response.statusCode() == 200) {
+                byte[] imageBytes = response.body();
+                return ImageIO.read(new ByteArrayInputStream(imageBytes));
+            } else {
+                System.err.println("Kamera meldet Status: " + response.statusCode());
+            }
+        } catch (Exception e) {
+            System.err.println("Fehler beim Abrufen des Einzelbildes: " + e.getMessage());
+        }
+        return null;
+    }
 }
