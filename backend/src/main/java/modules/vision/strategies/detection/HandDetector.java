@@ -10,10 +10,22 @@ import java.util.List;
 
 public class HandDetector {
 
+    // Größer als die im cfg trainierte 416x416 - gibt dem Modell mehr Bilddetail bei deiner
+    // 1920x1080-Kamera, kostet aber etwas mehr Rechenzeit pro Frame. Muss ein Vielfaches
+    // von 32 sein (YOLO-Architektur-Anforderung).
+    private static final int INFERENCE_SIZE = 608;
+
     private final Net yoloNet;
     private final List<String> outBlobNames;
+    private final float confidenceThreshold;
 
     public HandDetector() {
+        this(0.2f);
+    }
+
+    public HandDetector(float confidenceThreshold) {
+        this.confidenceThreshold = confidenceThreshold;
+
         File cfgFile = new File("backend/src/main/resources/yolo/cross-hands-yolov4-tiny.cfg");
         File weightsFile = new File("backend/src/main/resources/yolo/cross-hands-yolov4-tiny.weights");
 
@@ -35,7 +47,6 @@ public class HandDetector {
     }
 
     public Rect detectHand(Mat frame) {
-        System.out.println("###### NEUE VERSION AKTIV ######");
         if (frame == null || frame.empty()) {
             return null;
         }
@@ -56,7 +67,7 @@ public class HandDetector {
             Rect roiOnCanvas = new Rect(padX, padY, frame.cols(), frame.rows());
             frame.copyTo(new Mat(squareCanvas, roiOnCanvas));
 
-            blob = Dnn.blobFromImage(squareCanvas, 1.0 / 255.0, new Size(416, 416), new Scalar(0, 0, 0), true, false);
+            blob = Dnn.blobFromImage(squareCanvas, 1.0 / 255.0, new Size(INFERENCE_SIZE, INFERENCE_SIZE), new Scalar(0, 0, 0), true, false);
             System.out.println("DEBUG: blob erstellt, dims=" + blob.dims() + " channels=" + blob.channels());
             System.out.flush();
 
@@ -86,6 +97,7 @@ public class HandDetector {
             System.out.flush();
 
             float maxConfidence = 0;
+            float maxConfidenceOverall = 0; // auch unterhalb der Schwelle, nur zum Debuggen
             Rect bestBoundingBox = null;
 
             for (Mat level : result) {
@@ -122,7 +134,9 @@ public class HandDetector {
                         }
                     }
 
-                    if (confidence > 0.25f && confidence > maxConfidence) {
+                    maxConfidenceOverall = Math.max(maxConfidenceOverall, confidence);
+
+                    if (confidence > confidenceThreshold && confidence > maxConfidence) {
                         maxConfidence = confidence;
 
                         // Padding wieder abziehen, um zurück in Original-Frame-Koordinaten zu kommen.
@@ -140,6 +154,7 @@ public class HandDetector {
                     }
                 }
             }
+            System.out.println("DEBUG: höchste Konfidenz in diesem Frame (ungefiltert) = " + maxConfidenceOverall);
             return bestBoundingBox;
 
         } catch (Exception e) {
