@@ -13,7 +13,7 @@ function startBackend() {
     windowsHide: true,
     env: {
       ...process.env,
-      SPOTIFY_CLIENT_SECRET: "value1",
+      SPOTIFY_CLIENT_SECRET: "54ac515fed40427facf841f22461b7e7",
       GROQ_API_KEY: "value2"
     }
   });

@@ -1,0 +1,36 @@
+<main class="page-container">
+  <div class="setup-content">
+    <h1>setup</h1>
+    <p class="subtitle">before starting:</p>
+
+    <div class="connection-list">
+      <!-- Spotify -->
+      <div class="connection-item">
+        <input type="checkbox" [checked]="isSpotifyConnected" disabled class="custom-checkbox">
+        <span class="item-text">
+          connect to spotify
+          <a class="highlight-link" (click)="connectSpotify()">here</a>
+        </span>
+        <span class="tooltip" title="Connect your Spotify account">i</span>
+      </div>
+
+      <!-- Camera -->
+      <div class="connection-item">
+        <input type="checkbox" [checked]="isCameraConnected" disabled class="custom-checkbox">
+        <span class="item-text">
+          connect to smartphone with camera
+          <a class="highlight-link" (click)="connectCamera()">here</a>
+        </span>
+        <span class="tooltip" title="Connect your camera">i</span>
+      </div>
+    </div>
+
+    <!-- Der Button ist deaktiviert ([disabled]), solange nicht beide true sind -->
+    <button
+      class="btn-primary continue-btn"
+      [disabled]="!isSpotifyConnected || !isCameraConnected"
+      routerLink="/session-setup"> <!-- HIER GEÄNDERT -->
+      continue
+    </button>
+  </div>
+</main>

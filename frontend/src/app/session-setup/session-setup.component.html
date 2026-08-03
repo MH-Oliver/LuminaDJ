@@ -1,0 +1,94 @@
+<main class="page-container">
+
+  <header class="header">
+    <div class="logo">LuminaDJ</div>
+    <div class="spotify-account">
+      <span class="spotify-icon">🟢</span>
+      <span class="account-name">{{ spotifyUser }}</span>
+    </div>
+  </header>
+
+  <section class="timeline-section">
+    <div class="timeline-header">
+      <h2>Select your Timeline</h2>
+      <select class="preset-dropdown">
+        <option>Preset</option>
+        <option>Workout</option>
+        <option>Focus</option>
+        <option>Dinner</option>
+      </select>
+    </div>
+
+    <div class="timeline-widget">
+      <div class="grid-and-legend-wrapper">
+        <div class="timeline-grid">
+          <div class="grid-lines"></div>
+
+          <ng-container *ngFor="let block of blocks">
+            <div class="genre-block"
+                 [class.row-top]="block.row === 0"
+                 [class.row-bottom]="block.row === 1"
+                 [class.delete-warning]="block === draggingBlock && isDraggingOutside"
+                 [style.left]="getLeft(block)"
+                 [style.width]="getWidth(block)"
+                 (mousedown)="onMouseDownMove($event, block)"
+                 (click)="openDialog(block)">
+
+              <span class="genre-title">{{ block.title }}</span>
+              <span class="genre-duration">{{ block.duration }} min</span>
+
+              <div class="resize-handle" (mousedown)="onMouseDownResize($event, block)"></div>
+
+              <div class="delete-overlay">🗑️ drop to delete</div>
+            </div>
+          </ng-container>
+        </div>
+
+        <div class="timeline-legend">
+          <div class="ticks-container">
+            <span *ngFor="let tick of ticks" class="tick-label" [style.left.%]="(tick / totalMinutes) * 100">
+              {{ tick }}
+            </span>
+          </div>
+          <span class="legend-unit">minuten</span>
+        </div>
+      </div>
+
+      <div class="add-genre-wrapper">
+        <div class="default-plus">+</div>
+        <div class="add-half top-half" (click)="addBlock(0)" title="Add to top row">+</div>
+        <div class="add-half bottom-half" (click)="addBlock(1)" title="Add to bottom row">+</div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <button class="btn-primary ready-btn" routerLink="/active-session">Ready</button>
+  </footer>
+
+  <!-- Modal Dialog -->
+  <div class="modal-overlay" *ngIf="selectedBlock" (click)="closeDialog()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <h3>Edit Block</h3>
+
+      <!-- NEU: Genre Auswahl -->
+      <div class="input-group">
+        <label>Genre:</label>
+        <select class="modal-dropdown" [value]="selectedBlock.title" (change)="updateGenre($event)">
+          <option *ngFor="let genre of availableGenres" [value]="genre">{{ genre }}</option>
+        </select>
+      </div>
+
+      <!-- Dauer Auswahl -->
+      <div class="input-group">
+        <label>Duration: <span class="highlight">{{ selectedBlock.duration }} min</span></label>
+        <input type="range" class="duration-slider" min="5" max="120" step="5"
+               [value]="selectedBlock.duration"
+               (input)="updateDuration($event)">
+      </div>
+
+      <button class="btn-primary modal-btn" (click)="closeDialog()">Done</button>
+    </div>
+  </div>
+
+</main>
