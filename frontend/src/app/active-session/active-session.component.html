@@ -14,36 +14,37 @@
     <h2>remaining session time: <span class="highlight">{{ sessionTimeLeft }}</span></h2>
   </div>
 
-  <!-- PLAYER WIDGET -->
-  <section class="player-widget">
-    <img [src]="currentSong.coverUrl" alt="Album Cover" class="album-cover">
+  <!-- PLAYER WIDGET (Zentriert und kompakter) -->
+  <section class="player-wrapper">
+    <div class="player-widget">
+      <img [src]="currentSong.coverUrl" alt="Album Cover" class="album-cover">
 
-    <div class="player-details">
-      <div class="track-info">
-        <h3 class="song-title">{{ currentSong.title }}</h3>
-        <p class="song-artist">{{ currentSong.artist }}</p>
-      </div>
-
-      <!-- Wiedergabelinie -->
-      <div class="progress-container">
-        <div class="progress-bar">
-          <div class="progress-fill" style="width: 45%;"></div>
-          <div class="progress-handle"></div>
+      <div class="player-details">
+        <div class="track-info">
+          <h3 class="song-title">{{ currentSong.title }}</h3>
+          <p class="song-artist">{{ currentSong.artist }}</p>
         </div>
-      </div>
 
-      <!-- Controls -->
-      <div class="player-controls">
-        <button class="control-btn" title="Skip Back">⏮</button>
-        <button class="control-btn play-pause-btn" title="Play/Pause">⏸</button>
-        <button class="control-btn" title="Skip Forward">⏭</button>
+        <div class="progress-container">
+          <div class="progress-bar">
+            <div class="progress-fill" style="width: 45%;"></div>
+            <div class="progress-handle"></div>
+          </div>
+        </div>
+
+        <div class="player-controls">
+          <button class="control-btn" title="Skip Back">⏮</button>
+          <button class="control-btn play-pause-btn" title="Play/Pause">⏸</button>
+          <button class="control-btn" title="Skip Forward">⏭</button>
+        </div>
       </div>
     </div>
   </section>
 
-  <!-- MAIN CONTENT: CAMERA & GESTURE LOG -->
+  <!-- MAIN CONTENT: CAMERA, GESTURE LOG & LEGEND -->
   <div class="main-content-row">
-    <!-- Links: Live Kamera & Log -->
+
+    <!-- Links: Live Kamera -->
     <section class="camera-section">
       <div class="camera-feed-box">
         <div class="camera-header-icons">
@@ -52,38 +53,52 @@
         </div>
         <div class="camera-placeholder-text">Live Camera picture</div>
       </div>
+    </section>
 
-      <div class="gesture-log">
-        <h3>Camera inputs</h3>
-        <ul>
-          <li *ngFor="let gesture of detectedGestures">
-            <span class="bullet">•</span>
-            {{ gesture.name }}
-            <span class="timestamp">- {{ gesture.timeAgo }}</span>
+    <!-- Mitte: Detected Gestures -->
+    <section class="gesture-log-section">
+      <h3>Detected Gestures</h3>
+      <div class="gesture-log-box">
+        <ul class="log-list">
+          <li class="log-item" *ngFor="let gesture of detectedGestures">
+            <span class="gesture-name">{{ gesture.name }}</span>
+            <span class="timestamp">{{ gesture.timeAgo }}</span>
           </li>
-          <li><span class="bullet">•</span> ...</li>
+          <li class="log-item empty-log">
+            <span class="gesture-name">...</span>
+          </li>
         </ul>
       </div>
     </section>
 
-    <!-- Rechts: Die Legend für Gesture Actions -->
-    <section class="gestures-section">
-      <h2>Gesture Actions</h2>
+    <!-- Rechts: Dezente Gesture Actions Legende -->
+    <section class="gestures-legend-section">
+      <h3>Gesture Actions</h3>
       <div class="gesture-table">
-        <div class="gesture-row"><div class="gesture-icon">✌️ Peace</div><div class="gesture-action">Skip Song</div></div>
-        <div class="gesture-row"><div class="gesture-icon">☝️ Index Finger</div><div class="gesture-action">Skip Genre</div></div>
-        <div class="gesture-row"><div class="gesture-icon">👍 Thumbs up</div><div class="gesture-action">Prioritize current genre</div></div>
+        <div class="gesture-row">
+          <span class="gesture-icon">✌️ Peace</span>
+          <span class="gesture-action">Skip Song</span>
+        </div>
+        <div class="gesture-row">
+          <span class="gesture-icon">☝️ Index Finger</span>
+          <span class="gesture-action">Skip Genre</span>
+        </div>
+        <div class="gesture-row">
+          <span class="gesture-icon">👍 Thumbs up</span>
+          <span class="gesture-action">Prioritize current genre</span>
+        </div>
       </div>
     </section>
+
   </div>
 
   <!-- FOOTER CONTROLS -->
   <footer class="footer-actions">
     <button class="btn-secondary" routerLink="/session-setup" [state]="{ preserveConfig: true }">
-      ✏️ edit session
+      edit session
     </button>
     <button class="btn-danger" routerLink="/">
-      ❌ cancel session
+      cancel session
     </button>
   </footer>
 

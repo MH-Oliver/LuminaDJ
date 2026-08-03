@@ -18,54 +18,137 @@
 .session-info h2 { font-weight: normal; font-size: 1.5rem; margin: 0; }
 .highlight { font-weight: bold; color: lightblue; }
 
-/* --- Player Widget --- */
-.player-widget {
-  display: flex; background-color: #1e1e1e; border-radius: 12px; padding: 1.5rem; gap: 2rem; margin-bottom: 3rem; box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+/* --- Player Widget (Neu zentriert und begrenzt) --- */
+.player-wrapper {
+  display: flex;
+  justify-content: center; /* Zentriert den Player horizontal */
+  margin-bottom: 3rem;
 }
-.album-cover { width: 150px; height: 150px; border-radius: 8px; object-fit: cover; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+.player-widget {
+  display: flex;
+  background-color: #1e1e1e;
+  border-radius: 12px;
+  padding: 1.5rem;
+  gap: 2rem;
+  width: 100%;
+  max-width: 800px; /* Begrenzt die Breite, damit er nicht an den Rändern klebt */
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.3);
+  border: 1px solid #333;
+}
+.album-cover { width: 120px; height: 120px; border-radius: 8px; object-fit: cover; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
 .player-details { flex: 1; display: flex; flex-direction: column; justify-content: center; }
-.song-title { font-size: 2rem; margin: 0 0 0.2rem 0; }
-.song-artist { font-size: 1.2rem; color: #a0a0a0; margin: 0 0 1.5rem 0; }
+.song-title { font-size: 1.8rem; margin: 0 0 0.2rem 0; }
+.song-artist { font-size: 1.1rem; color: #a0a0a0; margin: 0 0 1.5rem 0; }
+
 .progress-container { margin-bottom: 1rem; }
 .progress-bar { width: 100%; height: 6px; background-color: #333; border-radius: 3px; position: relative; cursor: pointer; }
 .progress-fill { height: 100%; background-color: #ffffff; border-radius: 3px; }
 .progress-handle { width: 14px; height: 14px; background-color: #ffffff; border-radius: 50%; position: absolute; top: -4px; left: 45%; transform: translateX(-50%); box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
-.player-controls { display: flex; justify-content: center; gap: 1.5rem; align-items: center; }
+
+.player-controls { display: flex; justify-content: center; gap: 2rem; align-items: center; }
 .control-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; transition: transform 0.1s ease; }
 .control-btn:hover { transform: scale(1.1); }
 .play-pause-btn { font-size: 2rem; }
 
-/* --- Two Columns for Inputs & Legend --- */
+/* --- Main Content Row (Drei Spalten-Layout) --- */
 .main-content-row {
   display: flex;
-  gap: 3rem;
+  gap: 2rem;
   flex: 1;
   margin-bottom: 3rem;
+  justify-content: space-between;
+}
+
+h3 {
+  font-size: 1.2rem;
+  font-weight: normal;
+  color: #d0d0d0;
+  margin-top: 0;
+  margin-bottom: 1rem;
 }
 
 /* --- Camera Section --- */
-.camera-section { display: flex; gap: 2rem; flex: 1; }
-.camera-feed-box { width: 250px; height: 200px; background-color: #2a2a2a; border-radius: 12px; border: 2px dashed #555; position: relative; display: flex; align-items: center; justify-content: center; }
-.camera-header-icons { position: absolute; top: 10px; right: 10px; display: flex; gap: 0.5rem; font-size: 1.2rem; cursor: pointer; }
-.camera-placeholder-text { color: #888; font-style: italic; }
+.camera-section { flex: 0 0 auto; }
+.camera-feed-box {
+  width: 250px; height: 200px;
+  background-color: #1e1e1e; border-radius: 12px;
+  border: 1px dashed #555; position: relative;
+  display: flex; align-items: center; justify-content: center;
+}
+.camera-header-icons { position: absolute; top: 10px; right: 10px; display: flex; gap: 0.5rem; font-size: 1.2rem; cursor: pointer; opacity: 0.7; }
+.camera-placeholder-text { color: #888; font-style: italic; font-size: 0.9rem; }
 
-.gesture-log { flex: 1; }
-.gesture-log h3 { margin-top: 0; font-size: 1.4rem; text-decoration: underline; margin-bottom: 1rem; }
-.gesture-log ul { list-style: none; padding: 0; margin: 0; }
-.gesture-log li { margin-bottom: 0.8rem; font-size: 1.1rem; }
-.bullet { color: #ff007f; font-weight: bold; margin-right: 0.5rem; }
-.timestamp { color: #888; font-size: 0.9rem; font-style: italic; margin-left: 0.5rem; }
+/* --- Detected Gestures (Kompakte Liste) --- */
+.gesture-log-section {
+  flex: 1;
+  max-width: 400px;
+}
+.gesture-log-box {
+  background-color: #1e1e1e;
+  border-radius: 12px;
+  padding: 1rem;
+  border: 1px solid #333;
+  height: 200px;
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+.log-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+.log-item {
+  background-color: #2a2a2a;
+  padding: 0.6rem 0.8rem;
+  border-radius: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+}
+.empty-log { background-color: transparent; justify-content: flex-start; color: #666; }
+.gesture-name { color: #e0e0e0; }
+.timestamp { color: #888; font-size: 0.8rem; font-style: italic; }
 
-/* --- Gesture Actions (Verschoben von Setup) --- */
-.gestures-section h2 { font-size: 1.5rem; font-weight: normal; color: #a0a0a0; margin-top: 0; margin-bottom: 1rem; }
-.gesture-table { display: flex; flex-direction: column; gap: 0.5rem; width: 350px; }
-.gesture-row { display: flex; background-color: #1e1e1e; border-radius: 8px; overflow: hidden; }
-.gesture-icon { background-color: #2a2a2a; padding: 0.8rem 1rem; width: 150px; font-weight: bold; }
-.gesture-action { padding: 0.8rem 1rem; flex: 1; }
+/* --- Gesture Legend (Dezent und sauber) --- */
+.gestures-legend-section {
+  flex: 1;
+  max-width: 300px;
+}
+.gesture-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+.gesture-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  border-bottom: 1px solid #333;
+  padding-bottom: 0.8rem;
+}
+.gesture-row:last-child {
+  border-bottom: none;
+}
+.gesture-icon {
+  font-weight: bold;
+  color: #ccc;
+  width: 130px; /* Feste Breite für saubere Ausrichtung */
+  font-size: 0.95rem;
+}
+.gesture-action {
+  color: #888;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  flex: 1;
+}
 
 /* --- Footer --- */
-.footer-actions { display: flex; justify-content: center; gap: 2rem; }
-.btn-secondary { background-color: #333; color: white; border: 1px solid #555; padding: 1rem 2rem; font-size: 1.1rem; border-radius: 8px; cursor: pointer; transition: background-color 0.2s; }
+.footer-actions { display: flex; justify-content: center; gap: 2rem; margin-top: auto; }
+.btn-secondary {
+  background-color: #333; color: white; border: 1px solid #555;
+  padding: 0.8rem 2rem; font-size: 1.1rem; border-radius: 8px; cursor: pointer; transition: background-color 0.2s;
+}
 .btn-secondary:hover { background-color: #444; }
-.btn-danger { background-color: transparent; color: #ff4d4d; border: 1px solid #ff4d4d; padding: 1rem 2rem; font-size: 1.1rem; border-radius: 8px; cursor: pointer; transition: background-color 0.2s, color 0.2s; }
+
+.btn-danger {
+  background-color: transparent; color: #ff4d4d; border: 1px solid #ff4d4d;
+  padding: 0.8rem 2rem; font-size: 1.1rem; border-radius: 8px; cursor: pointer; transition: background-color 0.2s, color 0.2s;
+}
 .btn-danger:hover { background-color: #ff4d4d; color: white; }
