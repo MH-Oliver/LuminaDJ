@@ -21,7 +21,6 @@ export class SessionSetupComponent {
   spotifyUser = 'DJ_Lumina_Test';
   totalMinutes = 120;
 
-  // NEU: Eine Liste der auswählbaren Genres für das Dropdown
   availableGenres: string[] = [
     'EDM', 'Techno', 'House', 'Hip Hop', 'Pop', 'Rock', 'Acoustic', 'Afrobeat', 'Alt-Rock', 'New'
   ];
@@ -74,7 +73,7 @@ export class SessionSetupComponent {
     if (!this.draggingBlock && !this.resizingBlock) return;
     this.wasDragged = true;
 
-    const timelineEl = document.querySelector('.timeline-grid') as HTMLElement;
+    const timelineEl = document.querySelector('.timeline-tracks') as HTMLElement;
     if (!timelineEl) return;
     const rect = timelineEl.getBoundingClientRect();
     const pixelsPerMinute = rect.width / this.totalMinutes;
@@ -179,7 +178,6 @@ export class SessionSetupComponent {
     this.selectedBlock = null;
   }
 
-  // NEU: Methode zum Ändern des Genres
   updateGenre(event: Event): void {
     const newGenre = (event.target as HTMLSelectElement).value;
     if (this.selectedBlock) {
