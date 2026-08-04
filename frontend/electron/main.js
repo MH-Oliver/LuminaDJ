@@ -39,6 +39,9 @@ function createWindow() {
     },
   });
 
+  // Entfernt die native System-Menüleiste (Datei, Bearbeiten, Ansicht...)
+  win.removeMenu();
+
   const startUrl = process.env.ELECTRON_START_URL;
   if (startUrl) {
     win.loadURL(startUrl);
