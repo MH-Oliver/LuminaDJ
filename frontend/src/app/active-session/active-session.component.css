@@ -6,60 +6,103 @@
   box-sizing: border-box;
 }
 
-/* --- Header --- */
+/* --- 1. TOP BAR / HEADER --- */
 .header {
-  display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;
-}
-.logo { font-size: 2rem; font-weight: bold; letter-spacing: 1px; }
-.spotify-account { display: flex; align-items: center; gap: 0.5rem; background-color: #1e1e1e; padding: 0.5rem 1rem; border-radius: 20px; font-weight: bold; }
-
-/* --- Session Info --- */
-.session-info { margin-bottom: 2rem; }
-.session-info h2 { font-weight: normal; font-size: 1.5rem; margin: 0; }
-.highlight { font-weight: bold; color: lightblue; }
-
-/* --- Player Widget (Neu zentriert und begrenzt) --- */
-.player-wrapper {
   display: flex;
-  justify-content: center; /* Zentriert den Player horizontal */
-  margin-bottom: 3rem;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #333;
 }
-.player-widget {
+
+.header-left, .header-right {
   display: flex;
-  background-color: #1e1e1e;
-  border-radius: 12px;
-  padding: 1.5rem;
-  gap: 2rem;
-  width: 100%;
-  max-width: 800px; /* Begrenzt die Breite, damit er nicht an den Rändern klebt */
-  box-shadow: inset 0 0 10px rgba(0,0,0,0.3);
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.logo {
+  font-size: 2rem;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+
+.session-time-badge {
+  background-color: rgba(255, 255, 255, 0.05);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  color: #a0a0a0;
   border: 1px solid #333;
 }
-.album-cover { width: 120px; height: 120px; border-radius: 8px; object-fit: cover; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-.player-details { flex: 1; display: flex; flex-direction: column; justify-content: center; }
-.song-title { font-size: 1.8rem; margin: 0 0 0.2rem 0; }
-.song-artist { font-size: 1.1rem; color: #a0a0a0; margin: 0 0 1.5rem 0; }
 
-.progress-container { margin-bottom: 1rem; }
-.progress-bar { width: 100%; height: 6px; background-color: #333; border-radius: 3px; position: relative; cursor: pointer; }
-.progress-fill { height: 100%; background-color: #ffffff; border-radius: 3px; }
-.progress-handle { width: 14px; height: 14px; background-color: #ffffff; border-radius: 50%; position: absolute; top: -4px; left: 45%; transform: translateX(-50%); box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
-
-.player-controls { display: flex; justify-content: center; gap: 2rem; align-items: center; }
-.control-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; transition: transform 0.1s ease; }
-.control-btn:hover { transform: scale(1.1); }
-.play-pause-btn { font-size: 2rem; }
-
-/* --- Main Content Row (Drei Spalten-Layout) --- */
-.main-content-row {
-  display: flex;
-  gap: 2rem;
-  flex: 1;
-  margin-bottom: 3rem;
-  justify-content: space-between;
+.highlight {
+  font-weight: bold;
+  color: lightblue;
+  margin-left: 0.3rem;
 }
 
-h3 {
+.spotify-account {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: #1e1e1e;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 0.9rem;
+  border: 1px solid #333;
+}
+
+/* Buttons im Header */
+.btn-small {
+  padding: 0.5rem 1.2rem;
+  font-size: 0.95rem;
+  font-weight: bold;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.btn-secondary {
+  background-color: #2a2a2a;
+  color: white;
+  border: 1px solid #555;
+}
+.btn-secondary:hover { background-color: #3a3a3a; border-color: #777; }
+
+.btn-danger {
+  background-color: transparent;
+  color: #ff4d4d;
+  border: 1px solid #ff4d4d;
+}
+.btn-danger:hover { background-color: #ff4d4d; color: white; }
+
+/* --- 2. MAIN CONTENT (Grid Layout) --- */
+.main-layout {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr; /* 60% zu 40% Ratio */
+  gap: 2rem;
+  flex: 1;
+}
+
+.column-left, .column-right {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* Allgemeine Karten-Eigenschaften */
+.card {
+  background-color: #1e1e1e;
+  border-radius: 12px;
+  border: 1px solid #333;
+  padding: 1.5rem;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.card h3 {
   font-size: 1.2rem;
   font-weight: normal;
   color: #d0d0d0;
@@ -67,34 +110,73 @@ h3 {
   margin-bottom: 1rem;
 }
 
-/* --- Camera Section --- */
-.camera-section { flex: 0 0 auto; }
-.camera-feed-box {
-  width: 250px; height: 200px;
-  background-color: #1e1e1e; border-radius: 12px;
-  border: 1px dashed #555; position: relative;
-  display: flex; align-items: center; justify-content: center;
+/* --- LINKE SPALTE: Kamera & Logs --- */
+.camera-card {
+  padding: 0; /* Die Kamera füllt die Karte aus */
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
-.camera-header-icons { position: absolute; top: 10px; right: 10px; display: flex; gap: 0.5rem; font-size: 1.2rem; cursor: pointer; opacity: 0.7; }
-.camera-placeholder-text { color: #888; font-style: italic; font-size: 0.9rem; }
 
-/* --- Detected Gestures (Kompakte Liste) --- */
-.gesture-log-section {
-  flex: 1;
-  max-width: 400px;
-}
-.gesture-log-box {
+/* NEU: Styles für den einklappbaren Header */
+.camera-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
   background-color: #1e1e1e;
-  border-radius: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  user-select: none;
+}
+
+.camera-card-header:hover {
+  background-color: #2a2a2a;
+}
+
+.camera-title {
+  font-size: 1.1rem;
+  color: #d0d0d0;
+  font-weight: bold;
+}
+
+.toggle-icon {
+  font-size: 1.2rem;
+  opacity: 0.8;
+}
+
+.camera-feed-box {
+  flex: 1;
+  min-height: 350px; /* Schön großer Fokusbereich */
+  background-color: #000; /* Schwarz wie ein echter Feed */
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-top: 1px solid #333; /* Trennt Header vom Bild optisch ab */
+}
+
+.camera-header-icons {
+  position: absolute; top: 15px; right: 15px;
+  display: flex; gap: 0.8rem; font-size: 1.2rem; cursor: pointer; opacity: 0.7;
+}
+
+.camera-placeholder-text { color: #555; font-style: italic; font-size: 1rem; }
+
+/* Gesten Log */
+.gesture-log-box {
+  background-color: #121212;
+  border-radius: 8px;
   padding: 1rem;
-  border: 1px solid #333;
-  height: 200px;
-  box-sizing: border-box;
+  border: 1px inset #222;
+  min-height: 150px;
+  max-height: 250px;
   overflow-y: auto;
 }
+
 .log-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.5rem; }
 .log-item {
-  background-color: #2a2a2a;
+  background-color: #222;
   padding: 0.6rem 0.8rem;
   border-radius: 6px;
   display: flex;
@@ -102,53 +184,76 @@ h3 {
   align-items: center;
   font-size: 0.9rem;
 }
-.empty-log { background-color: transparent; justify-content: flex-start; color: #666; }
+.empty-log { background-color: transparent; justify-content: flex-start; color: #555; }
 .gesture-name { color: #e0e0e0; }
 .timestamp { color: #888; font-size: 0.8rem; font-style: italic; }
 
-/* --- Gesture Legend (Dezent und sauber) --- */
-.gestures-legend-section {
-  flex: 1;
-  max-width: 300px;
+/* --- RECHTE SPALTE: Player & Legende --- */
+.player-layout {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
 }
+
+.album-cover {
+  width: 100px;
+  height: 100px;
+  border-radius: 8px;
+  object-fit: cover;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+}
+
+.player-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.song-title { font-size: 1.6rem; margin: 0 0 0.2rem 0; font-weight: bold; }
+.song-artist { font-size: 1rem; color: #a0a0a0; margin: 0; }
+
+.progress-container { margin-bottom: 1.5rem; width: 100%; }
+.progress-bar { width: 100%; height: 6px; background-color: #333; border-radius: 3px; position: relative; cursor: pointer; }
+.progress-fill { height: 100%; background-color: #ffffff; border-radius: 3px; }
+.progress-handle { width: 14px; height: 14px; background-color: #ffffff; border-radius: 50%; position: absolute; top: -4px; left: 45%; transform: translateX(-50%); box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+
+.player-controls { display: flex; justify-content: center; gap: 2rem; align-items: center; }
+.control-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; transition: transform 0.1s ease; }
+.control-btn:hover { transform: scale(1.1); }
+.play-pause-btn { font-size: 2.2rem; }
+
+/* Dezente Legende */
 .gesture-table {
   display: flex;
   flex-direction: column;
   gap: 0.8rem;
 }
+
 .gesture-row {
   display: flex;
   align-items: flex-start;
   gap: 1rem;
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid #2a2a2a;
   padding-bottom: 0.8rem;
 }
+
 .gesture-row:last-child {
   border-bottom: none;
+  padding-bottom: 0;
 }
+
 .gesture-icon {
   font-weight: bold;
   color: #ccc;
-  width: 130px; /* Feste Breite für saubere Ausrichtung */
+  width: 140px;
   font-size: 0.95rem;
 }
+
 .gesture-action {
   color: #888;
   font-size: 0.9rem;
   line-height: 1.4;
   flex: 1;
 }
-
-/* --- Footer --- */
-.footer-actions { display: flex; justify-content: center; gap: 2rem; margin-top: auto; }
-.btn-secondary {
-  background-color: #333; color: white; border: 1px solid #555;
-  padding: 0.8rem 2rem; font-size: 1.1rem; border-radius: 8px; cursor: pointer; transition: background-color 0.2s;
-}
-.btn-secondary:hover { background-color: #444; }
-
-.btn-danger {
-  background-color: transparent; color: #ff4d4d; border: 1px solid #ff4d4d;
-  padding: 0.8rem 2rem; font-size: 1.1rem; border-radius: 8px; cursor: pointer; transition: background-color 0.2s, color 0.2s;
-}
-.btn-danger:hover { background-color: #ff4d4d; color: white; }
