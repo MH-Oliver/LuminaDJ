@@ -7,13 +7,12 @@ import { CommonModule } from '@angular/common';
   standalone: true,
   imports: [RouterLink, CommonModule],
   templateUrl: './active-session.component.html',
-  styleUrls: ['./active-session.component.css']
+  styleUrls: ['./active-session.component.scss'] /* <-- HIER GEÄNDERT AUF .scss */
 })
 export class ActiveSessionComponent {
   spotifyUser = 'DJ_Lumina_Test';
   sessionTimeLeft = '14:53 min';
 
-  // NEU: Steuert, ob das Kamera-Fenster aufgeklappt ist
   isCameraExpanded = true;
 
   currentSong = {
@@ -28,7 +27,6 @@ export class ActiveSessionComponent {
     { name: 'thumbs down detected', timeAgo: '45 sec ago' }
   ];
 
-  // NEU: Funktion zum Ein- und Ausklappen der Kamera
   toggleCamera(): void {
     this.isCameraExpanded = !this.isCameraExpanded;
   }

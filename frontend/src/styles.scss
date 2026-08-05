@@ -1,0 +1,45 @@
+/* ==========================================================================
+   GLOBAL VARIABLES (COLORS & THEMING)
+   ========================================================================== */
+:root {
+  /* --- Backgrounds --- */
+  --color-bg-base: #121212;
+  --color-bg-surface: #1e1e1e;
+  --color-bg-surface-light: #2a2a2a;
+  --color-bg-surface-lighter: #333333;
+
+  /* --- Borders --- */
+  --color-border-subtle: #444444;
+  --color-border-default: #555555;
+  --color-border-strong: #666666;
+
+  /* --- Typography --- */
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #d0d0d0;
+  --color-text-muted: #a0a0a0;
+  --color-text-disabled: #888888;
+
+  /* --- Accents / Brand Colors --- */
+  --color-accent-pink: #ff007f;
+  --color-accent-pink-dimmed: rgba(200, 30, 110, 0.85);
+  --color-accent-purple-dimmed: rgba(140, 75, 170, 0.85);
+  --color-accent-lightblue: lightblue;
+
+  /* --- Danger / Error --- */
+  --color-danger-base: #ff4d4d;
+  --color-danger-hover: #ff6666;
+  --color-danger-bg: rgba(255, 50, 50, 0.9);
+  --color-danger-border: #ffb3b3;
+
+  /* --- Overlays --- */
+  --color-overlay-dark: rgba(0, 0, 0, 0.7);
+  --color-shadow-default: rgba(0, 0, 0, 0.5);
+}
+
+/* Basis-Styling für die gesamte App (optional, falls noch nicht vorhanden) */
+body {
+  margin: 0;
+  background-color: var(--color-bg-base);
+  color: var(--color-text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}

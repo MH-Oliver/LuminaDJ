@@ -15,7 +15,7 @@ interface GenreBlock {
   standalone: true,
   imports: [RouterLink, CommonModule],
   templateUrl: './session-setup.component.html',
-  styleUrls: ['./session-setup.component.css']
+  styleUrls: ['./session-setup.component.scss'] /* <-- HIER GEÄNDERT AUF .scss */
 })
 export class SessionSetupComponent {
   spotifyUser = 'DJ_Lumina_Test';
@@ -39,6 +39,7 @@ export class SessionSetupComponent {
   selectedBlock: GenreBlock | null = null;
 
   isDraggingOutside = false;
+  errorMessage: string | null = null;
 
   get ticks(): number[] {
     const tickArray = [];
@@ -48,8 +49,29 @@ export class SessionSetupComponent {
     return tickArray;
   }
 
+  get gridBackgroundSize(): string {
+    return `${(5 / this.totalMinutes) * 100}% 100%`;
+  }
+
   getLeft(block: GenreBlock): string { return (block.start / this.totalMinutes) * 100 + '%'; }
   getWidth(block: GenreBlock): string { return (block.duration / this.totalMinutes) * 100 + '%'; }
+
+  updateTimelineLength(event: Event): void {
+    const val = +(event.target as HTMLInputElement).value;
+    if (val && val >= 10 && val <= 600) {
+      this.totalMinutes = Math.round(val / 5) * 5;
+
+      this.blocks = this.blocks.filter(b => b.start < this.totalMinutes);
+
+      this.blocks.forEach(b => {
+        if (b.start + b.duration > this.totalMinutes) {
+          b.duration = this.totalMinutes - b.start;
+        }
+      });
+    } else {
+      (event.target as HTMLInputElement).value = this.totalMinutes.toString();
+    }
+  }
 
   onMouseDownMove(event: MouseEvent, block: GenreBlock): void {
     event.stopPropagation();
@@ -178,6 +200,17 @@ export class SessionSetupComponent {
     this.selectedBlock = null;
   }
 
+  deleteSelectedBlock(): void {
+    if (this.selectedBlock) {
+      this.blocks = this.blocks.filter(b => b.id !== this.selectedBlock!.id);
+      this.closeDialog();
+    }
+  }
+
+  closeError(): void {
+    this.errorMessage = null;
+  }
+
   updateGenre(event: Event): void {
     const newGenre = (event.target as HTMLSelectElement).value;
     if (this.selectedBlock) {
@@ -196,7 +229,7 @@ export class SessionSetupComponent {
   addBlock(row: number): void {
     const maxEnd = this.blocks.reduce((max, b) => Math.max(max, b.start + b.duration), 0);
     if (maxEnd + 5 > this.totalMinutes) {
-      alert('Timeline is full!');
+      this.errorMessage = 'Die Timeline ist voll! Es kann kein weiteres Genre mehr eingefügt werden.';
       return;
     }
     this.blocks.push({

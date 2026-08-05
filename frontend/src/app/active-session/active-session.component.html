@@ -1,6 +1,5 @@
 <main class="page-container">
 
-  <!-- 1. TOP BAR / HEADER -->
   <header class="header">
     <div class="header-left">
       <div class="logo">LuminaDJ</div>
@@ -23,52 +22,57 @@
     </div>
   </header>
 
-  <!-- 2. MAIN CONTENT -->
   <div class="main-layout">
 
-    <!-- LINKE SPALTE: Kamera & Gesten-Log -->
     <div class="column-left">
-
-      <!-- Kamera Feed mit Toggle-Funktion -->
       <section class="card camera-card">
-        <!-- NEU: Klickbarer Header -->
         <div class="camera-card-header" (click)="toggleCamera()" title="Click to hide/show camera">
-          <span class="camera-title">📹 Live Camera</span>
-          <span class="toggle-icon">{{ isCameraExpanded ? '🔽' : '▶️' }}</span>
+
+          <div class="camera-title-wrapper">
+            <span class="material-icons-outlined camera-icon">videocam</span>
+            <span class="camera-title">Live Camera</span>
+          </div>
+
+          <span class="material-icons-outlined toggle-icon">
+            <!-- MODERN ANGULAR @if (ternary) -->
+            {{ isCameraExpanded ? 'expand_more' : 'chevron_right' }}
+          </span>
+
         </div>
 
-        <!-- NEU: Der Feed wird nur angezeigt, wenn isCameraExpanded true ist -->
-        <div class="camera-feed-box" *ngIf="isCameraExpanded">
-          <div class="camera-header-icons">
-            <span>ℹ️</span>
-            <span>📋</span>
+        <!-- MODERN ANGULAR @if -->
+        @if (isCameraExpanded) {
+          <div class="camera-feed-box">
+            <div class="camera-header-icons">
+              <span class="material-icons-outlined action-icon" title="Info">info</span>
+              <span class="material-icons-outlined action-icon" title="Log/Details">assignment</span>
+            </div>
+            <div class="camera-placeholder-text">Live Camera picture</div>
           </div>
-          <div class="camera-placeholder-text">Live Camera picture</div>
-        </div>
+        }
       </section>
 
-      <!-- Gesten Log -->
       <section class="card log-card">
         <h3>Detected Gestures</h3>
         <div class="gesture-log-box">
           <ul class="log-list">
-            <li class="log-item" *ngFor="let gesture of detectedGestures">
-              <span class="gesture-name">{{ gesture.name }}</span>
-              <span class="timestamp">{{ gesture.timeAgo }}</span>
-            </li>
+            <!-- MODERN ANGULAR @for -->
+            @for (gesture of detectedGestures; track gesture.name) {
+              <li class="log-item">
+                <span class="gesture-name">{{ gesture.name }}</span>
+                <span class="timestamp">{{ gesture.timeAgo }}</span>
+              </li>
+            }
             <li class="log-item empty-log">
               <span class="gesture-name">...</span>
             </li>
           </ul>
         </div>
       </section>
-
     </div>
 
-    <!-- RECHTE SPALTE: Player & Legende -->
     <div class="column-right">
 
-      <!-- Music Player -->
       <section class="card player-card">
         <div class="player-layout">
           <img [src]="currentSong.coverUrl" alt="Album Cover" class="album-cover">
@@ -94,7 +98,6 @@
         </div>
       </section>
 
-      <!-- Gesture Actions Legend -->
       <section class="card legend-card">
         <h3>Gesture Actions</h3>
         <div class="gesture-table">
@@ -115,5 +118,4 @@
 
     </div>
   </div>
-
 </main>
