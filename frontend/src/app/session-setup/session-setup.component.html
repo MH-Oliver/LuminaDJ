@@ -1,7 +1,7 @@
 <main class="page-container">
   <div class="lumina-ambient-glow"></div>
   <header class="header">
-    <div class="logo lumina-logo-glow">LuminaDJ</div>
+    <div class="logo">LuminaDJ</div>
     <div class="spotify-account">
       <span class="spotify-icon"></span>
       <span class="account-name">{{ spotifyUser }}</span>
@@ -66,13 +66,13 @@
     </div>
   </section>
   <footer class="footer">
-    <button class="btn-primary ready-btn lumina-btn-glow" routerLink="/active-session">Ready</button>
+    <button class="btn-primary ready-btn" routerLink="/active-session">Ready</button>
   </footer>
 
   <!-- MODERN ANGULAR @if -->
   @if (selectedBlock) {
     <div class="modal-overlay" (click)="closeDialog()">
-      <div class="modal-content lumina-card-muted" (click)="$event.stopPropagation()">
+      <div class="modal-content" (click)="$event.stopPropagation()">
         <h3>Edit Block</h3>
         <div class="input-group">
           <label>Genre:</label>
@@ -91,7 +91,7 @@
         </div>
         <div class="modal-actions">
           <button class="btn-danger modal-btn" (click)="deleteSelectedBlock()">Delete</button>
-          <button class="btn-primary modal-btn lumina-btn-glow" (click)="closeDialog()">Done</button>
+          <button class="btn-primary modal-btn" (click)="closeDialog()">Done</button>
         </div>
       </div>
     </div>

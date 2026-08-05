@@ -2,7 +2,7 @@
   <div class="lumina-ambient-glow"></div>
   <header class="header">
     <div class="header-left">
-      <div class="logo lumina-logo-glow">LuminaDJ</div>
+      <div class="logo">LuminaDJ</div>
       <div class="session-time-badge">
         time left: <span class="highlight">{{ sessionTimeLeft }}</span>
       </div>
@@ -12,17 +12,11 @@
         <span class="spotify-icon"></span>
         <span class="account-name">{{ spotifyUser }}</span>
       </div>
-      <button class="btn-secondary btn-small" routerLink="/session-setup" [state]="{ preserveConfig: true }">
-        edit session
-      </button>
-      <button class="btn-danger btn-small" routerLink="/">
-        cancel session
-      </button>
     </div>
   </header>
   <div class="main-layout">
     <div class="column-left">
-      <section class="card camera-card lumina-card-muted">
+      <section class="card camera-card">
         <div class="camera-card-header" (click)="toggleCamera()" title="Click to hide/show camera">
           <div class="camera-title-wrapper">
             <span class="material-icons-outlined camera-icon">videocam</span>
@@ -44,7 +38,7 @@
           </div>
         }
       </section>
-      <section class="card log-card lumina-card-muted">
+      <section class="card log-card">
         <h3>Detected Gestures</h3>
         <div class="gesture-log-box">
           <ul class="log-list">
@@ -63,7 +57,7 @@
       </section>
     </div>
     <div class="column-right">
-      <section class="card player-card lumina-card-muted">
+      <section class="card player-card">
         <div class="player-layout">
           <img [src]="currentSong.coverUrl" alt="Album Cover" class="album-cover">
           <div class="player-details">
@@ -85,7 +79,7 @@
           <button class="control-btn" title="Skip Forward"></button>
         </div>
       </section>
-      <section class="card legend-card lumina-card-muted">
+      <section class="card legend-card">
         <h3>Gesture Actions</h3>
         <div class="gesture-table">
           <div class="gesture-row">
@@ -104,4 +98,14 @@
       </section>
     </div>
   </div>
+
+  <!-- NEU: Action-Footer für die verlegten Buttons -->
+  <footer class="action-footer">
+    <button class="btn-secondary btn-small" routerLink="/session-setup" [state]="{ preserveConfig: true }">
+      edit session
+    </button>
+    <button class="btn-danger btn-small" routerLink="/">
+      cancel session
+    </button>
+  </footer>
 </main>

@@ -6,17 +6,17 @@ import { RouterLink } from '@angular/router';
   standalone: true,
   imports: [RouterLink],
   templateUrl: './setup-page.component.html',
-  styleUrls: ['./setup-page.component.css']
+  styleUrls: ['./setup-page.component.scss'] // Geändert zu .scss
 })
 export class SetupPageComponent {
   isSpotifyConnected = false;
   isCameraConnected = false;
 
   connectSpotify() {
-    this.isSpotifyConnected = true; // Setzt den Haken
+    this.isSpotifyConnected = true;
   }
 
   connectCamera() {
-    this.isCameraConnected = true; // Setzt den Haken
+    this.isCameraConnected = true;
   }
 }
