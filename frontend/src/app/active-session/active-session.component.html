@@ -1,16 +1,15 @@
 <main class="page-container">
-
+  <div class="lumina-ambient-glow"></div>
   <header class="header">
     <div class="header-left">
-      <div class="logo">LuminaDJ</div>
+      <div class="logo lumina-logo-glow">LuminaDJ</div>
       <div class="session-time-badge">
         time left: <span class="highlight">{{ sessionTimeLeft }}</span>
       </div>
     </div>
-
     <div class="header-right">
       <div class="spotify-account">
-        <span class="spotify-icon">🟢</span>
+        <span class="spotify-icon"></span>
         <span class="account-name">{{ spotifyUser }}</span>
       </div>
       <button class="btn-secondary btn-small" routerLink="/session-setup" [state]="{ preserveConfig: true }">
@@ -21,25 +20,19 @@
       </button>
     </div>
   </header>
-
   <div class="main-layout">
-
     <div class="column-left">
-      <section class="card camera-card">
+      <section class="card camera-card lumina-card-muted">
         <div class="camera-card-header" (click)="toggleCamera()" title="Click to hide/show camera">
-
           <div class="camera-title-wrapper">
             <span class="material-icons-outlined camera-icon">videocam</span>
             <span class="camera-title">Live Camera</span>
           </div>
-
           <span class="material-icons-outlined toggle-icon">
             <!-- MODERN ANGULAR @if (ternary) -->
             {{ isCameraExpanded ? 'expand_more' : 'chevron_right' }}
           </span>
-
         </div>
-
         <!-- MODERN ANGULAR @if -->
         @if (isCameraExpanded) {
           <div class="camera-feed-box">
@@ -51,8 +44,7 @@
           </div>
         }
       </section>
-
-      <section class="card log-card">
+      <section class="card log-card lumina-card-muted">
         <h3>Detected Gestures</h3>
         <div class="gesture-log-box">
           <ul class="log-list">
@@ -70,10 +62,8 @@
         </div>
       </section>
     </div>
-
     <div class="column-right">
-
-      <section class="card player-card">
+      <section class="card player-card lumina-card-muted">
         <div class="player-layout">
           <img [src]="currentSong.coverUrl" alt="Album Cover" class="album-cover">
           <div class="player-details">
@@ -83,39 +73,35 @@
             </div>
           </div>
         </div>
-
         <div class="progress-container">
           <div class="progress-bar">
             <div class="progress-fill" style="width: 45%;"></div>
             <div class="progress-handle"></div>
           </div>
         </div>
-
         <div class="player-controls">
-          <button class="control-btn" title="Skip Back">⏮</button>
-          <button class="control-btn play-pause-btn" title="Play/Pause">⏸</button>
-          <button class="control-btn" title="Skip Forward">⏭</button>
+          <button class="control-btn" title="Skip Back"></button>
+          <button class="control-btn play-pause-btn" title="Play/Pause"></button>
+          <button class="control-btn" title="Skip Forward"></button>
         </div>
       </section>
-
-      <section class="card legend-card">
+      <section class="card legend-card lumina-card-muted">
         <h3>Gesture Actions</h3>
         <div class="gesture-table">
           <div class="gesture-row">
-            <span class="gesture-icon">✌️ Peace</span>
+            <span class="gesture-icon">Peace</span>
             <span class="gesture-action">Skip Song</span>
           </div>
           <div class="gesture-row">
-            <span class="gesture-icon">☝️ Index Finger</span>
+            <span class="gesture-icon">Index Finger</span>
             <span class="gesture-action">Skip Genre</span>
           </div>
           <div class="gesture-row">
-            <span class="gesture-icon">👍 Thumbs up</span>
+            <span class="gesture-icon">Thumbs up</span>
             <span class="gesture-action">Prioritize current genre</span>
           </div>
         </div>
       </section>
-
     </div>
   </div>
 </main>

@@ -1,13 +1,12 @@
 <main class="page-container">
-
+  <div class="lumina-ambient-glow"></div>
   <header class="header">
-    <div class="logo">LuminaDJ</div>
+    <div class="logo lumina-logo-glow">LuminaDJ</div>
     <div class="spotify-account">
-      <span class="spotify-icon">🟢</span>
+      <span class="spotify-icon"></span>
       <span class="account-name">{{ spotifyUser }}</span>
     </div>
   </header>
-
   <section class="timeline-section">
     <div class="timeline-header">
       <h2>Select your Timeline</h2>
@@ -17,24 +16,18 @@
         <option>Focus</option>
         <option>Dinner</option>
       </select>
-
       <div class="length-input-wrapper">
         <label>Timeline Länge:</label>
         <input type="number" class="timeline-input" [value]="totalMinutes" step="5" min="10" (change)="updateTimelineLength($event)">
         <span>min</span>
       </div>
     </div>
-
     <div class="timeline-widget">
-
       <div class="timeline-scroll-area">
-
         <div class="grid-and-legend-wrapper" [style.min-width.px]="totalMinutes * 10">
-
           <div class="timeline-grid">
             <div class="timeline-tracks">
               <div class="grid-lines" [style.background-size]="gridBackgroundSize"></div>
-
               <!-- MODERN ANGULAR @for -->
               @for (block of blocks; track block.id) {
                 <div class="genre-block"
@@ -45,17 +38,14 @@
                      [style.width]="getWidth(block)"
                      (mousedown)="onMouseDownMove($event, block)"
                      (click)="openDialog(block)">
-
                   <span class="genre-title">{{ block.title }}</span>
                   <span class="genre-duration">{{ block.duration }} min</span>
-
                   <div class="resize-handle" (mousedown)="onMouseDownResize($event, block)"></div>
-                  <div class="delete-overlay">🗑️ drop to delete</div>
+                  <div class="delete-overlay">drop to delete</div>
                 </div>
               }
             </div>
           </div>
-
           <div class="timeline-legend">
             <div class="ticks-container">
               <!-- MODERN ANGULAR @for -->
@@ -68,7 +58,6 @@
           </div>
         </div>
       </div>
-
       <div class="add-genre-wrapper">
         <div class="default-plus">+</div>
         <div class="add-half top-half" (click)="addBlock(0)" title="Add to top row">+</div>
@@ -76,17 +65,15 @@
       </div>
     </div>
   </section>
-
   <footer class="footer">
-    <button class="btn-primary ready-btn" routerLink="/active-session">Ready</button>
+    <button class="btn-primary ready-btn lumina-btn-glow" routerLink="/active-session">Ready</button>
   </footer>
 
   <!-- MODERN ANGULAR @if -->
   @if (selectedBlock) {
     <div class="modal-overlay" (click)="closeDialog()">
-      <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-content lumina-card-muted" (click)="$event.stopPropagation()">
         <h3>Edit Block</h3>
-
         <div class="input-group">
           <label>Genre:</label>
           <select class="modal-dropdown" [value]="selectedBlock.title" (change)="updateGenre($event)">
@@ -96,17 +83,15 @@
             }
           </select>
         </div>
-
         <div class="input-group">
           <label>Duration: <span class="highlight">{{ selectedBlock.duration }} min</span></label>
           <input type="range" class="duration-slider" min="5" max="120" step="5"
                  [value]="selectedBlock.duration"
                  (input)="updateDuration($event)">
         </div>
-
         <div class="modal-actions">
           <button class="btn-danger modal-btn" (click)="deleteSelectedBlock()">Delete</button>
-          <button class="btn-primary modal-btn" (click)="closeDialog()">Done</button>
+          <button class="btn-primary modal-btn lumina-btn-glow" (click)="closeDialog()">Done</button>
         </div>
       </div>
     </div>
@@ -122,5 +107,4 @@
       </div>
     </div>
   }
-
 </main>

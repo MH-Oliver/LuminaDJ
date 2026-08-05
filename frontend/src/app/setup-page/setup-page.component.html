@@ -1,8 +1,8 @@
 <main class="page-container">
-  <div class="setup-content">
+  <div class="lumina-ambient-glow"></div>
+  <div class="setup-content lumina-card-muted">
     <h1>setup</h1>
     <p class="subtitle">before starting:</p>
-
     <div class="connection-list">
       <!-- Spotify -->
       <div class="connection-item">
@@ -13,7 +13,6 @@
         </span>
         <span class="tooltip" title="Connect your Spotify account">i</span>
       </div>
-
       <!-- Camera -->
       <div class="connection-item">
         <input type="checkbox" [checked]="isCameraConnected" disabled class="custom-checkbox">
@@ -24,12 +23,11 @@
         <span class="tooltip" title="Connect your camera">i</span>
       </div>
     </div>
-
     <!-- Der Button ist deaktiviert ([disabled]), solange nicht beide true sind -->
     <button
-      class="btn-primary continue-btn"
+      class="btn-primary continue-btn lumina-btn-glow"
       [disabled]="!isSpotifyConnected || !isCameraConnected"
-      routerLink="/session-setup"> <!-- HIER GEÄNDERT -->
+      routerLink="/session-setup">
       continue
     </button>
   </div>

@@ -3,27 +3,32 @@
    ========================================================================== */
 :root {
   /* --- Backgrounds --- */
-  --color-bg-base: #121212;
-  --color-bg-surface: #1e1e1e;
-  --color-bg-surface-light: #2a2a2a;
-  --color-bg-surface-lighter: #333333;
+  --color-bg-base: #0a0a0c;
+  --color-bg-surface: #161618;
+  --color-bg-surface-light: #222226;
+  --color-bg-surface-lighter: #2d2d32;
 
   /* --- Borders --- */
-  --color-border-subtle: #444444;
-  --color-border-default: #555555;
-  --color-border-strong: #666666;
+  --color-border-subtle: #333338;
+  --color-border-default: #44444c;
+  --color-border-strong: #666673;
 
   /* --- Typography --- */
   --color-text-primary: #ffffff;
-  --color-text-secondary: #d0d0d0;
-  --color-text-muted: #a0a0a0;
-  --color-text-disabled: #888888;
+  --color-text-secondary: #d0d0d8;
+  --color-text-muted: #a0a0ab;
+  --color-text-disabled: #6e6e78;
 
   /* --- Accents / Brand Colors --- */
   --color-accent-pink: #ff007f;
   --color-accent-pink-dimmed: rgba(200, 30, 110, 0.85);
+  --color-accent-purple: #8c4baa;
   --color-accent-purple-dimmed: rgba(140, 75, 170, 0.85);
-  --color-accent-lightblue: lightblue;
+  --color-accent-lightblue: #add8e6;
+
+  /* --- AI Aesthetic & Animations --- */
+  --gradient-ai: linear-gradient(135deg, var(--color-accent-lightblue) 0%, var(--color-accent-purple) 50%, var(--color-accent-pink) 100%);
+  --glow-easing: cubic-bezier(0.25, 0.8, 0.25, 1);
 
   /* --- Danger / Error --- */
   --color-danger-base: #ff4d4d;
@@ -36,10 +41,85 @@
   --color-shadow-default: rgba(0, 0, 0, 0.5);
 }
 
-/* Basis-Styling für die gesamte App (optional, falls noch nicht vorhanden) */
 body {
   margin: 0;
   background-color: var(--color-bg-base);
   color: var(--color-text-primary);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  overflow-x: hidden;
+}
+
+/* ==========================================================================
+   LUMINA AI-AESTHETIC & GLOW UTILITIES (GLOBAL)
+   ========================================================================== */
+
+/* --- Atmospheric Background Glow --- */
+.lumina-ambient-glow {
+  position: fixed;
+  top: -20%;
+  left: -20%;
+  width: 140%;
+  height: 140%;
+  background: radial-gradient(circle at 25% 15%, rgba(140, 75, 170, 0.12) 0%, transparent 45%),
+  radial-gradient(circle at 75% 85%, rgba(255, 0, 127, 0.08) 0%, transparent 45%);
+  pointer-events: none;
+  z-index: -10;
+  filter: blur(6rem);
+}
+
+/* --- Gradient & Glowing Logo --- */
+.lumina-logo-glow {
+  background: var(--gradient-ai);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  display: inline-block;
+  filter: drop-shadow(0 0 0.75rem rgba(140, 75, 170, 0.35));
+  transition: filter 0.6s var(--glow-easing);
+}
+
+.lumina-logo-glow:hover {
+  filter: drop-shadow(0 0 1.25rem rgba(255, 0, 127, 0.6));
+}
+
+/* --- Glowing Buttons --- */
+.lumina-btn-glow {
+  position: relative;
+  transition: box-shadow 0.6s var(--glow-easing), transform 0.2s var(--glow-easing), background-color 0.2s ease !important;
+}
+
+.lumina-btn-glow:hover:not([disabled]) {
+  box-shadow: 0 0 1.25rem rgba(140, 75, 170, 0.45),
+  0 0 2.5rem rgba(255, 0, 127, 0.25) !important;
+  transform: translateY(-0.125rem) !important;
+}
+
+.lumina-btn-glow:disabled {
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+/* --- Muted AI Surface Cards (Glassmorphism) --- */
+.lumina-card-muted {
+  /* Transparenter Hintergrund MIT !important, um lokale Komponenten-Styles zu überschreiben */
+  background-color: rgba(22, 22, 24, 0.45) !important;
+
+  /* Der milchige Glas-Effekt */
+  backdrop-filter: blur(1.25rem) !important;
+  -webkit-backdrop-filter: blur(1.25rem) !important;
+
+  /* Hauchzarter weißer Rahmen für die Lichtreflexion */
+  border: 0.0625rem solid rgba(255, 255, 255, 0.08) !important;
+
+  /* Weicher Drop-Shadow für räumliche Tiefe */
+  box-shadow: 0 0.5rem 2rem rgba(0, 0, 0, 0.4) !important;
+
+  transition: border-color 0.6s var(--glow-easing), box-shadow 0.6s var(--glow-easing), background-color 0.6s var(--glow-easing) !important;
+}
+
+.lumina-card-muted:hover {
+  background-color: rgba(22, 22, 24, 0.55) !important;
+  border-color: rgba(140, 75, 170, 0.4) !important;
+  box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.6),
+  0 0 1.25rem rgba(140, 75, 170, 0.2) !important;
 }
