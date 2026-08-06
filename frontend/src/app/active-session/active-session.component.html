@@ -76,7 +76,7 @@
         <div class="player-controls">
           <button class="control-btn" title="Skip Back"></button>
           <button class="control-btn play-pause-btn" title="Play/Pause"></button>
-          <button class="control-btn" title="Skip Forward"></button>
+          <button class="control-btn" title="Skip Forward" (click)="skipSong()"></button>
         </div>
       </section>
       <section class="card legend-card">
@@ -99,12 +99,11 @@
     </div>
   </div>
 
-  <!-- NEU: Action-Footer für die verlegten Buttons -->
   <footer class="action-footer">
-    <button class="btn-secondary btn-small" routerLink="/session-setup" [state]="{ preserveConfig: true }">
+    <button class="btn-secondary btn-small" (click)="editSessionAction()">
       edit session
     </button>
-    <button class="btn-danger btn-small" routerLink="/">
+    <button class="btn-danger btn-small" (click)="cancelSessionAction()">
       cancel session
     </button>
   </footer>

@@ -5,9 +5,12 @@ import modules.music.structures.Track;
 import modules.userContext.structures.GenreTimeline;
 import modules.userContext.structures.SessionVibe;
 import modules.userContext.structures.TimelinePhase;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+
+@Service
 public class TimelineFactory {
 
     public static GenreTimeline createTimelineForVibe(SessionVibe vibe) {

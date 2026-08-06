@@ -71,7 +71,7 @@ class PlayedSongRepositoryTest {
         PlayedSongRepository repo1 = new PlayedSongRepository();
         repo1.markAsPlayed("song123");
 
-        // 2. Wir "simulieren" einen App-Neustart, indem wir eine neue Instanz für dieselbe Datei erzeugen
+        // 2. Wir "simulieren" einen modules.App-Neustart, indem wir eine neue Instanz für dieselbe Datei erzeugen
         PlayedSongRepository repo2 = new PlayedSongRepository();
 
         // 3. Die neue Instanz muss die Daten aus der CSV gelesen haben und den Song weiterhin blockieren

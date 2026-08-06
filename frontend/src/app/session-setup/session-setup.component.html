@@ -7,6 +7,7 @@
       <span class="account-name">{{ spotifyUser }}</span>
     </div>
   </header>
+
   <section class="timeline-section">
     <div class="timeline-header">
       <h2>Select your Timeline</h2>
@@ -16,18 +17,22 @@
         <option>Focus</option>
         <option>Dinner</option>
       </select>
+
       <div class="length-input-wrapper">
         <label>Timeline Länge:</label>
         <input type="number" class="timeline-input" [value]="totalMinutes" step="5" min="10" (change)="updateTimelineLength($event)">
         <span>min</span>
       </div>
     </div>
+
     <div class="timeline-widget">
       <div class="timeline-scroll-area">
         <div class="grid-and-legend-wrapper" [style.min-width.px]="totalMinutes * 10">
+
           <div class="timeline-grid">
             <div class="timeline-tracks">
               <div class="grid-lines" [style.background-size]="gridBackgroundSize"></div>
+
               <!-- MODERN ANGULAR @for -->
               @for (block of blocks; track block.id) {
                 <div class="genre-block"
@@ -38,14 +43,17 @@
                      [style.width]="getWidth(block)"
                      (mousedown)="onMouseDownMove($event, block)"
                      (click)="openDialog(block)">
+
                   <span class="genre-title">{{ block.title }}</span>
                   <span class="genre-duration">{{ block.duration }} min</span>
+
                   <div class="resize-handle" (mousedown)="onMouseDownResize($event, block)"></div>
                   <div class="delete-overlay">drop to delete</div>
                 </div>
               }
             </div>
           </div>
+
           <div class="timeline-legend">
             <div class="ticks-container">
               <!-- MODERN ANGULAR @for -->
@@ -56,8 +64,10 @@
               }
             </div>
           </div>
+
         </div>
       </div>
+
       <div class="add-genre-wrapper">
         <div class="default-plus">+</div>
         <div class="add-half top-half" (click)="addBlock(0)" title="Add to top row">+</div>
@@ -65,8 +75,9 @@
       </div>
     </div>
   </section>
+
   <footer class="footer">
-    <button class="btn-primary ready-btn" routerLink="/active-session">Ready</button>
+    <button class="btn-primary ready-btn" (click)="onReady()">Ready</button>
   </footer>
 
   <!-- MODERN ANGULAR @if -->
@@ -107,4 +118,5 @@
       </div>
     </div>
   }
+
 </main>

@@ -1,6 +1,7 @@
 import { Component, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
+import { ContextApiService, UserContextDto, TimelinePhaseDto } from '../services/context-api.service';
 
 interface GenreBlock {
   id: number;
@@ -15,7 +16,7 @@ interface GenreBlock {
   standalone: true,
   imports: [RouterLink, CommonModule],
   templateUrl: './session-setup.component.html',
-  styleUrls: ['./session-setup.component.scss'] /* <-- HIER GEÄNDERT AUF .scss */
+  styleUrls: ['./session-setup.component.scss']
 })
 export class SessionSetupComponent {
   spotifyUser = 'DJ_Lumina_Test';
@@ -37,9 +38,13 @@ export class SessionSetupComponent {
   startValue = 0;
   wasDragged = false;
   selectedBlock: GenreBlock | null = null;
-
   isDraggingOutside = false;
   errorMessage: string | null = null;
+
+  constructor(
+    private readonly apiService: ContextApiService,
+    private readonly router: Router
+  ) {}
 
   get ticks(): number[] {
     const tickArray = [];
@@ -54,6 +59,7 @@ export class SessionSetupComponent {
   }
 
   getLeft(block: GenreBlock): string { return (block.start / this.totalMinutes) * 100 + '%'; }
+
   getWidth(block: GenreBlock): string { return (block.duration / this.totalMinutes) * 100 + '%'; }
 
   updateTimelineLength(event: Event): void {
@@ -62,7 +68,6 @@ export class SessionSetupComponent {
       this.totalMinutes = Math.round(val / 5) * 5;
 
       this.blocks = this.blocks.filter(b => b.start < this.totalMinutes);
-
       this.blocks.forEach(b => {
         if (b.start + b.duration > this.totalMinutes) {
           b.duration = this.totalMinutes - b.start;
@@ -97,9 +102,9 @@ export class SessionSetupComponent {
 
     const timelineEl = document.querySelector('.timeline-tracks') as HTMLElement;
     if (!timelineEl) return;
+
     const rect = timelineEl.getBoundingClientRect();
     const pixelsPerMinute = rect.width / this.totalMinutes;
-
     const deltaMinutes = (event.clientX - this.startX) / pixelsPerMinute;
 
     if (this.draggingBlock) {
@@ -125,6 +130,7 @@ export class SessionSetupComponent {
     if (this.resizingBlock) {
       let newDuration = this.startValue + deltaMinutes;
       newDuration = Math.round(newDuration / 5) * 5;
+
       if (newDuration < 5) newDuration = 5;
       if (this.resizingBlock.start + newDuration > this.totalMinutes) {
         newDuration = this.totalMinutes - this.resizingBlock.start;
@@ -157,7 +163,6 @@ export class SessionSetupComponent {
 
     for (let i = this.blocks.length - 1; i >= 0; i--) {
       const b = this.blocks[i];
-
       if (b.id === activeBlock.id || b.row !== activeBlock.row) continue;
 
       const bStart = b.start;
@@ -166,15 +171,12 @@ export class SessionSetupComponent {
       if (aStart < bEnd && aEnd > bStart) {
         if (aStart <= bStart && aEnd >= bEnd) {
           this.blocks.splice(i, 1);
-        }
-        else if (aStart <= bStart && aEnd < bEnd) {
+        } else if (aStart <= bStart && aEnd < bEnd) {
           b.start = aEnd;
           b.duration = bEnd - aEnd;
-        }
-        else if (aStart > bStart && aEnd >= bEnd) {
+        } else if (aStart > bStart && aEnd >= bEnd) {
           b.duration = aStart - bStart;
-        }
-        else if (aStart > bStart && aEnd < bEnd) {
+        } else if (aStart > bStart && aEnd < bEnd) {
           b.duration = aStart - bStart;
           this.blocks.push({
             id: Date.now() + Math.random(),
@@ -228,16 +230,46 @@ export class SessionSetupComponent {
 
   addBlock(row: number): void {
     const maxEnd = this.blocks.reduce((max, b) => Math.max(max, b.start + b.duration), 0);
+
     if (maxEnd + 5 > this.totalMinutes) {
       this.errorMessage = 'Die Timeline ist voll! Es kann kein weiteres Genre mehr eingefügt werden.';
       return;
     }
+
     this.blocks.push({
       id: Date.now(),
       title: 'New',
       start: maxEnd,
       duration: 5,
       row: row
+    });
+  }
+
+  onReady(): void {
+    const sortedBlocks = [...this.blocks].sort((a, b) => a.start - b.start);
+
+    const phases: TimelinePhaseDto[] = sortedBlocks.map(block => ({
+      genre: block.title.toUpperCase().replace(' ', '_'),
+      durationMinutes: block.duration,
+      transitionOutMinutes: 5
+    }));
+
+    const payload: UserContextDto = {
+      tempo: 120,
+      location: "BAR",
+      startTime: new Date().toTimeString().split(' ')[0],
+      timeline: { phases: phases },
+      songCooldownMinutes: 30
+    };
+
+    this.apiService.sendContext(payload).subscribe({
+      next: () => {
+        this.router.navigate(['/active-session']);
+      },
+      error: (err) => {
+        this.errorMessage = 'Fehler beim Senden der Timeline an das Backend.';
+        console.error(err);
+      }
     });
   }
 }

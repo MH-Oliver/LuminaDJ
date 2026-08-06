@@ -1,22 +1,14 @@
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpServer;
+package modules.api; // Passe das Package an
 
+import com.fasterxml.jackson.databind.JsonNode;
 import modules.core.DjSessionController;
+import modules.music.repositories.PlayedSongRepository;
+import modules.music.repositories.SessionHistoryRepository;
 import modules.music.services.SessionBootstrapper;
 import modules.music.strategies.music_player.spotify.SpotifyAdapter;
 import modules.music.strategies.music_source.HybridSourceAdapter;
-import modules.music.strategies.music_source.SpotifySourceAdapter;
-import modules.music.structures.Genre;
-import modules.userContext.structures.GenreTimeline;
-import modules.userContext.structures.Location;
-import modules.userContext.structures.TimelinePhase;
-import modules.userContext.structures.UserContextDTO;
-
-import modules.music.repositories.PlayedSongRepository;
-import modules.music.repositories.SessionHistoryRepository;
 import modules.music.strategies.music_source.LocalSongDatabaseAdapter;
+import modules.music.strategies.music_source.SpotifySourceAdapter;
 import modules.music.structures.Track;
 import modules.prediction.services.PredictionAggregator;
 import modules.prediction.strategies.core.PredictionStrategy;
@@ -24,65 +16,58 @@ import modules.prediction.strategies.prediction.HistoryStrategy;
 import modules.prediction.strategies.prediction.MacroCurveStrategy;
 import modules.userContext.strategies.core.UserContextStrategy;
 import modules.vision.strategies.live_feedback.LiveFeedbackStrategyMock;
+import modules.music.structures.Genre;
+import modules.userContext.structures.GenreTimeline;
+import modules.userContext.structures.Location;
+import modules.userContext.structures.TimelinePhase;
+import modules.userContext.structures.UserContextDTO;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.nio.charset.StandardCharsets;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class App {
+@RestController
+@RequestMapping("/api")
+@CrossOrigin(origins = "*") // Ersetzt dein altes addCorsHeaders!
+public class ContextController {
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static volatile UserContextDTO latestUserContext;
 
-    public static void main(String[] args) throws IOException {
-        int port = Integer.getInteger("lumina.backend.port", 8081);
-        startServer(port);
-        System.out.println("LuminaDJ backend is running on http://localhost:" + port);
-    }
-
-    private static void startServer(int port) throws IOException {
-        HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
-        server.createContext("/api/context", App::handleContext);
-        server.setExecutor(null);
-        server.start();
-    }
-
-    private static void handleContext(HttpExchange exchange) throws IOException {
-        addCorsHeaders(exchange);
+    @PostMapping("/context")
+    public ResponseEntity<Map<String, String>> handleContext(@RequestBody JsonNode payload) {
         System.out.println("Endpoint /api/context wurde aufgerufen!");
 
-        if ("OPTIONS".equalsIgnoreCase(exchange.getRequestMethod())) {
-            exchange.sendResponseHeaders(204, -1);
-            return;
-        }
-
-        if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
-            writeJson(exchange, 405, "{\"error\":\"Method not allowed\"}");
-            return;
-        }
-
         try {
-            String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
-            JsonNode payload = OBJECT_MAPPER.readTree(body);
+            // Spring hat den JSON-Body bereits in den 'payload' (JsonNode) umgewandelt
             UserContextDTO context = mapUserContext(payload);
             latestUserContext = context;
 
-            writeJson(exchange, 200, "{\"status\":\"ok\"}");
-
+            // Session in einem neuen Thread starten (wie bisher)
             new Thread(() -> startMusicSession(context)).start();
+
+            // Sende ein JSON { "status": "ok" } mit HTTP 200 zurück
+            return ResponseEntity.ok(Map.of("status", "ok"));
 
         } catch (Exception e) {
             System.err.println("Fehler beim Verarbeiten des Payloads:");
             e.printStackTrace();
-            writeJson(exchange, 400, "{\"error\":\"Invalid payload\"}");
+            return ResponseEntity.badRequest().body(Map.of("error", "Invalid payload"));
         }
     }
 
-    private static void startMusicSession(UserContextDTO context) {
+    public static UserContextDTO getLatestUserContext() {
+        return latestUserContext;
+    }
+
+    // ==========================================================
+    // DEINE BESTEHENDE GESCHÄFTSLOGIK AUS DER ALTEN APP.JAVA
+    // ==========================================================
+
+    private void startMusicSession(UserContextDTO context) {
         System.out.println("Starte Musik-Session mit empfangenem Context...");
 
         UserContextStrategy userContextStrategy = new UserContextStrategy() {
@@ -109,7 +94,7 @@ public class App {
         controller.startSession(entrySong);
     }
 
-    private static DjSessionController getDjSessionController(
+    private DjSessionController getDjSessionController(
             LocalSongDatabaseAdapter localSongDatabaseAdapter,
             UserContextStrategy userContextStrategy,
             PlayedSongRepository playedSongRepo
@@ -132,7 +117,7 @@ public class App {
         );
     }
 
-    private static UserContextDTO mapUserContext(JsonNode payload) {
+    private UserContextDTO mapUserContext(JsonNode payload) {
         int tempo = payload.path("tempo").asInt(120);
 
         String locationRaw = payload.path("location").asText("Bar");
@@ -147,7 +132,7 @@ public class App {
         return new UserContextDTO(tempo, location, startTime, timeline, cooldown);
     }
 
-    private static GenreTimeline mapTimeline(JsonNode timelineNode) {
+    private GenreTimeline mapTimeline(JsonNode timelineNode) {
         JsonNode phasesNode = timelineNode.path("phases");
         List<TimelinePhase> phases = new ArrayList<>();
 
@@ -166,23 +151,5 @@ public class App {
         }
 
         return new GenreTimeline(phases);
-    }
-
-    private static void addCorsHeaders(HttpExchange exchange) {
-        exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
-        exchange.getResponseHeaders().set("Access-Control-Allow-Methods", "POST, OPTIONS");
-        exchange.getResponseHeaders().set("Access-Control-Allow-Headers", "Content-Type");
-    }
-
-    private static void writeJson(HttpExchange exchange, int statusCode, String body) throws IOException {
-        byte[] payload = body.getBytes(StandardCharsets.UTF_8);
-        exchange.getResponseHeaders().set("Content-Type", "application/json; charset=utf-8");
-        exchange.sendResponseHeaders(statusCode, payload.length);
-        exchange.getResponseBody().write(payload);
-        exchange.close();
-    }
-
-    public static UserContextDTO getLatestUserContext() {
-        return latestUserContext;
     }
 }

@@ -5,6 +5,7 @@ import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import org.springframework.stereotype.Service;
 import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.SpotifyHttpManager;
 import se.michaelthelin.spotify.model_objects.credentials.AuthorizationCodeCredentials;
@@ -20,6 +21,7 @@ import java.net.URI;
 import java.util.concurrent.CompletableFuture;
 import java.util.prefs.Preferences;
 
+@Service
 public class SpotifyAuthenticator {
 
     private final SpotifyApi spotifyApi;

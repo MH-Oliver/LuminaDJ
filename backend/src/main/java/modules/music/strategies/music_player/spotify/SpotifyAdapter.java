@@ -26,7 +26,7 @@ public class SpotifyAdapter implements MusicPlayerAdapter {
         SpotifyApi spotifyApi = authenticator.authenticate();
 
         if (spotifyApi == null) {
-            throw new IllegalArgumentException("App wird beendet, da Spotify-Login fehlgeschlagen ist.");
+            throw new IllegalArgumentException("modules.App wird beendet, da Spotify-Login fehlgeschlagen ist.");
         }
 
         this.spotifyApi = spotifyApi;
