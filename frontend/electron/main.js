@@ -45,6 +45,8 @@ function createWindow() {
   const startUrl = process.env.ELECTRON_START_URL;
   if (startUrl) {
     win.loadURL(startUrl);
+
+    win.webContents.openDevTools();
   } else {
     const indexPath = path.resolve(__dirname, '../dist/frontend/browser/index.html');
     win.loadFile(indexPath);
