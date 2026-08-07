@@ -18,22 +18,24 @@ public class CameraDiscoverer {
      * @return IP-Adresse vom Kamera Stream
      */
     public static String resolveCameraIp() {
-        String ip = autoDetectCameraIp();
+        return "192.168.42.157";
 
-        if (ip == null) {
-            ip = JOptionPane.showInputDialog(
-                    null,
-                    "Keine Kamera im WLAN gefunden.\nBitte IP der Webcam-modules.App manuell eintragen:",
-                    "Kamera verbinden",
-                    JOptionPane.QUESTION_MESSAGE
-            );
-
-            if (ip == null || ip.trim().isEmpty()) {
-                System.err.println("Abbruch durch Nutzer.");
-                throw new IllegalStateException("Keine Kamera-IP angegeben.");
-            }
-        }
-        return ip.replace("http://", "").replace("/shot.jpg", "");
+//        String ip = autoDetectCameraIp();
+//
+//        if (ip == null) {
+//            ip = JOptionPane.showInputDialog(
+//                    null,
+//                    "Keine Kamera im WLAN gefunden.\nBitte IP der Webcam-modules.App manuell eintragen:",
+//                    "Kamera verbinden",
+//                    JOptionPane.QUESTION_MESSAGE
+//            );
+//
+//            if (ip == null || ip.trim().isEmpty()) {
+//                System.err.println("Abbruch durch Nutzer.");
+//                throw new IllegalStateException("Keine Kamera-IP angegeben.");
+//            }
+//        }
+//        return ip.replace("http://", "").replace("/shot.jpg", "");
     }
 
     /**

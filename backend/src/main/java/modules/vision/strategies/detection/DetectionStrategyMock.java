@@ -2,9 +2,11 @@ package modules.vision.strategies.detection;
 
 import modules.vision.strategies.core.DetectionStrategy;
 import modules.vision.structures.FrameDataDTO;
+import org.springframework.stereotype.Service;
 
 import java.awt.image.BufferedImage;
 
+@Service
 public class DetectionStrategyMock implements DetectionStrategy {
     @Override
     public FrameDataDTO analyse(BufferedImage image) {

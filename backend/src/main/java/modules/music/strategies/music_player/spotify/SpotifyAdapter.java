@@ -3,12 +3,14 @@ package modules.music.strategies.music_player.spotify;
 import com.google.gson.JsonArray;
 import modules.music.strategies.core.MusicPlayerAdapter;
 import modules.music.structures.Track;
+import org.springframework.stereotype.Service;
 import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.model_objects.miscellaneous.CurrentlyPlayingContext;
 import se.michaelthelin.spotify.requests.data.player.PauseUsersPlaybackRequest;
 import se.michaelthelin.spotify.requests.data.player.SetVolumeForUsersPlaybackRequest;
 import se.michaelthelin.spotify.requests.data.player.StartResumeUsersPlaybackRequest;
-
+import se.michaelthelin.spotify.requests.data.player.SkipUsersPlaybackToNextTrackRequest;
+@Service
 public class SpotifyAdapter implements MusicPlayerAdapter {
 
     public static SpotifyApi spotifyApi;
@@ -29,7 +31,7 @@ public class SpotifyAdapter implements MusicPlayerAdapter {
             throw new IllegalArgumentException("modules.App wird beendet, da Spotify-Login fehlgeschlagen ist.");
         }
 
-        this.spotifyApi = spotifyApi;
+        SpotifyAdapter.spotifyApi = spotifyApi;
     }
 
     @Override
@@ -132,7 +134,7 @@ public class SpotifyAdapter implements MusicPlayerAdapter {
     @Override
     public void pause() {
         try {
-            // NEU: Thread stoppen, ähnlich wie in der SmartphoneKameraStrategy
+            // Thread stoppen, ähnlich wie in der SmartphoneKameraStrategy
             isRunning = false;
             if (playbackThread != null) {
                 playbackThread.interrupt();
@@ -145,6 +147,28 @@ public class SpotifyAdapter implements MusicPlayerAdapter {
             System.out.println("Wiedergabe pausiert.");
         } catch (Exception e) {
             handleError("Fehler beim Pausieren", e);
+        }
+    }
+
+    // NEU: Skip-Methode hinzugefügt
+    @Override
+    public void skip() {
+        try {
+            // WICHTIG: Monitoring-Thread des alten Songs beenden,
+            // damit der DjSessionController aus der blockierten play()-Methode (join) befreit wird
+            isRunning = false;
+            if (playbackThread != null) {
+                playbackThread.interrupt();
+            }
+
+            SkipUsersPlaybackToNextTrackRequest skipRequest = spotifyApi
+                    .skipUsersPlaybackToNextTrack()
+                    .build();
+
+            skipRequest.execute();
+            System.out.println("Wiedergabe zum nächsten Track übersprungen (Skip).");
+        } catch (Exception e) {
+            handleError("Fehler beim Überspringen des Tracks", e);
         }
     }
 
@@ -172,7 +196,7 @@ public class SpotifyAdapter implements MusicPlayerAdapter {
                     .build()
                     .execute();
 
-            return (context != null) ? context.getProgress_ms() : 0;
+            return (context != null && context.getProgress_ms() != null) ? context.getProgress_ms() : 0;
         } catch (Exception e) {
             return 0;
         }

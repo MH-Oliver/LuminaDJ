@@ -11,11 +11,12 @@
   <section class="timeline-section">
     <div class="timeline-header">
       <h2>Select your Timeline</h2>
-      <select class="preset-dropdown">
-        <option>Preset</option>
-        <option>Workout</option>
-        <option>Focus</option>
-        <option>Dinner</option>
+      <select class="preset-dropdown" (change)="onPresetChange($event)">
+        <option value="" disabled selected>Preset wählen</option>
+        <!-- Iteriert über die vom Backend geladenen Presets -->
+        @for (preset of availablePresets; track preset) {
+          <option [value]="preset">{{ preset }}</option>
+        }
       </select>
 
       <div class="length-input-wrapper">

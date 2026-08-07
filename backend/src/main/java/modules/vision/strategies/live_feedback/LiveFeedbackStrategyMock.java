@@ -3,6 +3,8 @@ package modules.vision.strategies.live_feedback;
 import modules.music.structures.Track;
 import modules.vision.structures.FeedbackResult;
 import modules.vision.strategies.core.LiveFeedbackStrategy;
+import org.springframework.stereotype.Service;
+
 
 public class LiveFeedbackStrategyMock implements LiveFeedbackStrategy {
 

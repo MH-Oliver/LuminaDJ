@@ -1,6 +1,6 @@
-import { Component, HostListener } from '@angular/core';
+import { Component, HostListener, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { ContextApiService, UserContextDto, TimelinePhaseDto } from '../services/context-api.service';
 
 interface GenreBlock {
@@ -14,23 +14,20 @@ interface GenreBlock {
 @Component({
   selector: 'app-session-setup',
   standalone: true,
-  imports: [RouterLink, CommonModule],
+  imports: [CommonModule],
   templateUrl: './session-setup.component.html',
   styleUrls: ['./session-setup.component.scss']
 })
-export class SessionSetupComponent {
+export class SessionSetupComponent implements OnInit {
   spotifyUser = 'DJ_Lumina_Test';
   totalMinutes = 120;
 
-  availableGenres: string[] = [
-    'EDM', 'Techno', 'House', 'Hip Hop', 'Pop', 'Rock', 'Acoustic', 'Afrobeat', 'Alt-Rock', 'New'
-  ];
+  // Werden dynamisch aus dem Backend befüllt
+  availableGenres: string[] = [];
+  availablePresets: string[] = [];
 
-  blocks: GenreBlock[] = [
-    { id: 1, title: 'EDM', start: 0, duration: 60, row: 0 },
-    { id: 2, title: 'Techno', start: 50, duration: 30, row: 1 },
-    { id: 3, title: 'House', start: 80, duration: 30, row: 0 },
-  ];
+  // Start-Blöcke (können auch als leeres Array [] initialisiert werden)
+  blocks: GenreBlock[] = [];
 
   draggingBlock: GenreBlock | null = null;
   resizingBlock: GenreBlock | null = null;
@@ -45,6 +42,130 @@ export class SessionSetupComponent {
     private readonly apiService: ContextApiService,
     private readonly router: Router
   ) {}
+
+  ngOnInit(): void {
+    // 1. Alle verfügbaren Presets laden
+    this.apiService.loadPresets().subscribe({
+      next: (presets) => this.availablePresets = presets,
+      error: (err) => console.error('Fehler beim Laden der Presets:', err)
+    });
+
+    // 2. Verfügbare Genres laden
+    this.apiService.loadGenre('').subscribe({
+      next: (genres) => {
+        if (genres && genres.length > 0) {
+          this.availableGenres = genres;
+        }
+      },
+      error: (err) => console.error('Fehler beim Laden der Genres:', err)
+    });
+  }
+
+  // ==========================================
+  // JSON -> UI: Preset vom Backend laden
+  // ==========================================
+  onPresetChange(event: Event): void {
+    const presetName = (event.target as HTMLSelectElement).value;
+    if (!presetName) return;
+
+    this.apiService.selectPreset(presetName).subscribe({
+      next: (data) => {
+        console.log("Empfangenes Preset vom Backend:", data); // Hilft bei der Fehlersuche in der Konsole
+
+        // Flexibel: Akzeptiert { timeline: { phases: [...] } } ODER direkt { phases: [...] }
+        const phases = data?.timeline?.phases || data?.phases;
+
+        if (phases && Array.isArray(phases)) {
+          this.convertJsonToBlocks(phases);
+        } else {
+          this.errorMessage = 'Das geladene Preset hat ein ungültiges Format.';
+          console.error('Unerwartetes Datenformat:', data);
+        }
+      },
+      error: (err) => {
+        this.errorMessage = 'Fehler beim Laden des Presets.';
+        console.error(err);
+      }
+    });
+  }
+
+  private convertJsonToBlocks(phases: any[]): void {
+    this.blocks = [];
+    let currentStart = 0;
+    let currentRow = 0;
+
+    phases.forEach((phase, index) => {
+      // Robustes Auslesen: Falls dein Java-Backend "duration" statt "durationMinutes" sendet
+      const phaseDuration = phase.durationMinutes ?? phase.duration ?? 30; // Fallback auf 30, falls nichts gefunden wird
+
+      // Falls das Genre als Objekt { name: "TECHNO" } ankommt, ansonsten String
+      const phaseGenre = typeof phase.genre === 'object' ? phase.genre.name : phase.genre;
+
+      this.blocks.push({
+        id: Date.now() + index,
+        title: phaseGenre ? phaseGenre.toString() : 'UNKNOWN',
+        start: currentStart,
+        duration: Number(phaseDuration),
+        row: currentRow
+      });
+
+      currentStart += Number(phaseDuration);
+      currentRow = currentRow === 0 ? 1 : 0; // Wechselt abwechselnd zwischen Zeile 0 und 1
+    });
+
+    // Passe die Timeline-Gesamtlänge im UI an (auf die nächsten 5 Minuten gerundet)
+    this.totalMinutes = Math.max(120, Math.ceil(currentStart / 5) * 5);
+  }
+
+  // ==========================================
+  // UI -> JSON: Timeline an Backend senden
+  // ==========================================
+  onReady(): void {
+    if (this.blocks.length === 0) {
+      this.errorMessage = 'Bitte füge mindestens ein Genre zur Timeline hinzu.';
+      return;
+    }
+
+    // 1. Sortiere die Blöcke streng nach Startzeit (chronologisch)
+    const sortedBlocks = [...this.blocks].sort((a, b) => a.start - b.start);
+
+    // 2. Wandle die grafischen Blöcke in Backend-Phasen (TimelinePhaseDto) um
+    const phases: TimelinePhaseDto[] = sortedBlocks.map(block => {
+      // Formatiert Titel sicher für das Java-Enum (z.B. "Hip Hop" -> "HIP_HOP")
+      const safeGenre = block.title.toUpperCase().replace(/\s+/g, '_');
+
+      return {
+        genre: safeGenre,
+        durationMinutes: block.duration,
+        transitionOutMinutes: 5 // Vorerst statischer Default-Wert
+      };
+    });
+
+    // 3. Baue das finale JSON (UserContextDto)
+    const payload: UserContextDto = {
+      tempo: 120,
+      location: "Bar", // Backend-Enum Location
+      startTime: new Date().toTimeString().split(' ')[0], // z.B. "19:30:00"
+      timeline: { phases: phases },
+      songCooldownMinutes: 30
+    };
+
+    // 4. Abschicken und Weiterleiten
+    this.apiService.sendContext(payload).subscribe({
+      next: () => {
+        // Erfolgreich ans Backend gesendet -> Wechsel zum aktiven Session Player
+        this.router.navigate(['/active-session']);
+      },
+      error: (err) => {
+        this.errorMessage = 'Fehler beim Senden der Timeline an das Backend.';
+        console.error(err);
+      }
+    });
+  }
+
+  // ==========================================
+  // BESTEHENDE DRAG & DROP UI LOGIK
+  // ==========================================
 
   get ticks(): number[] {
     const tickArray = [];
@@ -238,38 +359,10 @@ export class SessionSetupComponent {
 
     this.blocks.push({
       id: Date.now(),
-      title: 'New',
+      title: this.availableGenres.length > 0 ? this.availableGenres[0] : 'NEW',
       start: maxEnd,
       duration: 5,
       row: row
-    });
-  }
-
-  onReady(): void {
-    const sortedBlocks = [...this.blocks].sort((a, b) => a.start - b.start);
-
-    const phases: TimelinePhaseDto[] = sortedBlocks.map(block => ({
-      genre: block.title.toUpperCase().replace(' ', '_'),
-      durationMinutes: block.duration,
-      transitionOutMinutes: 5
-    }));
-
-    const payload: UserContextDto = {
-      tempo: 120,
-      location: "BAR",
-      startTime: new Date().toTimeString().split(' ')[0],
-      timeline: { phases: phases },
-      songCooldownMinutes: 30
-    };
-
-    this.apiService.sendContext(payload).subscribe({
-      next: () => {
-        this.router.navigate(['/active-session']);
-      },
-      error: (err) => {
-        this.errorMessage = 'Fehler beim Senden der Timeline an das Backend.';
-        console.error(err);
-      }
     });
   }
 }

@@ -1,27 +1,32 @@
-package modules.api; // Passe das Package an
+package modules.api;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import modules.core.DjSessionController;
 import modules.music.repositories.PlayedSongRepository;
 import modules.music.repositories.SessionHistoryRepository;
 import modules.music.services.SessionBootstrapper;
+import modules.music.strategies.core.MusicPlayerAdapter;
+import modules.music.strategies.core.MusicSourceAdapter;
+import modules.music.strategies.music_player.MusicPlayerAdapterMock;
 import modules.music.strategies.music_player.spotify.SpotifyAdapter;
 import modules.music.strategies.music_source.HybridSourceAdapter;
 import modules.music.strategies.music_source.LocalSongDatabaseAdapter;
 import modules.music.strategies.music_source.SpotifySourceAdapter;
+import modules.music.structures.Genre;
 import modules.music.structures.Track;
 import modules.prediction.services.PredictionAggregator;
 import modules.prediction.strategies.core.PredictionStrategy;
 import modules.prediction.strategies.prediction.HistoryStrategy;
 import modules.prediction.strategies.prediction.MacroCurveStrategy;
 import modules.userContext.strategies.core.UserContextStrategy;
+import modules.vision.strategies.core.LiveFeedbackStrategy;
 import modules.vision.strategies.live_feedback.LiveFeedbackStrategyMock;
-import modules.music.structures.Genre;
+import modules.vision.strategies.live_feedback.SmartphoneKameraStrategy;
+import modules.vision.strategies.detection.DetectionStrategyMock;
 import modules.userContext.structures.GenreTimeline;
 import modules.userContext.structures.Location;
 import modules.userContext.structures.TimelinePhase;
 import modules.userContext.structures.UserContextDTO;
-
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -32,110 +37,114 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api")
-@CrossOrigin(origins = "*") // Ersetzt dein altes addCorsHeaders!
+@CrossOrigin(origins = "*")
 public class ContextController {
 
-    private static volatile UserContextDTO latestUserContext;
+    private final ActiveSessionService sessionService;
+
+    // Spring boot "injiziert" uns hier automatisch den ActiveSessionService
+    public ContextController(ActiveSessionService sessionService) {
+        this.sessionService = sessionService;
+    }
 
     @PostMapping("/context")
     public ResponseEntity<Map<String, String>> handleContext(@RequestBody JsonNode payload) {
         System.out.println("Endpoint /api/context wurde aufgerufen!");
-
         try {
-            // Spring hat den JSON-Body bereits in den 'payload' (JsonNode) umgewandelt
             UserContextDTO context = mapUserContext(payload);
-            latestUserContext = context;
 
-            // Session in einem neuen Thread starten (wie bisher)
+            // Session in einem neuen Thread starten, damit der API Call direkt antworten kann
             new Thread(() -> startMusicSession(context)).start();
 
-            // Sende ein JSON { "status": "ok" } mit HTTP 200 zurück
             return ResponseEntity.ok(Map.of("status", "ok"));
-
         } catch (Exception e) {
-            System.err.println("Fehler beim Verarbeiten des Payloads:");
             e.printStackTrace();
             return ResponseEntity.badRequest().body(Map.of("error", "Invalid payload"));
         }
     }
 
-    public static UserContextDTO getLatestUserContext() {
-        return latestUserContext;
-    }
-
-    // ==========================================================
-    // DEINE BESTEHENDE GESCHÄFTSLOGIK AUS DER ALTEN APP.JAVA
-    // ==========================================================
-
     private void startMusicSession(UserContextDTO context) {
         System.out.println("Starte Musik-Session mit empfangenem Context...");
 
-        UserContextStrategy userContextStrategy = new UserContextStrategy() {
-            @Override
-            public UserContextDTO getUserContext() {
-                return context;
-            }
-        };
+        // 1. Context für diese Session setzen
+        UserContextStrategy userContextStrategy = () -> context;
 
-        var playedSongRepo = new PlayedSongRepository();
-        var localSongDatabaseAdapter = new LocalSongDatabaseAdapter(playedSongRepo, userContextStrategy);
+        // 2. DjSessionController inkl. Mocks zusammenbauen
+        DjSessionController controller = buildDjSessionWithMocks(userContextStrategy);
 
-        DjSessionController controller = getDjSessionController(localSongDatabaseAdapter, userContextStrategy, playedSongRepo);
+        // 3. WICHTIG: Den fertigen Controller im Service speichern,
+        // damit das Frontend & der SessionController ihn abrufen können!
+        sessionService.setActiveSession(controller);
 
-        var sessionBootstrapper = new SessionBootstrapper(localSongDatabaseAdapter);
-        Map<Genre, Double> startWeights = userContextStrategy.getUserContext().timeline().getWeightsAt(0.0);
-
-        System.out.println("Start Genre: " + startWeights);
+        // 4. Start-Genre ermitteln & Ersten Song suchen
+        Map<Genre, Double> startWeights = context.timeline().getWeightsAt(0.0);
+        var localDb = new LocalSongDatabaseAdapter(controller.getPlayedSongRepo(), userContextStrategy);
+        var sessionBootstrapper = new SessionBootstrapper(localDb);
         Track entrySong = sessionBootstrapper.generateFirstTrack(startWeights);
-        playedSongRepo.markAsPlayed(entrySong.id());
 
+        controller.getPlayedSongRepo().markAsPlayed(entrySong.id());
         System.out.println("Gefundener Entry Song: " + entrySong);
 
+        // 5. Los geht's!
         controller.startSession(entrySong);
     }
 
-    private DjSessionController getDjSessionController(
-            LocalSongDatabaseAdapter localSongDatabaseAdapter,
-            UserContextStrategy userContextStrategy,
-            PlayedSongRepository playedSongRepo
-    ) {
+    /**
+     * ZENTRALE BAU-STELLE FÜR DEINE MOCKS
+     * Hier kannst du durch einfaches Ein- und Auskommentieren zwischen Mock
+     * und echter Implementierung wechseln.
+     */
+    private DjSessionController buildDjSessionWithMocks(UserContextStrategy contextStrategy) {
+        var playedSongRepo = new PlayedSongRepository();
+        var historyRepo = new SessionHistoryRepository();
+        var localDb = new LocalSongDatabaseAdapter(playedSongRepo, contextStrategy);
 
-        var playerMock = new SpotifyAdapter();
-        var liveFeedbackMock = new LiveFeedbackStrategyMock();
-        var history = new SessionHistoryRepository();
-        var spotifyApiAdapter = new SpotifySourceAdapter();
-        var hybridAdapter = new HybridSourceAdapter(localSongDatabaseAdapter, spotifyApiAdapter);
+        // =========================================
+        // 1. PLAYER (Audio abspielen)
+        // =========================================
+        MusicPlayerAdapter player = new MusicPlayerAdapterMock();
+        // MusicPlayerAdapter player = new SpotifyAdapter();
 
+        // =========================================
+        // 2. LIVE-FEEDBACK (Kamera)
+        // =========================================
+        LiveFeedbackStrategy liveFeedback = new LiveFeedbackStrategyMock();
+        // LiveFeedbackStrategy liveFeedback = new SmartphoneKameraStrategy(new DetectionStrategyMock());
+
+        // =========================================
+        // 3. MUSIC SOURCE (Woher kommen die Songs?)
+        // =========================================
+        MusicSourceAdapter sourceAdapter = localDb; // Mock: Nur lokaler CSV-Datensatz
+        // MusicSourceAdapter sourceAdapter = new HybridSourceAdapter(localDb, new SpotifySourceAdapter());
+
+        // Prediction Aggregator bleibt echt (Mathematik)
         List<PredictionStrategy> strategies = List.of(
-                new MacroCurveStrategy(localSongDatabaseAdapter, userContextStrategy),
-                new HistoryStrategy(history)
+                new MacroCurveStrategy(localDb, contextStrategy),
+                new HistoryStrategy(historyRepo)
         );
         var aggregator = new PredictionAggregator(strategies);
 
+        // Den finalen Controller bauen und zurückgeben
         return new DjSessionController(
-                playerMock, liveFeedbackMock, aggregator, hybridAdapter, history, playedSongRepo
+                player, liveFeedback, aggregator, sourceAdapter, historyRepo, playedSongRepo
         );
     }
 
+    // --- JSON Mapping (Unverändert) ---
     private UserContextDTO mapUserContext(JsonNode payload) {
         int tempo = payload.path("tempo").asInt(120);
-
         String locationRaw = payload.path("location").asText("Bar");
         Location location = Location.valueOf(locationRaw);
-
         String startTimeRaw = payload.path("startTime").asText(LocalTime.now().withNano(0).toString());
         LocalTime startTime = LocalTime.parse(startTimeRaw);
-
         GenreTimeline timeline = mapTimeline(payload.path("timeline"));
         int cooldown = payload.path("songCooldownMinutes").asInt(30);
-
         return new UserContextDTO(tempo, location, startTime, timeline, cooldown);
     }
 
     private GenreTimeline mapTimeline(JsonNode timelineNode) {
         JsonNode phasesNode = timelineNode.path("phases");
         List<TimelinePhase> phases = new ArrayList<>();
-
         if (phasesNode.isArray()) {
             for (JsonNode phaseNode : phasesNode) {
                 String genreRaw = phaseNode.path("genre").asText("POP");
@@ -145,11 +154,9 @@ public class ContextController {
                 phases.add(new TimelinePhase(genre, duration, transition));
             }
         }
-
         if (phases.isEmpty()) {
             phases.add(new TimelinePhase(Genre.POP, 60.0, 5.0));
         }
-
         return new GenreTimeline(phases);
     }
 }

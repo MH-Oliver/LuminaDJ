@@ -3,6 +3,7 @@ package modules.music.repositories;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import modules.core.PathResolver;
+import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -15,7 +16,7 @@ import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
+@Service
 public class PlayedSongRepository {
     private final File historyFile;
 

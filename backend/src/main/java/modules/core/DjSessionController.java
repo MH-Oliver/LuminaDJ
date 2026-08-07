@@ -9,7 +9,9 @@ import modules.prediction.services.PredictionAggregator;
 import modules.vision.structures.FeedbackResult;
 import modules.prediction.structures.PredictedAttributes;
 import modules.vision.strategies.core.LiveFeedbackStrategy;
+import org.springframework.stereotype.Service;
 
+@Service
 public class DjSessionController {
 
     private final MusicPlayerAdapter player;
@@ -21,7 +23,9 @@ public class DjSessionController {
 
     private boolean sessionActive = true;
 
-    // Dependency Injection über den Konstruktor
+    // NEU: Hält den aktuell laufenden Track
+    private Track currentTrack;
+
     public DjSessionController(
             MusicPlayerAdapter player,
             LiveFeedbackStrategy liveFeedback,
@@ -37,14 +41,27 @@ public class DjSessionController {
         this.playedSongRepo = playedSongRepo;
     }
 
+    // NEU: Getter für die API
+    public Track getCurrentTrack() {
+        return this.currentTrack;
+    }
+
+    public MusicPlayerAdapter getPlayer() { return player; }
+    public LiveFeedbackStrategy getLiveFeedback() { return liveFeedback; }
+    public PredictionAggregator getAggregator() { return aggregator; }
+    public MusicSourceAdapter getSourceAdapter() { return sourceAdapter; }
+    public SessionHistoryRepository getHistory() { return history; }
+    public PlayedSongRepository getPlayedSongRepo() { return playedSongRepo; }
+
     public void startSession(Track entrySong) {
         Track currentSong = entrySong;
 
         while (sessionActive) {
-            // 1. ZUSTAND: Abspielen & parallel Beobachten (Fork)
+            // NEU: Track-Zustand für das Frontend / die API speichern
+            this.currentTrack = currentSong;
+
             liveFeedback.startParallelEvaluation(currentSong);
 
-            // Simuliert das Blockieren, bis der Song zu Ende ist
             try {
                 player.play(currentSong);
             } catch (IllegalArgumentException exception) {
@@ -53,22 +70,16 @@ public class DjSessionController {
                 return;
             }
 
-            // 2. TRIGGER: Song beendet -> Ergebnisse einsammeln
             FeedbackResult feedback = liveFeedback.stopAndGetResult();
-
             history.addEntry(currentSong, feedback);
 
-            // 3. AUSWERTUNG: Aggregator verrechnet alle Parameter
             PredictedAttributes predictedTarget = aggregator.calculateNextAttributes(currentSong, feedback);
-
             System.out.println("General Predicted Target: " + predictedTarget);
-            // 4. NEUEN SONG FINDEN: Über Graph oder API
-            Track nextSong = sourceAdapter.getNextSong(predictedTarget, currentSong);
 
+            Track nextSong = sourceAdapter.getNextSong(predictedTarget, currentSong);
             System.out.println("DJSessionController | Gefundener Song: " + nextSong);
 
             playedSongRepo.markAsPlayed(nextSong.id());
-
             currentSong = nextSong;
         }
     }

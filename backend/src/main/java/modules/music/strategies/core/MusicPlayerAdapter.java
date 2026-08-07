@@ -9,4 +9,5 @@ public interface MusicPlayerAdapter {
     long getPlaybackPosition();
     // NEU: Methode für die Warteschlange
     void addToQueue(Track track);
+    void skip();
 }

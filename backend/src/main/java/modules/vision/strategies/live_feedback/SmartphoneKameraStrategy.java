@@ -5,6 +5,7 @@ import modules.vision.strategies.core.DetectionStrategy;
 import modules.vision.strategies.core.LiveFeedbackStrategy;
 import modules.vision.structures.FeedbackResult;
 import modules.vision.structures.FrameDataDTO;
+import org.springframework.stereotype.Service;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -19,8 +20,9 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Live-Feedback wird über eine HTTP-Schnittstelle zu einem Smartphone realisiert.
- * Die Kamera-Daten werden gemäß eine FrameRate durch eine DetectionStrategy ausgewertet.
+ * Die Kamera-Daten werden gemäß einer FrameRate durch eine DetectionStrategy ausgewertet.
  */
+@Service
 public class SmartphoneKameraStrategy implements LiveFeedbackStrategy {
 
     private final String cameraUrl;

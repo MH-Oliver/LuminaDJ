@@ -1,7 +1,6 @@
 package modules.userContext.structures;
 
 import modules.music.structures.Genre;
-
 import java.util.List;
 import java.util.Map;
 
@@ -12,12 +11,17 @@ public class GenreTimeline {
         this.phases = phases;
     }
 
+    // NEU: Diese Methode ist ZWINGEND ERFORDERLICH, damit Spring Boot
+    // das Array "phases" als JSON an das Frontend senden kann!
+    public List<TimelinePhase> getPhases() {
+        return phases;
+    }
+
     /**
      * Berechnet die prozentuale Mischung der Genres zum aktuellen Zeitpunkt.
      */
     public Map<Genre, Double> getWeightsAt(double elapsedMinutes) {
         double currentStartTime = 0.0;
-
         for (int i = 0; i < phases.size(); i++) {
             TimelinePhase phase = phases.get(i);
             double phaseEndTime = currentStartTime + phase.durationMinutes();
@@ -39,7 +43,6 @@ public class GenreTimeline {
             }
             currentStartTime = phaseEndTime;
         }
-
         // Falls die Zeit die geplante Timeline überschreitet, bleibe beim letzten Genre
         return Map.of(phases.getLast().genre(), 1.0);
     }

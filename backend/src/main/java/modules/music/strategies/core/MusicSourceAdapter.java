@@ -2,6 +2,7 @@ package modules.music.strategies.core;
 
 import modules.music.structures.Track;
 import modules.prediction.structures.PredictedAttributes;
+import org.springframework.stereotype.Service;
 
 /**
  * Interface für die Song-Beschaffung (Graph oder API)

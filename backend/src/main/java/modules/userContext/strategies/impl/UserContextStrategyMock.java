@@ -4,10 +4,11 @@ import modules.music.structures.Genre;
 import modules.userContext.factories.TimelineFactory;
 import modules.userContext.strategies.core.UserContextStrategy;
 import modules.userContext.structures.*;
+import org.springframework.stereotype.Service;
 
 import java.time.LocalTime;
 import java.util.List;
-
+@Service
 public class UserContextStrategyMock implements UserContextStrategy {
     private final UserContextDTO fixedContext;
 
