@@ -1,7 +1,7 @@
 package modules.vision.training;
 
 import modules.vision.strategies.detection.DetectionStrategyMock;
-import modules.vision.strategies.detection.HandDetector;
+import modules.vision.strategies.detection.PalmDetector;
 import modules.vision.strategies.detection.HandLandmarkExtractor;
 import modules.vision.strategies.live_feedback.SmartphoneKameraStrategy;
 import modules.vision.structures.HandLandmarks;
@@ -45,7 +45,7 @@ public class LiveGestureTestApp {
         System.out.println("[INFO] Klassifikator geladen (" + classifier.size() + " Beispiele).");
 
         SmartphoneKameraStrategy camera = new SmartphoneKameraStrategy(new DetectionStrategyMock());
-        HandDetector handDetector = new HandDetector();
+        PalmDetector handDetector = new PalmDetector();
         HandLandmarkExtractor landmarkExtractor = new HandLandmarkExtractor();
 
         System.out.println("[INFO] Live-Test läuft. Halte Gesten vor die Kamera. Zum Beenden: Strg+C.");

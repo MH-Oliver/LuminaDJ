@@ -1,7 +1,7 @@
 package modules.vision.training;
 
 import modules.vision.strategies.detection.DetectionStrategyMock;
-import modules.vision.strategies.detection.HandDetector;
+import modules.vision.strategies.detection.PalmDetector;
 import modules.vision.strategies.detection.HandLandmarkExtractor;
 import modules.vision.strategies.live_feedback.SmartphoneKameraStrategy;
 import modules.vision.structures.HandLandmarks;
@@ -60,12 +60,12 @@ public class DataCollectorApp {
         // hinweg wird hier einfach angehängt (siehe GestureClassifier.appendExample).
         File landmarksCsvFile = new File("backend/src/main/resources/training_data/gesture_landmarks.csv");
 
-        // 3. Kamera-Strategie, YOLO HandDetector und Landmark-Extractor initialisieren
+        // 3. Kamera-Strategie, Palm-Detector und Landmark-Extractor initialisieren
         SmartphoneKameraStrategy camera = new SmartphoneKameraStrategy(new DetectionStrategyMock());
-        HandDetector handDetector = new HandDetector();
-        HandLandmarkExtractor landmarkExtractor = new HandLandmarkExtractor(0.2f);
+        PalmDetector handDetector = new PalmDetector();
+        HandLandmarkExtractor landmarkExtractor = new HandLandmarkExtractor();
 
-        int totalFramesToCapture = 15; // Anzahl der zu sammelnden Hand-Bilder pro Run
+        int totalFramesToCapture = 30; // Anzahl der zu sammelnden Hand-Bilder pro Run
         int frameDelayMs = 500;        // 500ms Pause zwischen den Frames
         int framesCaptured = 0;
         int landmarkExamplesSaved = 0;
@@ -75,7 +75,7 @@ public class DataCollectorApp {
             Thread.sleep(3000);
         } catch (InterruptedException ignored) {}
 
-        while (landmarkExamplesSaved < totalFramesToCapture) {
+        while (framesCaptured < totalFramesToCapture) {
             BufferedImage bufferedImage = camera.fetchSingleFrame();
 
             if (bufferedImage != null) {

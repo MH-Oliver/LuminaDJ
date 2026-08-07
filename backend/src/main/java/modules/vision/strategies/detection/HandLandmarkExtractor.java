@@ -31,12 +31,13 @@ public class HandLandmarkExtractor {
     private static final int INPUT_SIZE = 256;
     private static final int NUM_LANDMARKS = 21;
 
-    // Wie stark der YOLO-Bounding-Box-Crop vergrößert wird, bevor er quadratisch gemacht
-    // und ins Modell gegeben wird. WICHTIG: 2.2 wurde getestet und hat die Ergebnisse
-    // verschlechtert (mehr Fehlerkennungen, stärkerer Versatz) - offenbar will das Modell
-    // einen engeren Crop, näher an einem reinen Hand-Ausschnitt, als angenommen. Zurück auf
-    // einen moderateren Wert, von dem aus wir jetzt in die andere Richtung testen.
-    private static final double BBOX_MARGIN_FACTOR = 1.3;
+    // WICHTIG: Der alte Wert 1.3 war für die frühere YOLO-Hand-Box kalibriert, die schon
+    // einen Großteil der Finger mit abdeckte. Der neue PalmDetector liefert dagegen bewusst
+    // NUR die Handfläche (ohne Finger) - die frühere Erkenntnis "höherer Margin macht es
+    // schlechter" bezog sich auf einen strukturell anderen Box-Typ und gilt hier nicht mehr.
+    // 2.6 entspricht dem offiziellen MediaPipe-Vergrößerungsfaktor für genau diesen Schritt
+    // (Palm-Box -> Hand-Crop).
+    private static final double BBOX_MARGIN_FACTOR = 2.6;
 
     private final Net landmarkNet;
     private final List<String> outBlobNames;
@@ -79,7 +80,7 @@ public class HandLandmarkExtractor {
      * @return Landmarks in Original-Frame-Koordinaten, oder null bei zu geringer Konfidenz/Fehler
      */
     public HandLandmarks extractLandmarks(Mat frame, Rect handBbox) {
-        return extractLandmarks(frame, handBbox, null);
+        return extractLandmarksInternal(frame, handBbox, null, BBOX_MARGIN_FACTOR);
     }
 
     /**
@@ -91,6 +92,24 @@ public class HandLandmarkExtractor {
      * Overlay auf dem Original-Frame nicht).
      */
     public HandLandmarks extractLandmarks(Mat frame, Rect handBbox, File debugCropOutputFile) {
+        return extractLandmarksInternal(frame, handBbox, debugCropOutputFile, BBOX_MARGIN_FACTOR);
+    }
+
+    /**
+     * Für bereits zugeschnittene Hand-Bilder (z.B. die von DataCollectorApp gespeicherten
+     * Trainings-PNGs, die schon nur die Hand zeigen). Hier braucht es keinen zusätzlichen
+     * Vergrößerungs-Faktor mehr (marginFactor=1.0) - das Bild wird nur quadratisch gemacht
+     * (falls nötig) und direkt an das Modell gegeben.
+     */
+    public HandLandmarks extractLandmarksFromPreCroppedImage(Mat alreadyCroppedHand) {
+        if (alreadyCroppedHand == null || alreadyCroppedHand.empty()) {
+            return null;
+        }
+        Rect fullImageBbox = new Rect(0, 0, alreadyCroppedHand.cols(), alreadyCroppedHand.rows());
+        return extractLandmarksInternal(alreadyCroppedHand, fullImageBbox, null, 1.0);
+    }
+
+    private HandLandmarks extractLandmarksInternal(Mat frame, Rect handBbox, File debugCropOutputFile, double marginFactor) {
         if (frame == null || frame.empty() || handBbox == null) {
             return null;
         }
@@ -105,7 +124,7 @@ public class HandLandmarkExtractor {
         try {
             // 1. Bounding Box vergrößern, quadratisch machen und aus dem Frame ausschneiden
             //    (mit schwarzem Padding, falls der vergrößerte Bereich über den Frame-Rand hinausragt).
-            SquareCropInfo cropInfo = squarifyAndCrop(frame, handBbox, BBOX_MARGIN_FACTOR);
+            SquareCropInfo cropInfo = squarifyAndCrop(frame, handBbox, marginFactor);
             squareCrop = cropInfo.crop;
 
             // 2. BGR -> RGB, denn das Modell wurde auf RGB-Bildern trainiert (siehe mp_handpose.py).
@@ -222,12 +241,6 @@ public class HandLandmarkExtractor {
         }
     }
 
-    /**
-     * Vergrößert die Bounding Box um marginFactor, macht sie quadratisch und schneidet sie
-     * aus dem Frame aus. Bereiche außerhalb des Frames werden schwarz aufgefüllt (Padding),
-     * damit die Handproportionen nicht verzerrt werden - gleiches Prinzip wie das
-     * Letterboxing in HandDetector.
-     */
     // Standard-MediaPipe-Hand-Skelett-Verbindungen (welche Landmark-Indizes durch eine Linie
     // verbunden werden), für die Debug-Visualisierung.
     private static final int[][] HAND_CONNECTIONS = {
@@ -239,15 +252,6 @@ public class HandLandmarkExtractor {
             {5, 9}, {9, 13}, {13, 17}               // Handfläche quer
     };
 
-    /**
-     * Zeichnet die erkannten Landmarks (als Punkte) plus Skelett-Verbindungen auf eine Kopie
-     * des Frames und speichert das Ergebnis als PNG - nützlich zur visuellen Verifikation,
-     * ob die Landmarks tatsächlich plausibel auf der Hand liegen.
-     *
-     * @param frame      Original-Frame, auf dem gezeichnet wird (wird nicht verändert, nur kopiert)
-     * @param landmarks  Die zu visualisierenden Landmarks (aus extractLandmarks)
-     * @param outputFile Zieldatei (z.B. "debug_0001.png")
-     */
     /**
      * Zeichnet die rohen Landmark-Koordinaten (0..256, wie direkt vom Modell geliefert) auf
      * den tatsächlichen 256x256-Modell-Input, ohne jede Rückrechnung auf Frame-Koordinaten.
