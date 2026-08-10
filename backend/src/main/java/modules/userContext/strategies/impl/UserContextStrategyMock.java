@@ -26,7 +26,8 @@ public class UserContextStrategyMock implements UserContextStrategy {
                 Location.Bar,
                 LocalTime.now(),
                 generatedTimeline,
-                500
+                500,
+                120 // NEU: Default Gesamtlänge für den Mock
         );
     }
 

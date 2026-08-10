@@ -37,140 +37,124 @@ public class SpotifyAdapter implements MusicPlayerAdapter {
     @Override
     public void play(Track track) {
         try {
-            String trackUri = track.id().startsWith("spotify:track:")
-                    ? track.id()
-                    : "spotify:track:" + track.id();
+            String trackUri = track.id().startsWith("spotify:track:") ? track.id() : "spotify:track:" + track.id();
 
-            JsonArray uris = new JsonArray();
+            // KORREKTUR: Normales Instanziieren statt Double-Brace Initialization
+            com.google.gson.JsonArray uris = new com.google.gson.JsonArray();
             uris.add(trackUri);
 
-            StartResumeUsersPlaybackRequest playRequest = spotifyApi
-                    .startResumeUsersPlayback()
-                    .uris(uris)
-                    .build();
+            synchronized (spotifyApi) {
+                spotifyApi.startResumeUsersPlayback()
+                        .uris(uris)
+                        .build().execute();
+            }
+            System.out.println("Spotify spielt jetzt: " + track.name());
 
-            playRequest.execute();
-            System.out.println("Spotify spielt jetzt: " + track.name() + " (" + track.author() + ")");
-
-            // NEU: Thread-Start zur asynchronen Überwachung des Playback-Status
             isRunning = true;
             playbackThread = new Thread(() -> {
-                System.out.println("Playback-Monitoring Thread gestartet für: " + track.name());
-
-                try {
-                    // Kurz warten, damit Spotify Zeit hat, den Status auf den neuen Song zu aktualisieren
-                    Thread.sleep(3000);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    return;
-                }
+                try { Thread.sleep(3000); } catch (InterruptedException e) { return; }
 
                 while (isRunning) {
                     try {
-                        CurrentlyPlayingContext context = spotifyApi
-                                .getInformationAboutUsersCurrentPlayback()
-                                .build()
-                                .execute();
+                        CurrentlyPlayingContext context;
+                        synchronized (spotifyApi) {
+                            context = spotifyApi.getInformationAboutUsersCurrentPlayback().build().execute();
+                        }
 
-                        if (context != null && context.getIs_playing() && context.getItem() != null) {
+                        if (context != null && context.getItem() != null) {
                             String currentPlayingId = context.getItem().getId();
                             Integer progressMs = context.getProgress_ms();
+                            // Sicheres Auslesen der Track-Dauer
                             Integer durationMs = null;
-
-                            // Sicheres Auslesen der Track-Dauer (Pattern Matching ab Java 16+)
                             if (context.getItem() instanceof se.michaelthelin.spotify.model_objects.specification.Track t) {
                                 durationMs = t.getDurationMs();
                             }
 
-                            // Prüfen, ob der Song manuell gewechselt wurde
+                            // 1. Manuell übersprungen? (In der Spotify App auf Handy)
                             if (currentPlayingId != null && !currentPlayingId.equals(track.id())) {
-                                System.out.println("Anderer Song läuft. Monitoring wird beendet.");
                                 isRunning = false;
                             }
-                            // Prüfen, ob der Song auf natürliche Weise beendet ist / sich dem Ende nährt
-                            else if (durationMs != null && progressMs != null) {
+                            // 2. Reguläres Ende? (NUR prüfen, wenn er gerade wirklich spielt)
+                            else if (context.getIs_playing() && durationMs != null && progressMs != null) {
                                 if ((durationMs - progressMs) <= POLL_INTERVAL_MS) {
-                                    System.out.println("Song nähert sich dem Ende.");
+                                    System.out.println("Song nähert sich dem natürlichen Ende.");
                                     isRunning = false;
                                 }
                             }
-                        } else {
-                            System.out.println("Wiedergabe hat gestoppt.");
-                            isRunning = false;
+                            // Wenn is_playing == false (Pausiert), tun wir NICHTS. Die Schleife wartet einfach.
                         }
 
-                        if (isRunning) {
-                            Thread.sleep(POLL_INTERVAL_MS);
-                        }
+                        if (isRunning) Thread.sleep(POLL_INTERVAL_MS);
 
                     } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        break;
+                        break; // Thread soll beendet werden
                     } catch (Exception e) {
-                        System.err.println("Verbindung zur Spotify API fehlgeschlagen: " + e.getMessage());
-                        // Falls die API streikt, kurz abwarten und es erneut versuchen
-                        try { Thread.sleep(POLL_INTERVAL_MS); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+                        try { Thread.sleep(POLL_INTERVAL_MS); } catch (InterruptedException ie) { break; }
                     }
                 }
             });
-
             playbackThread.start();
-
-            // Blockieren des Main-Threads, damit der DjSessionController auf das Ende des Songs wartet
-            playbackThread.join();
-            System.out.println("Play-Methode für " + track.name() + " ist offiziell beendet.");
-
+            playbackThread.join(); // Blockiert den DjController sauber, bis isRunning false wird
+            System.out.println("Play-Methode für " + track.name() + " regulär beendet.");
         } catch (Exception e) {
-            try {
-                Thread.sleep(5000);
-            } catch (InterruptedException ie) {
-                Thread.currentThread().interrupt();
-            }
-
-            throw new IllegalArgumentException("Fehler beim Starten der Wiedergabe", e);
+            handleError("Fehler beim Starten der Wiedergabe", e);
         }
     }
 
     @Override
     public void pause() {
         try {
-            // Thread stoppen, ähnlich wie in der SmartphoneKameraStrategy
-            isRunning = false;
-            if (playbackThread != null) {
-                playbackThread.interrupt();
+            // WICHTIG: isRunning bleibt true! Wir pausieren nur Spotify.
+            synchronized (spotifyApi) {
+                spotifyApi.pauseUsersPlayback().build().execute();
             }
-
-            PauseUsersPlaybackRequest pauseRequest = spotifyApi
-                    .pauseUsersPlayback()
-                    .build();
-            pauseRequest.execute();
-            System.out.println("Wiedergabe pausiert.");
-        } catch (Exception e) {
-            handleError("Fehler beim Pausieren", e);
-        }
+        } catch (Exception e) { handleError("Fehler beim Pausieren", e); }
     }
 
-    // NEU: Skip-Methode hinzugefügt
+
+    @Override
+    public void resume() {
+        try {
+            synchronized (spotifyApi) {
+                spotifyApi.startResumeUsersPlayback().build().execute();
+            }
+        } catch (Exception e) { handleError("Fehler beim Fortsetzen", e); }
+    }
+
+
+    @Override
+    public void seek(long positionMs) {
+        try {
+            synchronized (spotifyApi) {
+                spotifyApi.seekToPositionInCurrentlyPlayingTrack((int) positionMs).build().execute();
+            }
+        } catch (Exception e) { handleError("Fehler beim Spulen", e); }
+    }
+
     @Override
     public void skip() {
-        try {
-            // WICHTIG: Monitoring-Thread des alten Songs beenden,
-            // damit der DjSessionController aus der blockierten play()-Methode (join) befreit wird
-            isRunning = false;
-            if (playbackThread != null) {
-                playbackThread.interrupt();
-            }
-
-            SkipUsersPlaybackToNextTrackRequest skipRequest = spotifyApi
-                    .skipUsersPlaybackToNextTrack()
-                    .build();
-
-            skipRequest.execute();
-            System.out.println("Wiedergabe zum nächsten Track übersprungen (Skip).");
-        } catch (Exception e) {
-            handleError("Fehler beim Überspringen des Tracks", e);
+        // Hier beenden wir den Thread, damit der DjController aus dem .join() befreit wird
+        // und automatisch den neuen Song sucht! (Wir rufen NICHT extra die Spotify Skip-API auf).
+        System.out.println("Skip ausgelöst - Lade neuen Track...");
+        isRunning = false;
+        if (playbackThread != null) {
+            playbackThread.interrupt();
         }
     }
+
+    @Override
+    public boolean isPlaying() {
+        try {
+            synchronized (spotifyApi) {
+                CurrentlyPlayingContext ctx = spotifyApi.getInformationAboutUsersCurrentPlayback().build().execute();
+                return ctx != null && ctx.getIs_playing();
+            }
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+
 
     @Override
     public void setVolume(int level) {
@@ -191,16 +175,32 @@ public class SpotifyAdapter implements MusicPlayerAdapter {
     @Override
     public long getPlaybackPosition() {
         try {
-            CurrentlyPlayingContext context = spotifyApi
-                    .getInformationAboutUsersCurrentPlayback()
-                    .build()
-                    .execute();
-
-            return (context != null && context.getProgress_ms() != null) ? context.getProgress_ms() : 0;
+            synchronized (spotifyApi) {
+                CurrentlyPlayingContext ctx = spotifyApi.getInformationAboutUsersCurrentPlayback().build().execute();
+                return (ctx != null && ctx.getProgress_ms() != null) ? ctx.getProgress_ms() : 0;
+            }
         } catch (Exception e) {
             return 0;
         }
     }
+
+    @Override
+    public void stop() {
+        try {
+            System.out.println("Spotify: Session wird gestoppt...");
+            isRunning = false;
+            if (playbackThread != null) {
+                playbackThread.interrupt();
+            }
+            synchronized (spotifyApi) {
+                spotifyApi.pauseUsersPlayback().build().execute();
+            }
+        } catch (Exception e) {
+            // Ignorieren, falls Spotify bereits pausiert ist
+            System.err.println("Spotify war beim Stoppen bereits pausiert.");
+        }
+    }
+
 
     @Override
     public void addToQueue(Track track) {
@@ -219,5 +219,26 @@ public class SpotifyAdapter implements MusicPlayerAdapter {
 
     private void handleError(String message, Exception e) {
         System.err.println(message + ": " + e.getMessage());
+    }
+
+
+    @Override
+    public void setTrackFavoriteStatus(Track track, boolean isFavorite) {
+        try {
+            String pureId = track.id().replace("spotify:track:", "");
+
+            // NEU: Thread-Sicherheit hergestellt
+            synchronized (spotifyApi) {
+                if (isFavorite) {
+                    spotifyApi.saveTracksForUser(pureId).build().execute();
+                    System.out.println("Spotify: Song zu 'Lieblingssongs' hinzugefügt: " + track.name());
+                } else {
+                    spotifyApi.removeUsersSavedTracks(pureId).build().execute();
+                    System.out.println("Spotify: Song aus 'Lieblingssongs' entfernt: " + track.name());
+                }
+            }
+        } catch (Exception e) {
+            handleError("Fehler beim Ändern des Favoriten-Status", e);
+        }
     }
 }

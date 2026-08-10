@@ -19,11 +19,9 @@ import java.util.stream.Collectors;
 public class MusicController {
 
      private final SpotifyAuthenticator authenticator;
-     private final TimelineFactory timelineFactory;
 
     public MusicController(SpotifyAuthenticator authenticator, TimelineFactory timelineFactory) {
         this.authenticator = authenticator;
-        this.timelineFactory = timelineFactory;
     }
 
     @GetMapping("/connectSpotify")

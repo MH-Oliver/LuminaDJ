@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-
 export interface TimelinePhaseDto {
   genre: string;
   durationMinutes: number;
@@ -16,12 +15,15 @@ export interface UserContextDto {
     phases: TimelinePhaseDto[];
   };
   songCooldownMinutes: number;
+  totalMinutes: number; // NEU: Hält die ausgewählte Gesamtlänge der Session
 }
 
 @Injectable({
   providedIn: 'root',
 })
 export class ContextApiService {
+
+
   // Zeigt jetzt auf den Standard-Port von Spring Boot
   private readonly baseUrl = 'http://127.0.0.1:8080';
 
@@ -64,9 +66,20 @@ export class ContextApiService {
     return this.http.post<{ status: string }>(`${this.baseUrl}/api/context`, payload);
   }
 
+  // NEU: Aktuellen Context für den Edit-Modus laden
+  getCurrentContext(): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/api/context/current`);
+  }
+
   // ==========================================
   // SESSION ENDPOINTS
   // ==========================================
+
+// NEU: Der echte Endpoint zum Backend
+  toggleFavorite(isFavorite: boolean): Observable<{ success: boolean }> {
+    return this.http.post<{ success: boolean }>(`${this.baseUrl}/session/favorite`, { isFavorite });
+  }
+
   updateSession(): Observable<any> {
     return this.http.get<any>(`${this.baseUrl}/session/update`);
   }
@@ -82,4 +95,20 @@ export class ContextApiService {
   cancelSession(): Observable<void> {
     return this.http.post<void>(`${this.baseUrl}/session/cancel`, {});
   }
+
+
+
+  togglePlayPause(): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/session/playPause`, {});
+  }
+
+  seek(positionMs: number): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/session/seek`, { position: positionMs });
+  }
+
+  previousSong(): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/session/previous`, {});
+  }
+
+
 }

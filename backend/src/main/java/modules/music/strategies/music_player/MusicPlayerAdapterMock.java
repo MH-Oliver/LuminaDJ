@@ -46,4 +46,26 @@ public class MusicPlayerAdapterMock implements MusicPlayerAdapter {
     public void skip() {
 
     }
+
+
+    // Dummy Methoden
+    @Override
+    public void setTrackFavoriteStatus(Track track, boolean isFavorite) {
+    }
+
+    @Override
+    public void resume() {}
+
+    @Override
+    public void seek(long positionMs) {}
+
+    @Override
+    public boolean isPlaying() {
+        return true;
+    }
+
+    @Override
+    public void stop() {
+        System.out.println("Mock Player: Wiedergabe gestoppt.");
+    }
 }

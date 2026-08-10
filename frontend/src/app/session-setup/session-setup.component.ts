@@ -59,6 +59,20 @@ export class SessionSetupComponent implements OnInit {
       },
       error: (err) => console.error('Fehler beim Laden der Genres:', err)
     });
+
+    // 3. NEU: Prüfen, ob wir aus einer aktiven Session kommen (Edit-Modus)
+    if (history.state && history.state.preserveConfig) {
+      this.apiService.getCurrentContext().subscribe({
+        next: (data) => {
+          console.log("Edit Session: Lade bestehende Timeline", data);
+          const phases = data?.timeline?.phases || data?.phases;
+          if (phases && Array.isArray(phases)) {
+            this.convertJsonToBlocks(phases);
+          }
+        },
+        error: (err) => console.error('Keine vorherige Session gefunden:', err)
+      });
+    }
   }
 
   // ==========================================
@@ -144,10 +158,11 @@ export class SessionSetupComponent implements OnInit {
     // 3. Baue das finale JSON (UserContextDto)
     const payload: UserContextDto = {
       tempo: 120,
-      location: "Bar", // Backend-Enum Location
-      startTime: new Date().toTimeString().split(' ')[0], // z.B. "19:30:00"
+      location: "Bar",
+      startTime: new Date().toTimeString().split(' ')[0],
       timeline: { phases: phases },
-      songCooldownMinutes: 30
+      songCooldownMinutes: 30,
+      totalMinutes: this.totalMinutes // NEU: Die exakte Länge aus dem Input-Feld!
     };
 
     // 4. Abschicken und Weiterleiten

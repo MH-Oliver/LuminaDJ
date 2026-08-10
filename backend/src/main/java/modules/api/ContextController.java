@@ -102,8 +102,8 @@ public class ContextController {
         // =========================================
         // 1. PLAYER (Audio abspielen)
         // =========================================
-        MusicPlayerAdapter player = new MusicPlayerAdapterMock();
-        // MusicPlayerAdapter player = new SpotifyAdapter();
+        //MusicPlayerAdapter player = new MusicPlayerAdapterMock();
+         MusicPlayerAdapter player = new SpotifyAdapter();
 
         // =========================================
         // 2. LIVE-FEEDBACK (Kamera)
@@ -126,11 +126,10 @@ public class ContextController {
 
         // Den finalen Controller bauen und zurückgeben
         return new DjSessionController(
-                player, liveFeedback, aggregator, sourceAdapter, historyRepo, playedSongRepo
+                player, liveFeedback, aggregator, sourceAdapter, historyRepo, playedSongRepo, contextStrategy.getUserContext()
         );
     }
 
-    // --- JSON Mapping (Unverändert) ---
     private UserContextDTO mapUserContext(JsonNode payload) {
         int tempo = payload.path("tempo").asInt(120);
         String locationRaw = payload.path("location").asText("Bar");
@@ -139,7 +138,11 @@ public class ContextController {
         LocalTime startTime = LocalTime.parse(startTimeRaw);
         GenreTimeline timeline = mapTimeline(payload.path("timeline"));
         int cooldown = payload.path("songCooldownMinutes").asInt(30);
-        return new UserContextDTO(tempo, location, startTime, timeline, cooldown);
+
+        // NEU: Gesamtlänge exakt aus dem Payload auslesen
+        int totalMinutes = payload.path("totalMinutes").asInt(120);
+
+        return new UserContextDTO(tempo, location, startTime, timeline, cooldown, totalMinutes);
     }
 
     private GenreTimeline mapTimeline(JsonNode timelineNode) {
@@ -158,5 +161,14 @@ public class ContextController {
             phases.add(new TimelinePhase(Genre.POP, 60.0, 5.0));
         }
         return new GenreTimeline(phases);
+    }
+
+    @GetMapping("/context/current")
+    public ResponseEntity<UserContextDTO> getCurrentContext() {
+        DjSessionController sessionController = sessionService.getActiveSession();
+        if (sessionController != null && sessionController.getContext() != null) {
+            return ResponseEntity.ok(sessionController.getContext());
+        }
+        return ResponseEntity.notFound().build();
     }
 }

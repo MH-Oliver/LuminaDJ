@@ -67,16 +67,35 @@
             </div>
           </div>
         </div>
+        <!-- NEU: Zeit-Labels und dynamische Progress-Bar hinzugefügt -->
         <div class="progress-container">
-          <div class="progress-bar">
-            <div class="progress-fill" style="width: 45%;"></div>
-            <div class="progress-handle"></div>
+          <span class="time-label">{{ formattedProgress }}</span>
+          <!-- (click) hinzugefügt, um zu Spulen -->
+          <div class="progress-bar" (click)="onProgressBarClick($event)">
+            <div class="progress-fill" [style.width.%]="progressPercent"></div>
+            <div class="progress-handle" [style.left.%]="progressPercent"></div>
           </div>
+          <span class="time-label">{{ formattedDuration }}</span>
         </div>
+
+        <!-- NEU: Favorite Button und Icons hinzugefügt -->
         <div class="player-controls">
-          <button class="control-btn" title="Skip Back"></button>
-          <button class="control-btn play-pause-btn" title="Play/Pause"></button>
-          <button class="control-btn" title="Skip Forward" (click)="skipSong()"></button>
+          <button class="control-btn" title="Add to Favorites" (click)="toggleFavorite()" [class.is-favorite]="isFavorite">
+            <span class="material-icons-outlined">{{ isFavorite ? 'favorite' : 'favorite_border' }}</span>
+          </button>
+
+          <!-- Methoden-Bindings und dynamisches isPlaying Icon hinzugefügt -->
+          <button class="control-btn" title="Restart Song" (click)="previousSong()">
+            <span class="material-icons-outlined">skip_previous</span>
+          </button>
+
+          <button class="control-btn play-pause-btn" title="Play/Pause" (click)="togglePlayPause()">
+            <span class="material-icons-outlined">{{ isPlaying ? 'pause_circle' : 'play_circle' }}</span>
+          </button>
+
+          <button class="control-btn" title="Skip Forward" (click)="skipSong()">
+            <span class="material-icons-outlined">skip_next</span>
+          </button>
         </div>
       </section>
       <section class="card legend-card">

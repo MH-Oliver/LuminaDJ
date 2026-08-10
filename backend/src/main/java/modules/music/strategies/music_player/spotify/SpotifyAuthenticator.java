@@ -43,6 +43,7 @@ public class SpotifyAuthenticator {
     }
 
     public SpotifyApi authenticate() {
+        //prefs.remove(PREF_REFRESH_TOKEN); // <-- Muss für diesen Start noch drin bleiben!
 
         // 1. VERSUCH: Automatischer Login über sicher gespeichertes Token
         String savedRefreshToken = prefs.get(PREF_REFRESH_TOKEN, null);
@@ -74,9 +75,11 @@ public class SpotifyAuthenticator {
 
         // 2. VERSUCH: Vollautomatischer Browser-Login
         try {
-
             AuthorizationCodeUriRequest uriRequest = spotifyApi.authorizationCodeUri()
-                    .scope("user-modify-playback-state user-read-playback-state")
+                    // 1. Die Scopes mit Leerzeichen getrennt:
+                    .scope("user-modify-playback-state user-read-playback-state user-library-modify")
+                    // 2. NEU: Zwingt Spotify, das Fenster IMMER anzuzeigen!
+                    .show_dialog(true)
                     .build();
 
             URI uri = uriRequest.execute();

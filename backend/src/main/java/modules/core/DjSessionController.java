@@ -9,11 +9,10 @@ import modules.prediction.services.PredictionAggregator;
 import modules.vision.structures.FeedbackResult;
 import modules.prediction.structures.PredictedAttributes;
 import modules.vision.strategies.core.LiveFeedbackStrategy;
-import org.springframework.stereotype.Service;
+import modules.userContext.structures.UserContextDTO;
 
-@Service
+
 public class DjSessionController {
-
     private final MusicPlayerAdapter player;
     private final LiveFeedbackStrategy liveFeedback;
     private final PredictionAggregator aggregator;
@@ -21,31 +20,30 @@ public class DjSessionController {
     private final SessionHistoryRepository history;
     private final PlayedSongRepository playedSongRepo;
 
+    private final UserContextDTO context; // NEU: Speichert die Timeline
     private boolean sessionActive = true;
-
-    // NEU: Hält den aktuell laufenden Track
     private Track currentTrack;
 
+    // Konstruktor um den Parameter 'context' erweitern
     public DjSessionController(
             MusicPlayerAdapter player,
             LiveFeedbackStrategy liveFeedback,
             PredictionAggregator aggregator,
             MusicSourceAdapter sourceAdapter,
             SessionHistoryRepository history,
-            PlayedSongRepository playedSongRepo) {
+            PlayedSongRepository playedSongRepo,
+            UserContextDTO context) {
         this.player = player;
         this.liveFeedback = liveFeedback;
         this.aggregator = aggregator;
         this.sourceAdapter = sourceAdapter;
         this.history = history;
         this.playedSongRepo = playedSongRepo;
+        this.context = context;
     }
 
-    // NEU: Getter für die API
-    public Track getCurrentTrack() {
-        return this.currentTrack;
-    }
-
+    public UserContextDTO getContext() { return context; } // Getter für das Frontend
+    public Track getCurrentTrack() { return this.currentTrack; }
     public MusicPlayerAdapter getPlayer() { return player; }
     public LiveFeedbackStrategy getLiveFeedback() { return liveFeedback; }
     public PredictionAggregator getAggregator() { return aggregator; }
@@ -55,13 +53,9 @@ public class DjSessionController {
 
     public void startSession(Track entrySong) {
         Track currentSong = entrySong;
-
         while (sessionActive) {
-            // NEU: Track-Zustand für das Frontend / die API speichern
             this.currentTrack = currentSong;
-
             liveFeedback.startParallelEvaluation(currentSong);
-
             try {
                 player.play(currentSong);
             } catch (IllegalArgumentException exception) {
@@ -70,17 +64,24 @@ public class DjSessionController {
                 return;
             }
 
+            // WICHTIG: Prüfen, ob in der Zwischenzeit Edit/Cancel gedrückt wurde
+            if (!sessionActive) {
+                liveFeedback.stopAndGetResult();
+                break;
+            }
+
             FeedbackResult feedback = liveFeedback.stopAndGetResult();
             history.addEntry(currentSong, feedback);
-
             PredictedAttributes predictedTarget = aggregator.calculateNextAttributes(currentSong, feedback);
-            System.out.println("General Predicted Target: " + predictedTarget);
-
             Track nextSong = sourceAdapter.getNextSong(predictedTarget, currentSong);
-            System.out.println("DJSessionController | Gefundener Song: " + nextSong);
-
             playedSongRepo.markAsPlayed(nextSong.id());
             currentSong = nextSong;
         }
+    }
+
+    // NEU: Bricht die Session sauber ab
+    public void stopSession() {
+        this.sessionActive = false;
+        this.player.stop();
     }
 }
