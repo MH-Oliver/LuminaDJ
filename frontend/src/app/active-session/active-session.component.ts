@@ -44,9 +44,8 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
   private countdownSub?: Subscription;
   private localProgressTimer: any;
 
-  // Status-Variablen für das Smart Polling
   private isFetchingInit = false;
-  private isWaitingForPlayback = true; // Wartet darauf, dass das Backend "isPlaying = true" meldet
+  private isWaitingForPlayback = true;
 
   constructor(
     private readonly apiService: ContextApiService,
@@ -61,11 +60,9 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
     });
 
     this.localProgressTimer = setInterval(() => {
-      // Zählt nur hoch, wenn der Song WIRKLICH spielt und wir nicht gerade auf einen neuen Song warten
       if (this.isPlaying && this.durationMs > 0 && !this.isWaitingForPlayback) {
         this.progressMs += 1000;
 
-        // Wenn der Song zu Ende ist, fordern wir das Frontend auf, nach dem nächsten Song zu suchen
         if (this.progressMs >= this.durationMs) {
           this.isWaitingForPlayback = true;
           this.fetchUpdate();
@@ -149,20 +146,20 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
             }
           }
 
-          // SMART POLLING LOGIK
-          // Wenn wir auf den Start warten (z.B. weil Spotify gerade öffnet oder der nächste Song lädt)
-          if (this.isWaitingForPlayback || this.currentSong.title === 'Wird gestartet...') {
+          // SMART POLLING: Checkt auch das Cover
+          const hasNoCover = this.currentSong.coverUrl.includes('Kein+Cover');
+          const isDummy = this.currentSong.title === 'Wird gestartet...';
 
-            // Haben wir einen echten Song der jetzt auch WIRKLICH spielt?
-            if (this.isPlaying && this.durationMs > 0 && this.currentSong.title !== 'Wird gestartet...') {
-              this.isWaitingForPlayback = false; // Polling stoppen, lokaler Timer übernimmt ab jetzt!
+          if (this.isWaitingForPlayback || isDummy || hasNoCover) {
+
+            if (this.isPlaying && this.durationMs > 0 && !isDummy && !hasNoCover) {
+              this.isWaitingForPlayback = false;
             } else if (!this.isFetchingInit) {
-              // Wenn nicht, frage in 2 Sekunden nochmal nach
               this.isFetchingInit = true;
               setTimeout(() => {
                 this.isFetchingInit = false;
                 this.fetchUpdate();
-              }, 2000);
+              }, 2000); // Polling alle 2 Sekunden, bis ALLES bereit ist
             }
           }
         }
@@ -180,15 +177,12 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
   }
 
   skipSong(): void {
-    this.isWaitingForPlayback = true; // Setzt den Player in den Lade-Modus
+    this.isWaitingForPlayback = true;
     this.progressMs = 0;
     this.updateProgressUI();
 
     this.apiService.skipSong().subscribe({
-      next: (data) => {
-        console.log('Skipped. Next song is:', data.nextSong);
-        this.fetchUpdate();
-      },
+      next: () => this.fetchUpdate(),
       error: (err) => console.error('Error skipping song', err)
     });
   }

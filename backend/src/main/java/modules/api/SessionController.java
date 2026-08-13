@@ -15,7 +15,6 @@ import java.util.Map;
 public class SessionController {
     private final ActiveSessionService sessionService;
 
-    // Cache-Variablen, um die Spotify API zu schonen
     private String cachedTrackId = null;
     private String cachedCoverUrl = "https://via.placeholder.com/150/1e1e1e/ffffff?text=Kein+Cover";
     private long cachedDurationMs = 0;
@@ -41,29 +40,36 @@ public class SessionController {
 
         Track currentTrack = sessionController.getCurrentTrack();
 
-        // 1. Cover und Dauer NUR neu von Spotify laden, wenn ein neuer Song läuft
-        if (cachedTrackId == null || !cachedTrackId.equals(currentTrack.id())) {
-            // Wir aktualisieren die ID sofort, um Spam (Endlos-Schleifen) bei API-Fehlern zu vermeiden
-            cachedTrackId = currentTrack.id();
-            cachedCoverUrl = "https://via.placeholder.com/150/1e1e1e/ffffff?text=Kein+Cover";
-            cachedDurationMs = 180000; // Notfall-Dauer (3 Min), falls Spotify blockiert
+        boolean isNewTrack = cachedTrackId == null || !cachedTrackId.equals(currentTrack.id());
+        boolean hasFailedCover = cachedCoverUrl.contains("Kein+Cover");
+
+        // Wenn neuer Song ODER das Cover vorher fehlgeschlagen ist, fragen wir Spotify neu
+        if (isNewTrack || hasFailedCover) {
+            if (isNewTrack) {
+                cachedTrackId = currentTrack.id();
+                cachedDurationMs = 180000; // Notfall-Dauer (3 Min)
+            }
 
             try {
                 if (SpotifyAdapter.spotifyApi != null) {
-                    var spotifyTrack = SpotifyAdapter.spotifyApi.getTrack(currentTrack.id()).build().execute();
+                    // Stellt sicher, dass das Prefix entfernt wird, sonst scheitert die API sofort
+                    String pureId = currentTrack.id().replace("spotify:track:", "");
+                    var spotifyTrack = SpotifyAdapter.spotifyApi.getTrack(pureId).build().execute();
                     if (spotifyTrack != null) {
                         cachedDurationMs = spotifyTrack.getDurationMs();
                         if (spotifyTrack.getAlbum() != null && spotifyTrack.getAlbum().getImages().length > 0) {
                             cachedCoverUrl = spotifyTrack.getAlbum().getImages()[0].getUrl();
+                        } else {
+                            cachedCoverUrl = "https://via.placeholder.com/150/1e1e1e/ffffff?text=No+Cover+Found"; // Cover existiert wirklich nicht
                         }
                     }
                 }
             } catch (Exception e) {
-                System.err.println("Konnte Spotify-Daten nicht laden. Verwende Fallback. Grund: " + e.getMessage());
+                System.err.println("Konnte Spotify-Daten nicht laden. Versuche es gleich erneut. Grund: " + e.getMessage());
+                cachedCoverUrl = "https://via.placeholder.com/150/1e1e1e/ffffff?text=Kein+Cover";
             }
         }
 
-        // 2. Playback-Status abrufen
         long currentProgress = sessionController.getPlayer().getPlaybackPosition();
         boolean isPlaying = sessionController.getPlayer().isPlaying();
 
@@ -105,16 +111,11 @@ public class SessionController {
         DjSessionController sessionController = sessionService.getActiveSession();
         if (sessionController != null) {
             sessionController.stopSession();
-            // FEHLERBEHEBUNG: Hier wird die Session NICHT mehr genullt,
-            // damit das Frontend die Timeline noch abrufen kann!
         }
-        cachedTrackId = null; // Cache zwingend leeren!
+        cachedTrackId = null;
+        cachedCoverUrl = "https://via.placeholder.com/150/1e1e1e/ffffff?text=Kein+Cover";
 
-        Map<String, Object> currentTimeline = Map.of(
-                "status", "stopped",
-                "message", "Session gestoppt. Bereit für Edits."
-        );
-        return ResponseEntity.ok(currentTimeline);
+        return ResponseEntity.ok(Map.of("status", "stopped", "message", "Session gestoppt."));
     }
 
     @PostMapping("/cancel")
@@ -122,12 +123,14 @@ public class SessionController {
         DjSessionController sessionController = sessionService.getActiveSession();
         if (sessionController != null) {
             sessionController.stopSession();
-            sessionService.setActiveSession(null); // Bei Cancel ist das Löschen weiterhin richtig
+            sessionService.setActiveSession(null);
         }
-        cachedTrackId = null; // Cache zwingend leeren!
+        cachedTrackId = null;
+        cachedCoverUrl = "https://via.placeholder.com/150/1e1e1e/ffffff?text=Kein+Cover";
         return ResponseEntity.ok().build();
     }
 
+    // ... (restliche Endpoints toggleFavorite, playPause, seek, previous bleiben exakt gleich)
     @PostMapping("/favorite")
     public ResponseEntity<Map<String, Object>> toggleFavorite(@RequestBody Map<String, Boolean> payload) {
         DjSessionController sessionController = sessionService.getActiveSession();
