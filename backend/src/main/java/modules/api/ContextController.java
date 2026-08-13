@@ -43,9 +43,8 @@ import java.util.Map;
 public class ContextController {
 
     private final ActiveSessionService sessionService;
-    private final SpotifyAuthenticator authenticator; // NEU
+    private final SpotifyAuthenticator authenticator;
 
-    // Spring boot injiziert uns hier automatisch den ActiveSessionService und den Authenticator
     public ContextController(ActiveSessionService sessionService, SpotifyAuthenticator authenticator) {
         this.sessionService = sessionService;
         this.authenticator = authenticator;
@@ -56,7 +55,16 @@ public class ContextController {
         System.out.println("Endpoint /api/context wurde aufgerufen!");
         try {
             UserContextDTO context = mapUserContext(payload);
-            new Thread(() -> startMusicSession(context)).start();
+            UserContextStrategy userContextStrategy = () -> context;
+
+            // 1. Controller SYNCHRON bauen und sofort als aktiv setzen!
+            // Dadurch erhält das Frontend beim sofortigen Weiterleiten garantiert die neue Zeit und Länge.
+            DjSessionController controller = buildDjSessionWithMocks(userContextStrategy);
+            sessionService.setActiveSession(controller);
+
+            // 2. Die Musik-Suche und das Playback asynchron starten
+            new Thread(() -> startMusicSession(controller, context, userContextStrategy)).start();
+
             return ResponseEntity.ok(Map.of("status", "ok"));
         } catch (Exception e) {
             e.printStackTrace();
@@ -64,12 +72,8 @@ public class ContextController {
         }
     }
 
-    private void startMusicSession(UserContextDTO context) {
+    private void startMusicSession(DjSessionController controller, UserContextDTO context, UserContextStrategy userContextStrategy) {
         System.out.println("Starte Musik-Session mit empfangenem Context...");
-        UserContextStrategy userContextStrategy = () -> context;
-        DjSessionController controller = buildDjSessionWithMocks(userContextStrategy);
-        sessionService.setActiveSession(controller);
-
         Map<Genre, Double> startWeights = context.timeline().getWeightsAt(0.0);
         var localDb = new LocalSongDatabaseAdapter(controller.getPlayedSongRepo(), userContextStrategy);
         var sessionBootstrapper = new SessionBootstrapper(localDb);
@@ -86,25 +90,9 @@ public class ContextController {
         var historyRepo = new SessionHistoryRepository();
         var localDb = new LocalSongDatabaseAdapter(playedSongRepo, contextStrategy);
 
-        // =========================================
-        // 1. PLAYER (Audio abspielen)
-        // =========================================
-        //MusicPlayerAdapter player = new MusicPlayerAdapterMock();
-
-        // NEU: Übergabe des Authenticators, damit der Adapter die Spotify-API erhält
         MusicPlayerAdapter player = new SpotifyAdapter(this.authenticator);
-
-        // =========================================
-        // 2. LIVE-FEEDBACK (Kamera)
-        // =========================================
         LiveFeedbackStrategy liveFeedback = new LiveFeedbackStrategyMock();
-        // LiveFeedbackStrategy liveFeedback = new SmartphoneKameraStrategy(new DetectionStrategyMock());
-
-        // =========================================
-        // 3. MUSIC SOURCE (Woher kommen die Songs?)
-        // =========================================
-        MusicSourceAdapter sourceAdapter = localDb; // Mock: Nur lokaler CSV-Datensatz
-        // MusicSourceAdapter sourceAdapter = new HybridSourceAdapter(localDb, new SpotifySourceAdapter());
+        MusicSourceAdapter sourceAdapter = localDb;
 
         List<PredictionStrategy> strategies = List.of(
                 new MacroCurveStrategy(localDb, contextStrategy),

@@ -1,3 +1,4 @@
+// active-session/active-session.component.ts
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { RouterLink, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
@@ -14,7 +15,7 @@ import { Subscription, interval } from 'rxjs';
 export class ActiveSessionComponent implements OnInit, OnDestroy {
   spotifyUser = 'DJ_Lumina_Test';
   isCameraExpanded = true;
-  isPlaying = true;
+  isPlaying = false;
 
   currentSong = {
     title: 'Loading...',
@@ -22,7 +23,6 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
     coverUrl: 'https://via.placeholder.com/150/1e1e1e/ffffff?text=Album+Cover'
   };
 
-  // Player Variablen
   durationMs = 0;
   progressMs = 0;
   progressPercent = 0;
@@ -30,10 +30,10 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
   formattedDuration = '0:00';
   isFavorite = false;
 
-  // NEU: Session Timer Variablen
   sessionTimeLeft = 'Berechne...';
   private totalSessionDurationMs = 0;
   private sessionStartTime?: Date;
+  private lastStartTimeRaw: string | null = null;
 
   detectedGestures = [
     { name: 'thumbs up detected', timeAgo: '2 sec ago' },
@@ -41,8 +41,12 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
     { name: 'thumbs down detected', timeAgo: '45 sec ago' }
   ];
 
-  private pollingSub?: Subscription;
-  private countdownSub?: Subscription; // NEU: Separater Timer für den flüssigen Countdown
+  private countdownSub?: Subscription;
+  private localProgressTimer: any;
+
+  // Status-Variablen für das Smart Polling
+  private isFetchingInit = false;
+  private isWaitingForPlayback = true; // Wartet darauf, dass das Backend "isPlaying = true" meldet
 
   constructor(
     private readonly apiService: ContextApiService,
@@ -50,69 +54,37 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    // 1. Initialer Call (holt direkt Song UND Timer-Daten)
     this.fetchUpdate();
 
-    // 2. Polling für Song-Updates
-    this.pollingSub = interval(2000).subscribe(() => {
-      this.fetchUpdate();
-    });
-
-    // 3. Jede Sekunde den UI-Countdown flüssig aktualisieren
     this.countdownSub = interval(1000).subscribe(() => {
       this.updateSessionTimer();
     });
+
+    this.localProgressTimer = setInterval(() => {
+      // Zählt nur hoch, wenn der Song WIRKLICH spielt und wir nicht gerade auf einen neuen Song warten
+      if (this.isPlaying && this.durationMs > 0 && !this.isWaitingForPlayback) {
+        this.progressMs += 1000;
+
+        // Wenn der Song zu Ende ist, fordern wir das Frontend auf, nach dem nächsten Song zu suchen
+        if (this.progressMs >= this.durationMs) {
+          this.isWaitingForPlayback = true;
+          this.fetchUpdate();
+        }
+
+        this.updateProgressUI();
+      }
+    }, 1000);
   }
 
   ngOnDestroy(): void {
-    if (this.pollingSub) this.pollingSub.unsubscribe();
-    if (this.countdownSub) this.countdownSub.unsubscribe(); // Timer aufräumen
+    if (this.countdownSub) this.countdownSub.unsubscribe();
+    if (this.localProgressTimer) clearInterval(this.localProgressTimer);
   }
 
-  // ==========================================
-  // NEU: TIMER LOGIK
-  // ==========================================
-
-  private initSessionTimer(contextData: any): void {
-    try {
-      // 1. Gesamtzeit ausrechnen (Summe aller Blöcke in Minuten * 60 * 1000)
-      const phases = contextData.timeline?.phases || [];
-      const totalMinutes = phases.reduce((sum: number, phase: any) => sum + (phase.durationMinutes || 0), 0);
-      this.totalSessionDurationMs = totalMinutes * 60 * 1000;
-
-      // 2. Start-Uhrzeit ROBUST aus dem Backend parsen
-      let hours = 0, minutes = 0, seconds = 0;
-
-      if (typeof contextData.startTime === 'string') {
-        // Falls das Backend "19:30:00" sendet
-        const timeParts = contextData.startTime.split(':');
-        hours = parseInt(timeParts[0] || '0', 10);
-        minutes = parseInt(timeParts[1] || '0', 10);
-        seconds = parseInt(timeParts[2] || '0', 10);
-      } else if (Array.isArray(contextData.startTime)) {
-        // Falls das Backend ein Array [19, 30, 0] sendet (Spring Boot Standard)
-        hours = contextData.startTime[0] || 0;
-        minutes = contextData.startTime[1] || 0;
-        seconds = contextData.startTime[2] || 0;
-      }
-
-      const now = new Date();
-      this.sessionStartTime = new Date(
-        now.getFullYear(),
-        now.getMonth(),
-        now.getDate(),
-        hours,
-        minutes,
-        seconds
-      );
-
-      // Einmalig direkt ausführen
-      this.updateSessionTimer();
-
-    } catch (err) {
-      console.error('Fehler beim Initialisieren des Timers:', err);
-      this.sessionTimeLeft = 'Fehler';
-    }
+  private updateProgressUI(): void {
+    const safeProgress = Math.min(this.progressMs, this.durationMs);
+    this.progressPercent = this.durationMs > 0 ? (safeProgress / this.durationMs) * 100 : 0;
+    this.formattedProgress = this.formatTime(safeProgress);
   }
 
   private updateSessionTimer(): void {
@@ -131,23 +103,14 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
     }
 
     const totalSeconds = Math.floor(remainingMs / 1000);
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
 
-    const paddedMin = minutes.toString().padStart(2, '0');
+    const paddedMin = minutes.toString();
     const paddedSec = seconds.toString().padStart(2, '0');
 
-    if (hours > 0) {
-      this.sessionTimeLeft = `${hours}:${paddedMin}:${paddedSec} h`;
-    } else {
-      this.sessionTimeLeft = `${paddedMin}:${paddedSec} min`;
-    }
+    this.sessionTimeLeft = `${paddedMin}:${paddedSec} min`;
   }
-
-  // ==========================================
-  // BESTEHENDE LOGIK
-  // ==========================================
 
   toggleCamera(): void {
     this.isCameraExpanded = !this.isCameraExpanded;
@@ -162,26 +125,45 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
             artist: data.currentSong['Author'],
             coverUrl: data.currentSong['Album-Bild'] || this.currentSong.coverUrl
           };
-
           this.isPlaying = data.currentSong['isPlaying'];
           this.durationMs = data.currentSong['Song-Länge'] || 0;
           this.progressMs = data.currentSong['Abspiel-position'] || 0;
-          this.progressPercent = this.durationMs > 0 ? (this.progressMs / this.durationMs) * 100 : 0;
 
-          this.formattedProgress = this.formatTime(this.progressMs);
+          this.updateProgressUI();
           this.formattedDuration = this.formatTime(this.durationMs);
 
-          // NEU: Timer initialisieren, falls er noch nicht läuft
-          if (data.startTime && data.totalMinutes && !this.sessionStartTime) {
-            this.totalSessionDurationMs = data.totalMinutes * 60 * 1000;
-            const timeParts = data.startTime.split(':');
-            const now = new Date();
-            this.sessionStartTime = new Date(
-              now.getFullYear(), now.getMonth(), now.getDate(),
-              parseInt(timeParts[0] || '0', 10),
-              parseInt(timeParts[1] || '0', 10),
-              parseInt(timeParts[2] || '0', 10)
-            );
+          if (data.startTime && data.totalMinutes) {
+            const rawStart = data.startTime.toString();
+            if (this.lastStartTimeRaw !== rawStart) {
+              this.lastStartTimeRaw = rawStart;
+              this.totalSessionDurationMs = data.totalMinutes * 60 * 1000;
+
+              const timeParts = typeof data.startTime === 'string' ? data.startTime.split(':') : data.startTime;
+              const now = new Date();
+              this.sessionStartTime = new Date(
+                now.getFullYear(), now.getMonth(), now.getDate(),
+                parseInt(timeParts[0] || '0', 10),
+                parseInt(timeParts[1] || '0', 10),
+                parseInt(timeParts[2] || '0', 10)
+              );
+            }
+          }
+
+          // SMART POLLING LOGIK
+          // Wenn wir auf den Start warten (z.B. weil Spotify gerade öffnet oder der nächste Song lädt)
+          if (this.isWaitingForPlayback || this.currentSong.title === 'Wird gestartet...') {
+
+            // Haben wir einen echten Song der jetzt auch WIRKLICH spielt?
+            if (this.isPlaying && this.durationMs > 0 && this.currentSong.title !== 'Wird gestartet...') {
+              this.isWaitingForPlayback = false; // Polling stoppen, lokaler Timer übernimmt ab jetzt!
+            } else if (!this.isFetchingInit) {
+              // Wenn nicht, frage in 2 Sekunden nochmal nach
+              this.isFetchingInit = true;
+              setTimeout(() => {
+                this.isFetchingInit = false;
+                this.fetchUpdate();
+              }, 2000);
+            }
           }
         }
       },
@@ -198,6 +180,10 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
   }
 
   skipSong(): void {
+    this.isWaitingForPlayback = true; // Setzt den Player in den Lade-Modus
+    this.progressMs = 0;
+    this.updateProgressUI();
+
     this.apiService.skipSong().subscribe({
       next: (data) => {
         console.log('Skipped. Next song is:', data.nextSong);
@@ -210,7 +196,6 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
   toggleFavorite(): void {
     this.isFavorite = !this.isFavorite;
     this.apiService.toggleFavorite(this.isFavorite).subscribe({
-      next: (res) => console.log('Backend success:', res),
       error: (err) => console.error('Error updating favorite state', err)
     });
   }
@@ -218,18 +203,16 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
   togglePlayPause(): void {
     this.isPlaying = !this.isPlaying;
     this.apiService.togglePlayPause().subscribe({
-      next: () => this.fetchUpdate(),
+      next: () => setTimeout(() => this.fetchUpdate(), 500),
       error: (err) => console.error('Error toggling play/pause', err)
     });
   }
 
   previousSong(): void {
+    this.progressMs = 0;
+    this.updateProgressUI();
     this.apiService.previousSong().subscribe({
-      next: () => {
-        this.progressMs = 0;
-        this.progressPercent = 0;
-        this.fetchUpdate();
-      }
+      next: () => setTimeout(() => this.fetchUpdate(), 500)
     });
   }
 
@@ -241,10 +224,10 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
     const seekMs = Math.floor(percent * this.durationMs);
 
     this.progressMs = seekMs;
-    this.progressPercent = percent * 100;
-    this.formattedProgress = this.formatTime(seekMs);
+    this.updateProgressUI();
 
     this.apiService.seek(seekMs).subscribe({
+      next: () => setTimeout(() => this.fetchUpdate(), 500),
       error: (err) => console.error('Error seeking', err)
     });
   }

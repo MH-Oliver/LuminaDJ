@@ -1,3 +1,4 @@
+// modules/api/SessionController.java
 package modules.api;
 
 import modules.core.DjSessionController;
@@ -12,56 +13,67 @@ import java.util.Map;
 @RequestMapping("/session")
 @CrossOrigin(origins = "*")
 public class SessionController {
-
     private final ActiveSessionService sessionService;
 
-    // Wir lassen uns den Session-Speicher von Spring Boot geben
+    // Cache-Variablen, um die Spotify API zu schonen
+    private String cachedTrackId = null;
+    private String cachedCoverUrl = "https://via.placeholder.com/150/1e1e1e/ffffff?text=Kein+Cover";
+    private long cachedDurationMs = 0;
+
     public SessionController(ActiveSessionService sessionService) {
         this.sessionService = sessionService;
     }
 
     @GetMapping("/update")
     public ResponseEntity<Map<String, Object>> updateSession() {
-        // Holen des WIRKLICH laufenden Controllers
         DjSessionController sessionController = sessionService.getActiveSession();
 
-        // Sicherheits-Check: Falls noch keine Musik läuft
         if (sessionController == null || sessionController.getCurrentTrack() == null) {
             return ResponseEntity.ok(Map.of("currentSong", Map.of(
                     "Name", "Wird gestartet...",
                     "Author", "LuminaDJ",
                     "Album-Bild", "https://via.placeholder.com/150/1e1e1e/ffffff?text=Loading",
                     "Song-Länge", 0,
-                    "Abspiel-position", 0
+                    "Abspiel-position", 0,
+                    "isPlaying", false
             )));
         }
 
         Track currentTrack = sessionController.getCurrentTrack();
-        String coverUrl = "https://via.placeholder.com/150/1e1e1e/ffffff?text=Kein+Cover";
-        long durationMs = 0;
 
-        // Cover über die Spotify-API holen
-        try {
-            if (SpotifyAdapter.spotifyApi != null) {
-                var spotifyTrack = SpotifyAdapter.spotifyApi.getTrack(currentTrack.id()).build().execute();
-                if (spotifyTrack != null) {
-                    durationMs = spotifyTrack.getDurationMs();
-                    if (spotifyTrack.getAlbum() != null && spotifyTrack.getAlbum().getImages().length > 0) {
-                        coverUrl = spotifyTrack.getAlbum().getImages()[0].getUrl();
+        // 1. Cover und Dauer NUR neu von Spotify laden, wenn ein neuer Song läuft
+        if (cachedTrackId == null || !cachedTrackId.equals(currentTrack.id())) {
+            // Wir aktualisieren die ID sofort, um Spam (Endlos-Schleifen) bei API-Fehlern zu vermeiden
+            cachedTrackId = currentTrack.id();
+            cachedCoverUrl = "https://via.placeholder.com/150/1e1e1e/ffffff?text=Kein+Cover";
+            cachedDurationMs = 180000; // Notfall-Dauer (3 Min), falls Spotify blockiert
+
+            try {
+                if (SpotifyAdapter.spotifyApi != null) {
+                    var spotifyTrack = SpotifyAdapter.spotifyApi.getTrack(currentTrack.id()).build().execute();
+                    if (spotifyTrack != null) {
+                        cachedDurationMs = spotifyTrack.getDurationMs();
+                        if (spotifyTrack.getAlbum() != null && spotifyTrack.getAlbum().getImages().length > 0) {
+                            cachedCoverUrl = spotifyTrack.getAlbum().getImages()[0].getUrl();
+                        }
                     }
                 }
+            } catch (Exception e) {
+                System.err.println("Konnte Spotify-Daten nicht laden. Verwende Fallback. Grund: " + e.getMessage());
             }
-        } catch (Exception e) {
-            System.err.println("Konnte Spotify-Cover nicht laden: " + e.getMessage());
         }
+
+        // 2. Playback-Status abrufen
+        long currentProgress = sessionController.getPlayer().getPlaybackPosition();
+        boolean isPlaying = sessionController.getPlayer().isPlaying();
 
         Map<String, Object> songData = Map.of(
                 "Name", currentTrack.name(),
                 "Author", currentTrack.author(),
-                "Album-Bild", coverUrl,
-                "Song-Länge", durationMs,
-                "Abspiel-position", sessionController.getPlayer().getPlaybackPosition(),
-                "isPlaying", sessionController.getPlayer().isPlaying()
+                "Album-Bild", cachedCoverUrl,
+                "Song-Länge", cachedDurationMs,
+                "Abspiel-position", currentProgress,
+                "isPlaying", isPlaying
         );
 
         Map<String, Object> response = new java.util.HashMap<>();
@@ -69,8 +81,6 @@ public class SessionController {
 
         if (sessionController.getContext() != null) {
             response.put("startTime", sessionController.getContext().startTime().toString());
-
-            // 1:1 die gewählte Länge weitergeben
             response.put("totalMinutes", sessionController.getContext().totalMinutes());
         }
 
@@ -82,9 +92,7 @@ public class SessionController {
         DjSessionController sessionController = sessionService.getActiveSession();
         if (sessionController != null) {
             sessionController.getPlayer().skip();
-            // Dem Backend 1 Sekunde Zeit geben, um den neuen Song zu laden
             try { Thread.sleep(1000); } catch (InterruptedException ignored) {}
-
             if (sessionController.getCurrentTrack() != null) {
                 return ResponseEntity.ok(Map.of("nextSong", sessionController.getCurrentTrack().name()));
             }
@@ -96,8 +104,12 @@ public class SessionController {
     public ResponseEntity<Map<String, Object>> editSession() {
         DjSessionController sessionController = sessionService.getActiveSession();
         if (sessionController != null) {
-            sessionController.stopSession(); // Beendet das Playback UND die Schleife
+            sessionController.stopSession();
+            // FEHLERBEHEBUNG: Hier wird die Session NICHT mehr genullt,
+            // damit das Frontend die Timeline noch abrufen kann!
         }
+        cachedTrackId = null; // Cache zwingend leeren!
+
         Map<String, Object> currentTimeline = Map.of(
                 "status", "stopped",
                 "message", "Session gestoppt. Bereit für Edits."
@@ -109,35 +121,24 @@ public class SessionController {
     public ResponseEntity<Void> cancelSession() {
         DjSessionController sessionController = sessionService.getActiveSession();
         if (sessionController != null) {
-            sessionController.stopSession(); // Beendet das Playback UND die Schleife
-            sessionService.setActiveSession(null); // Gibt die Session komplett frei
+            sessionController.stopSession();
+            sessionService.setActiveSession(null); // Bei Cancel ist das Löschen weiterhin richtig
         }
+        cachedTrackId = null; // Cache zwingend leeren!
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/favorite")
     public ResponseEntity<Map<String, Object>> toggleFavorite(@RequestBody Map<String, Boolean> payload) {
         DjSessionController sessionController = sessionService.getActiveSession();
-
         if (sessionController != null && sessionController.getCurrentTrack() != null) {
             boolean isFavorite = payload.getOrDefault("isFavorite", false);
             Track currentTrack = sessionController.getCurrentTrack();
-
-            // Führt den API Call zu Spotify aus
             sessionController.getPlayer().setTrackFavoriteStatus(currentTrack, isFavorite);
-
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "message", "Favoriten-Status geändert"
-            ));
+            return ResponseEntity.ok(Map.of("success", true, "message", "Favoriten-Status geändert"));
         }
-
-        return ResponseEntity.badRequest().body(Map.of(
-                "success", false,
-                "message", "Keine aktive Session oder kein Track gefunden"
-        ));
+        return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Keine aktive Session"));
     }
-
 
     @PostMapping("/playPause")
     public ResponseEntity<Map<String, String>> togglePlayPause() {
@@ -156,7 +157,6 @@ public class SessionController {
     public ResponseEntity<Map<String, String>> seek(@RequestBody Map<String, Object> payload) {
         DjSessionController session = sessionService.getActiveSession();
         if (session != null && payload.containsKey("position")) {
-            // Kugelsicheres Parsing: Egal ob Jackson ein Integer oder Long liefert, es wird korrekt gecastet
             long positionMs = ((Number) payload.get("position")).longValue();
             session.getPlayer().seek(positionMs);
         }
@@ -167,7 +167,6 @@ public class SessionController {
     public ResponseEntity<Map<String, String>> previous() {
         DjSessionController session = sessionService.getActiveSession();
         if (session != null) {
-            // Springt einfach an den Anfang des Songs zurück
             session.getPlayer().seek(0);
         }
         return ResponseEntity.ok(Map.of("status", "restarted"));

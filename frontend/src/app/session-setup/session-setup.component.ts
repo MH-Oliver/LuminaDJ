@@ -1,3 +1,4 @@
+// session-setup/session-setup.component.ts
 import { Component, HostListener, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
@@ -22,15 +23,13 @@ export class SessionSetupComponent implements OnInit {
   spotifyUser = 'DJ_Lumina_Test';
   totalMinutes = 120;
 
-  // Werden dynamisch aus dem Backend befüllt
   availableGenres: string[] = [];
   availablePresets: string[] = [];
 
-  // Start-Blöcke (können auch als leeres Array [] initialisiert werden)
   blocks: GenreBlock[] = [];
-
   draggingBlock: GenreBlock | null = null;
   resizingBlock: GenreBlock | null = null;
+
   startX = 0;
   startValue = 0;
   wasDragged = false;
@@ -60,7 +59,7 @@ export class SessionSetupComponent implements OnInit {
       error: (err) => console.error('Fehler beim Laden der Genres:', err)
     });
 
-    // 3. NEU: Prüfen, ob wir aus einer aktiven Session kommen (Edit-Modus)
+    // 3. Prüfen, ob wir aus einer aktiven Session kommen (Edit-Modus)
     if (history.state && history.state.preserveConfig) {
       this.apiService.getCurrentContext().subscribe({
         next: (data) => {
@@ -84,11 +83,8 @@ export class SessionSetupComponent implements OnInit {
 
     this.apiService.selectPreset(presetName).subscribe({
       next: (data) => {
-        console.log("Empfangenes Preset vom Backend:", data); // Hilft bei der Fehlersuche in der Konsole
-
-        // Flexibel: Akzeptiert { timeline: { phases: [...] } } ODER direkt { phases: [...] }
+        console.log("Empfangenes Preset vom Backend:", data);
         const phases = data?.timeline?.phases || data?.phases;
-
         if (phases && Array.isArray(phases)) {
           this.convertJsonToBlocks(phases);
         } else {
@@ -105,30 +101,42 @@ export class SessionSetupComponent implements OnInit {
 
   private convertJsonToBlocks(phases: any[]): void {
     this.blocks = [];
-    let currentStart = 0;
+
+    let currentBackendTime = 0;
+    let nextUiStart = 0;
     let currentRow = 0;
 
     phases.forEach((phase, index) => {
-      // Robustes Auslesen: Falls dein Java-Backend "duration" statt "durationMinutes" sendet
-      const phaseDuration = phase.durationMinutes ?? phase.duration ?? 30; // Fallback auf 30, falls nichts gefunden wird
-
-      // Falls das Genre als Objekt { name: "TECHNO" } ankommt, ansonsten String
+      const phaseDuration = Number(phase.durationMinutes ?? phase.duration ?? 30);
+      const transitionOut = Number(phase.transitionOutMinutes ?? 5);
       const phaseGenre = typeof phase.genre === 'object' ? phase.genre.name : phase.genre;
+
+      // Berechne die optische UI-Startzeit und UI-Dauer aus der Backend-Übergangslogik
+      const uiStart = nextUiStart;
+      const uiEnd = currentBackendTime + phaseDuration;
+      let uiDuration = uiEnd - uiStart;
+
+      // Fallback, falls die Dauer rechnerisch unter 5 Minuten fällt
+      if (uiDuration < 5) uiDuration = 5;
 
       this.blocks.push({
         id: Date.now() + index,
         title: phaseGenre ? phaseGenre.toString() : 'UNKNOWN',
-        start: currentStart,
-        duration: Number(phaseDuration),
+        start: uiStart,
+        duration: uiDuration,
         row: currentRow
       });
 
-      currentStart += Number(phaseDuration);
-      currentRow = currentRow === 0 ? 1 : 0; // Wechselt abwechselnd zwischen Zeile 0 und 1
+      // Bereite die Zeiten für den nächsten Block vor
+      currentBackendTime += phaseDuration;
+      nextUiStart = currentBackendTime - transitionOut;
+      if (nextUiStart < 0) nextUiStart = 0;
+
+      currentRow = currentRow === 0 ? 1 : 0;
     });
 
     // Passe die Timeline-Gesamtlänge im UI an (auf die nächsten 5 Minuten gerundet)
-    this.totalMinutes = Math.max(120, Math.ceil(currentStart / 5) * 5);
+    this.totalMinutes = Math.max(120, Math.ceil(currentBackendTime / 5) * 5);
   }
 
   // ==========================================
@@ -143,15 +151,34 @@ export class SessionSetupComponent implements OnInit {
     // 1. Sortiere die Blöcke streng nach Startzeit (chronologisch)
     const sortedBlocks = [...this.blocks].sort((a, b) => a.start - b.start);
 
-    // 2. Wandle die grafischen Blöcke in Backend-Phasen (TimelinePhaseDto) um
-    const phases: TimelinePhaseDto[] = sortedBlocks.map(block => {
-      // Formatiert Titel sicher für das Java-Enum (z.B. "Hip Hop" -> "HIP_HOP")
+    let currentBackendTime = 0;
+
+    // 2. Wandle die grafischen Blöcke inkl. Überschneidungen (Transitions) in Backend-Phasen um
+    const phases: TimelinePhaseDto[] = sortedBlocks.map((block, i) => {
       const safeGenre = block.title.toUpperCase().replace(/\s+/g, '_');
+      const nextBlock = sortedBlocks[i + 1];
+      const blockEnd = block.start + block.duration;
+
+      // Die Backend-Duration ist die Zeit bis zum absoluten Ende des Blocks (abzüglich vorheriger Blöcke)
+      let phaseDuration = blockEnd - currentBackendTime;
+      if (phaseDuration < 0) phaseDuration = 0;
+
+      let transitionOut = 0;
+      if (nextBlock) {
+        transitionOut = blockEnd - nextBlock.start;
+        // Wenn negativ, gibt es eine Lücke (also keine Überlappung)
+        if (transitionOut < 0) transitionOut = 0;
+
+        // Limitiert den Übergang auf die Dauer der Phase (verhindert Backend-Bugs bei 3 überlappenden Blöcken)
+        if (transitionOut > phaseDuration) transitionOut = phaseDuration;
+      }
+
+      currentBackendTime = blockEnd;
 
       return {
         genre: safeGenre,
-        durationMinutes: block.duration,
-        transitionOutMinutes: 5 // Vorerst statischer Default-Wert
+        durationMinutes: phaseDuration,
+        transitionOutMinutes: transitionOut
       };
     });
 
@@ -162,13 +189,12 @@ export class SessionSetupComponent implements OnInit {
       startTime: new Date().toTimeString().split(' ')[0],
       timeline: { phases: phases },
       songCooldownMinutes: 30,
-      totalMinutes: this.totalMinutes // NEU: Die exakte Länge aus dem Input-Feld!
+      totalMinutes: this.totalMinutes
     };
 
     // 4. Abschicken und Weiterleiten
     this.apiService.sendContext(payload).subscribe({
       next: () => {
-        // Erfolgreich ans Backend gesendet -> Wechsel zum aktiven Session Player
         this.router.navigate(['/active-session']);
       },
       error: (err) => {
@@ -181,7 +207,6 @@ export class SessionSetupComponent implements OnInit {
   // ==========================================
   // BESTEHENDE DRAG & DROP UI LOGIK
   // ==========================================
-
   get ticks(): number[] {
     const tickArray = [];
     for (let i = 0; i <= this.totalMinutes; i += 10) {
@@ -195,14 +220,12 @@ export class SessionSetupComponent implements OnInit {
   }
 
   getLeft(block: GenreBlock): string { return (block.start / this.totalMinutes) * 100 + '%'; }
-
   getWidth(block: GenreBlock): string { return (block.duration / this.totalMinutes) * 100 + '%'; }
 
   updateTimelineLength(event: Event): void {
     const val = +(event.target as HTMLInputElement).value;
     if (val && val >= 10 && val <= 600) {
       this.totalMinutes = Math.round(val / 5) * 5;
-
       this.blocks = this.blocks.filter(b => b.start < this.totalMinutes);
       this.blocks.forEach(b => {
         if (b.start + b.duration > this.totalMinutes) {
@@ -238,7 +261,6 @@ export class SessionSetupComponent implements OnInit {
 
     const timelineEl = document.querySelector('.timeline-tracks') as HTMLElement;
     if (!timelineEl) return;
-
     const rect = timelineEl.getBoundingClientRect();
     const pixelsPerMinute = rect.width / this.totalMinutes;
     const deltaMinutes = (event.clientX - this.startX) / pixelsPerMinute;
@@ -255,7 +277,6 @@ export class SessionSetupComponent implements OnInit {
 
       let newStart = this.startValue + deltaMinutes;
       newStart = Math.round(newStart / 5) * 5;
-
       if (newStart < 0) newStart = 0;
       if (newStart + this.draggingBlock.duration > this.totalMinutes) {
         newStart = this.totalMinutes - this.draggingBlock.duration;
@@ -266,7 +287,6 @@ export class SessionSetupComponent implements OnInit {
     if (this.resizingBlock) {
       let newDuration = this.startValue + deltaMinutes;
       newDuration = Math.round(newDuration / 5) * 5;
-
       if (newDuration < 5) newDuration = 5;
       if (this.resizingBlock.start + newDuration > this.totalMinutes) {
         newDuration = this.totalMinutes - this.resizingBlock.start;

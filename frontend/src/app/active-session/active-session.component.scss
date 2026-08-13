@@ -1,3 +1,4 @@
+// active-session/active-session.component.scss
 @use '../../mixins' as *;
 @import url('https://fonts.googleapis.com/icon?family=Material+Icons+Outlined');
 
@@ -264,13 +265,13 @@
         .time-label {
           font-size: 0.85rem;
           color: var(--color-text-muted);
-          min-width: 40px; /* Hält die Breite stabil, damit die Bar nicht ruckelt */
+          min-width: 40px;
           text-align: center;
           font-variant-numeric: tabular-nums;
         }
 
         .progress-bar {
-          flex: 1; /* Nimmt den flexiblen Mittelteil komplett ein */
+          flex: 1;
           height: 0.375rem;
           background-color: rgba(255, 255, 255, 0.1);
           border-radius: 0.1875rem;
@@ -282,8 +283,10 @@
             background-color: var(--color-text-primary);
             border-radius: 0.1875rem;
             box-shadow: 0 0 10px rgba(255,255,255,0.5);
-            transition: width 1s linear; /* Sorgt für einen flüssigen Zeitverlauf */
+            /* GEÄNDERT: Schnellere Animation statt 1s linear */
+            transition: width 0.15s ease-out;
           }
+
           .progress-handle {
             width: 0.875rem;
             height: 0.875rem;
@@ -293,7 +296,8 @@
             top: -0.25rem;
             transform: translateX(-50%);
             box-shadow: 0 0 8px rgba(255,255,255,0.8);
-            transition: left 1s linear; /* Smooth Animation */
+            /* GEÄNDERT: Schnellere Animation statt 1s linear */
+            transition: left 0.15s ease-out;
           }
         }
       }
@@ -308,14 +312,13 @@
           background: none;
           border: none;
           color: var(--color-text-primary);
-          font-size: 1.5rem; /* Fallback */
+          font-size: 1.5rem;
           cursor: pointer;
           transition: transform 0.1s ease, color 0.2s ease, text-shadow 0.2s ease;
           display: flex;
           align-items: center;
           justify-content: center;
 
-          /* Icons werden etwas vergrößert für bessere Click-Targets */
           .material-icons-outlined {
             font-size: 2rem;
           }
@@ -326,17 +329,16 @@
           }
 
           &.play-pause-btn .material-icons-outlined {
-            font-size: 3rem; /* Besonderer Fokus auf den Play Button */
+            font-size: 3rem;
           }
 
-          /* Styling, wenn der Song favorisiert wurde */
           &.is-favorite {
-            color: var(--color-accent-pink); /* Ein schönes Rot/Pink passend zu deinem Design */
+            color: var(--color-accent-pink);
             text-shadow: 0 0 12px rgba(255, 105, 180, 0.5);
           }
         }
       }
-    } /* <-- DIESE KLAMMER HAT GEFEHLT! */
+    }
 
     .legend-card {
       .gesture-table {
