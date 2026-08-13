@@ -41,14 +41,10 @@ public class HandLandmarkExtractor {
 
     private final Net landmarkNet;
     private final List<String> outBlobNames;
-    private final float confidenceThreshold;
+
 
     public HandLandmarkExtractor() {
-        this(0.6f);
-    }
 
-    public HandLandmarkExtractor(float confidenceThreshold) {
-        this.confidenceThreshold = confidenceThreshold;
 
         File modelFile = new File("backend/src/main/resources/models/handpose_estimation_mediapipe_2023feb.onnx");
         if (!modelFile.exists()) {
@@ -199,11 +195,8 @@ public class HandLandmarkExtractor {
                 saveCropDebugVisualization(resizedCrop, landmarkData, debugCropOutputFile);
             }
 
-            System.out.println("DEBUG: Landmark-Konfidenz = " + confidence + " (Schwelle: " + confidenceThreshold + ")");
+            System.out.println("DEBUG: Landmark-Konfidenz = " + confidence);
 
-            if (confidence < confidenceThreshold) {
-                return null;
-            }
 
             // 8. Landmark-Koordinaten (0..256 im Crop) zurück auf Original-Frame-Pixelkoordinaten
             //    umrechnen, analog zur Letterboxing-Rückrechnung in HandDetector.
@@ -286,32 +279,39 @@ public class HandLandmarkExtractor {
     }
 
     /**
+     * Zeichnet Landmarks + Skelett-Verbindungen DIREKT auf die übergebene Mat (kein Klon) -
+     * nützlich, um mehrere erkannte Hände nacheinander auf dasselbe Anzeige-Bild zu zeichnen.
+     */
+    public static void drawLandmarksOnto(Mat target, HandLandmarks landmarks) {
+        if (target == null || landmarks == null) {
+            return;
+        }
+
+        Point[] points = landmarks.points();
+
+        for (int[] connection : HAND_CONNECTIONS) {
+            Imgproc.line(target, points[connection[0]], points[connection[1]],
+                    new Scalar(0, 255, 0), 2);
+        }
+
+        for (int i = 0; i < points.length; i++) {
+            Imgproc.circle(target, points[i], 4, new Scalar(0, 0, 255), -1);
+            // Wrist (0), Daumen-Spitze (4) und Zeigefinger-Spitze (8) zur Orientierung beschriften.
+            if (i == 0 || i == 4 || i == 8) {
+                Imgproc.putText(target, String.valueOf(i), points[i],
+                        Imgproc.FONT_HERSHEY_SIMPLEX, 0.5, new Scalar(255, 255, 0), 1);
+            }
+        }
+    }
+
+    /**
      * Zeichnet Landmarks + Skelett-Verbindungen auf eine KOPIE des Frames und gibt diese
      * zurück (Original-Frame bleibt unverändert). Aufrufer ist für das Freigeben der
      * zurückgegebenen Mat verantwortlich.
      */
     public static Mat drawLandmarksOverlay(Mat frame, HandLandmarks landmarks) {
         Mat vis = frame.clone();
-        if (landmarks == null) {
-            return vis;
-        }
-
-        Point[] points = landmarks.points();
-
-        for (int[] connection : HAND_CONNECTIONS) {
-            Imgproc.line(vis, points[connection[0]], points[connection[1]],
-                    new Scalar(0, 255, 0), 2);
-        }
-
-        for (int i = 0; i < points.length; i++) {
-            Imgproc.circle(vis, points[i], 4, new Scalar(0, 0, 255), -1);
-            // Wrist (0), Daumen-Spitze (4) und Zeigefinger-Spitze (8) zur Orientierung beschriften.
-            if (i == 0 || i == 4 || i == 8) {
-                Imgproc.putText(vis, String.valueOf(i), points[i],
-                        Imgproc.FONT_HERSHEY_SIMPLEX, 0.5, new Scalar(255, 255, 0), 1);
-            }
-        }
-
+        drawLandmarksOnto(vis, landmarks);
         return vis;
     }
 

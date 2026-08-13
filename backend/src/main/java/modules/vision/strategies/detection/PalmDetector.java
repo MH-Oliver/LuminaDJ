@@ -66,7 +66,8 @@ public class PalmDetector {
 
     /**
      * Drop-in-Ersatz für die alte HandDetector.detectHand()-Methode: liefert nur die
-     * Bounding Box der besten Erkennung (oder null), für bestehende Aufrufstellen.
+     * Bounding Box der besten Erkennung (oder null). Für Stellen, die bewusst nur EINE
+     * Hand pro Frame verarbeiten sollen (z.B. DataCollectorApp).
      */
     public Rect detectHand(Mat frame) {
         PalmDetection best = detectPalm(frame);
@@ -74,13 +75,31 @@ public class PalmDetector {
     }
 
     /**
-     * Liefert die vollständige Erkennung inkl. der 7 Palm-Keypoints (nützlich für ein
-     * späteres Rotations-Alignment vor der Landmark-Erkennung). Gibt die Erkennung mit der
-     * höchsten Konfidenz zurück, oder null falls keine Hand über der Schwelle gefunden wurde.
+     * Wie {@link #detectHand(Mat)}, liefert zusätzlich die 7 Palm-Keypoints. Gibt die
+     * Erkennung mit der höchsten Konfidenz zurück, oder null falls keine Hand über der
+     * Schwelle gefunden wurde.
      */
     public PalmDetection detectPalm(Mat frame) {
-        if (frame == null || frame.empty()) {
+        List<PalmDetection> all = detectAllPalms(frame);
+        if (all.isEmpty()) {
             return null;
+        }
+        PalmDetection best = all.get(0);
+        for (PalmDetection d : all) {
+            if (d.score() > best.score()) {
+                best = d;
+            }
+        }
+        return best;
+    }
+
+    /**
+     * Liefert ALLE nach Non-Max-Suppression übrig gebliebenen Hand-Erkennungen im Frame
+     * (nicht nur die beste) - für die Mehrhand-Live-Auswertung.
+     */
+    public List<PalmDetection> detectAllPalms(Mat frame) {
+        if (frame == null || frame.empty()) {
+            return new ArrayList<>();
         }
 
         Mat resized = null;
@@ -161,7 +180,7 @@ public class PalmDetector {
 
             if (boxesFlat == null || scoresFlat == null) {
                 System.err.println("[PALM FEHLER] Unerwartetes Output-Format vom Modell.");
-                return null;
+                return new ArrayList<>();
             }
 
             int numAnchorsFound = scoresFlat.length;
@@ -210,7 +229,7 @@ public class PalmDetector {
             System.out.println("DEBUG: höchste Palm-Konfidenz in diesem Frame (ungefiltert) = " + maxScoreOverall);
 
             if (candidateBoxes.isEmpty()) {
-                return null;
+                return new ArrayList<>();
             }
 
             // 6. Non-Max-Suppression, um überlappende Mehrfach-Erkennungen zu reduzieren
@@ -226,24 +245,23 @@ public class PalmDetector {
 
             int[] keptIndices = indicesMat.toArray();
             if (keptIndices.length == 0) {
-                return null;
+                return new ArrayList<>();
             }
 
-            // Von den nach NMS übrig gebliebenen Boxen die mit der höchsten Konfidenz nehmen
-            int bestIdx = keptIndices[0];
+            List<PalmDetection> results = new ArrayList<>(keptIndices.length);
             for (int idx : keptIndices) {
-                if (candidateScores.get(idx) > candidateScores.get(bestIdx)) {
-                    bestIdx = idx;
-                }
+                Rect box = restrictToFrame(candidateBoxes.get(idx), frame.cols(), frame.rows());
+                results.add(new PalmDetection(box, candidateLandmarks.get(idx), candidateScores.get(idx)));
             }
-
-            Rect bestBox = restrictToFrame(candidateBoxes.get(bestIdx), frame.cols(), frame.rows());
-            return new PalmDetection(bestBox, candidateLandmarks.get(bestIdx), candidateScores.get(bestIdx));
+            // Nach Konfidenz absteigend sortieren, damit "beste zuerst" für detectPalm()/
+            // detectHand() und für eine sinnvolle Anzeige-Reihenfolge in der Live-Auswertung gilt.
+            results.sort((a, b) -> Float.compare(b.score(), a.score()));
+            return results;
 
         } catch (Exception e) {
             System.err.println("[PALM FEHLER ABGEFANGEN]: " + e.getMessage());
             e.printStackTrace();
-            return null;
+            return new ArrayList<>();
         } finally {
             if (resized != null) resized.release();
             if (padded != null) padded.release();

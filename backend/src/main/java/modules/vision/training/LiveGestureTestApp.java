@@ -17,6 +17,7 @@ import java.awt.image.DataBufferByte;
 import org.opencv.core.CvType;
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 
 /**
  * Schneller Zwischenstands-Test: zeigt live in einem Fenster das aktuelle Kamerabild mit
@@ -61,38 +62,46 @@ public class LiveGestureTestApp {
 
             if (bufferedImage != null) {
                 Mat frame = bufferedImageToMat(bufferedImage);
-                Rect handRoi = handDetector.detectHand(frame);
+                List<PalmDetector.PalmDetection> detections = handDetector.detectAllPalms(frame);
 
-                String statusText;
-                Mat displayFrame;
+                Mat displayFrame = frame.clone();
 
-                if (handRoi != null) {
-                    handRoi = restrictToFrame(handRoi, frame.cols(), frame.rows());
-                    HandLandmarks landmarks = landmarkExtractor.extractLandmarks(frame, handRoi);
-
-                    if (landmarks != null) {
-                        double[] features = GestureFeatureExtractor.toFeatureVector(landmarks);
-                        GestureClassifier.Prediction prediction = classifier.classify(features);
-
-                        statusText = String.format("%s (%.0f%%)", prediction.label(), prediction.confidence() * 100);
-                        System.out.printf("[GESTE] %-15s (Konfidenz: %.0f%%)%n",
-                                prediction.label(), prediction.confidence() * 100);
-
-                        // Overlay MIT Landmark-Skelett bauen (wird nicht gespeichert, nur angezeigt)
-                        displayFrame = HandLandmarkExtractor.drawLandmarksOverlay(frame, landmarks);
-                    } else {
-                        statusText = "Hand erkannt, keine Landmarks";
-                        System.out.println("[GESTE] Hand erkannt, aber keine Landmarks (Konfidenz zu niedrig).");
-                        displayFrame = frame.clone();
-                    }
-                } else {
-                    statusText = "Keine Hand im Bild";
+                if (detections.isEmpty()) {
                     System.out.println("[GESTE] Keine Hand im Bild.");
-                    displayFrame = frame.clone();
-                }
+                    Imgproc.putText(displayFrame, "Keine Hand im Bild", new Point(20, 40),
+                            Imgproc.FONT_HERSHEY_SIMPLEX, 1.0, new Scalar(0, 255, 255), 2);
+                } else {
+                    System.out.println("[INFO] " + detections.size() + " Hand/Hände erkannt.");
 
-                Imgproc.putText(displayFrame, statusText, new Point(20, 40),
-                        Imgproc.FONT_HERSHEY_SIMPLEX, 1.0, new Scalar(0, 255, 255), 2);
+                    int handIndex = 0;
+                    for (PalmDetector.PalmDetection detection : detections) {
+                        handIndex++;
+                        Rect handRoi = restrictToFrame(detection.box(), frame.cols(), frame.rows());
+                        HandLandmarks landmarks = landmarkExtractor.extractLandmarks(frame, handRoi);
+
+                        String statusText;
+                        if (landmarks != null) {
+                            double[] features = GestureFeatureExtractor.toFeatureVector(landmarks);
+                            GestureClassifier.Prediction prediction = classifier.classify(features);
+
+                            statusText = String.format("Hand %d: %s (%.0f%%)", handIndex,
+                                    prediction.label(), prediction.confidence() * 100);
+                            System.out.printf("[GESTE] Hand %d: %-15s (Konfidenz: %.0f%%)%n",
+                                    handIndex, prediction.label(), prediction.confidence() * 100);
+
+                            HandLandmarkExtractor.drawLandmarksOnto(displayFrame, landmarks);
+                        } else {
+                            statusText = String.format("Hand %d: keine Landmarks", handIndex);
+                            System.out.println("[GESTE] Hand " + handIndex + ": erkannt, aber keine Landmarks (Konfidenz zu niedrig).");
+                        }
+
+                        // Box + Status-Text pro Hand einzeichnen, damit man bei mehreren
+                        // Händen zuordnen kann, welcher Text zu welcher Hand gehört.
+                        Imgproc.rectangle(displayFrame, handRoi.tl(), handRoi.br(), new Scalar(255, 128, 0), 2);
+                        Imgproc.putText(displayFrame, statusText, new Point(handRoi.x, Math.max(20, handRoi.y - 10)),
+                                Imgproc.FONT_HERSHEY_SIMPLEX, 0.7, new Scalar(0, 255, 255), 2);
+                    }
+                }
 
                 HighGui.imshow(WINDOW_NAME, displayFrame);
                 // waitKey ist nötig, damit das Fenster tatsächlich neu zeichnet/reagiert -
