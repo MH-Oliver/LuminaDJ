@@ -1,14 +1,13 @@
 package modules.vision.training;
 
 import modules.vision.strategies.detection.DetectionStrategyMock;
-import modules.vision.strategies.detection.PalmDetector;
 import modules.vision.strategies.detection.HandLandmarkExtractor;
+import modules.vision.strategies.detection.PalmDetector;
 import modules.vision.strategies.live_feedback.SmartphoneKameraStrategy;
 import modules.vision.structures.HandLandmarks;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.Rect;
-import org.opencv.imgcodecs.Imgcodecs;
 
 import javax.imageio.ImageIO;
 import javax.swing.JOptionPane;
@@ -19,11 +18,15 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
+/**
+ * Sammelt gelabelte Trainingsdaten für die Gesten-Klassifikation. Pro erfolgreich erkannter
+ * Geste wird EIN Debug-Bild (Original-Frame mit eingezeichnetem Landmark-Skelett) sowie der
+ * normalisierte Feature-Vektor in der wachsenden CSV gespeichert - keine Rohbilder mehr,
+ * die werden für Training/Betrieb nicht gebraucht.
+ */
 public class DataCollectorApp {
 
     // Feste Liste der zu unterscheidenden Gesten. Ordnername = Label fürs spätere Training.
-    // Bewusst auf Gesten beschränkt, die sich in der Fingerkonfiguration klar unterscheiden
-    // (nicht nur durch Rotation/Blickwinkel), damit die Klassen gut trennbar sind.
     private static final String[] GESTURES = {
             "offene_hand",
             "faust",
@@ -32,16 +35,13 @@ public class DataCollectorApp {
             "zeigefinger"
     };
 
-    // OpenCV native Bibliothek laden
     static {
         nu.pattern.OpenCV.loadLocally();
     }
 
     public static void main(String[] args) throws IOException {
-        // 1. Geste auswählen, die in diesem Run gesammelt wird
         String gestureLabel = chooseGestureLabel();
 
-        // 2. Neuen Run-Ordner mit Label + Zeitstempel anlegen
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
         File runDir = new File("backend/src/main/resources/training_data/" + gestureLabel + "/run_" + timestamp);
 
@@ -50,80 +50,47 @@ public class DataCollectorApp {
             return;
         }
         System.out.println("[INFO] Geste: " + gestureLabel);
-        System.out.println("[INFO] Speichere ausgeschnittene Hände in: " + runDir.getAbsolutePath());
+        System.out.println("[INFO] Speichere Debug-Bilder in: " + runDir.getAbsolutePath());
 
-        File debugDir = new File(runDir, "debug_landmarks");
-        debugDir.mkdirs();
-
-        // Eine gemeinsame, wachsende CSV-Datei für ALLE Gesten (nicht pro Ordner) - jede Zeile
-        // trägt ihr Label selbst, daher reicht eine Datei. Über mehrere DataCollectorApp-Läufe
-        // hinweg wird hier einfach angehängt (siehe GestureClassifier.appendExample).
+        // Eine gemeinsame, wachsende CSV-Datei für ALLE Gesten - jede Zeile trägt ihr Label
+        // selbst, daher reicht eine Datei über alle Runs/Gesten hinweg.
         File landmarksCsvFile = new File("backend/src/main/resources/training_data/gesture_landmarks.csv");
 
-        // 3. Kamera-Strategie, Palm-Detector und Landmark-Extractor initialisieren
         SmartphoneKameraStrategy camera = new SmartphoneKameraStrategy(new DetectionStrategyMock());
-        PalmDetector handDetector = new PalmDetector();
+        PalmDetector palmDetector = new PalmDetector();
         HandLandmarkExtractor landmarkExtractor = new HandLandmarkExtractor();
 
-        int totalFramesToCapture = 30; // Anzahl der zu sammelnden Hand-Bilder pro Run
-        int frameDelayMs = 500;        // 500ms Pause zwischen den Frames
-        int framesCaptured = 0;
-        int landmarkExamplesSaved = 0;
+        int totalExamplesToCapture = 50; // Anzahl der zu sammelnden Landmark-Beispiele pro Run
+        int frameDelayMs = 500;
+        int examplesCaptured = 0;
 
         System.out.println("\n[INFO] Starte Aufnahme in 3 Sekunden... Mach die Geste '" + gestureLabel + "' vor die Kamera!");
         try {
             Thread.sleep(3000);
         } catch (InterruptedException ignored) {}
 
-        while (framesCaptured < totalFramesToCapture) {
+        while (examplesCaptured < totalExamplesToCapture) {
             BufferedImage bufferedImage = camera.fetchSingleFrame();
 
             if (bufferedImage != null) {
-                // Java BufferedImage in OpenCV Mat konvertieren
                 Mat frame = bufferedImageToMat(bufferedImage);
-
-                // YOLO nach einer Hand suchen lassen
-                Rect handRoi = handDetector.detectHand(frame);
+                Rect handRoi = palmDetector.detectHand(frame);
 
                 if (handRoi != null) {
-                    // Sicherstellen, dass das Rechteck innerhalb des Bildes liegt
                     handRoi = restrictToFrame(handRoi, frame.cols(), frame.rows());
 
-                    // --- Test der Landmark-Extraktion ---
-                    String debugFileName = String.format("debug_%04d.png", framesCaptured);
-                    //File debugCropFile = new File(debugDir, "crop_" + debugFileName);
-                    HandLandmarks landmarks = landmarkExtractor.extractLandmarks(frame, handRoi, null);
+                    HandLandmarks landmarks = landmarkExtractor.extractLandmarks(frame, handRoi);
                     if (landmarks != null) {
-                        System.out.println("[LANDMARKS] confidence=" + landmarks.confidence()
-                                + " wrist=" + landmarks.points()[0]
-                                + " indexTip=" + landmarks.points()[8]);
+                        String debugFileName = String.format("%s_%04d.png", gestureLabel, examplesCaptured);
+                        HandLandmarkExtractor.saveDebugVisualization(frame, landmarks, new File(runDir, debugFileName));
 
-                        HandLandmarkExtractor.saveDebugVisualization(frame, landmarks, new File(debugDir, debugFileName));
-
-                        // Direkt hier abspeichern statt später aus dem Bild neu zu erkennen:
-                        // Wir haben die Landmarks schon mit der (strengeren) Live-Konfidenzschwelle
-                        // berechnet, das ist einfacher UND zuverlässiger als eine zweite
-                        // Erkennungsrunde beim Training.
                         double[] featureVector = GestureFeatureExtractor.toFeatureVector(landmarks);
                         GestureClassifier.appendExample(landmarksCsvFile, gestureLabel, featureVector);
-                        landmarkExamplesSaved++;
+
+                        examplesCaptured++;
+                        System.out.println("[GESPEICHERT] " + debugFileName + " (Konfidenz: " + landmarks.confidence() + ")");
                     } else {
-                        System.out.println("[LANDMARKS] Keine Landmarks erkannt (Konfidenz zu niedrig).");
-                    }
-
-                    if (handRoi.width > 10 && handRoi.height > 10) {
-                        // Hand-Bereich aus dem Bild ausschneiden
-                        Mat handMat = new Mat(frame, handRoi);
-
-                        // Als PNG im Run-Ordner abspeichern
-                        String fileName = String.format("%s_%04d.png", gestureLabel, framesCaptured);
-                        File outputFile = new File(runDir, fileName);
-
-                        Imgcodecs.imwrite(outputFile.getAbsolutePath(), handMat);
-                        System.out.println("[GESPEICHERT] " + fileName + " (ROI: " + handRoi.width + "x" + handRoi.height + ")");
-
-                        framesCaptured++;
-                        handMat.release();
+                        System.out.println("[LANDMARKS] Keine Landmarks erkannt (Konfidenz zu niedrig). Übersprungen.");
                     }
                 } else {
                     System.out.println("[WARNUNG] Keine Hand im Bild erkannt. Übersprungen.");
@@ -143,15 +110,11 @@ public class DataCollectorApp {
         }
 
         System.out.println("==================================================");
-        System.out.println("[ERFOLG] Run beendet! " + framesCaptured + " Bilder für Geste '" + gestureLabel + "' gesammelt.");
-        System.out.println("[ERFOLG] Davon " + landmarkExamplesSaved + " mit Landmarks in " + landmarksCsvFile.getName() + " gespeichert.");
+        System.out.println("[ERFOLG] Run beendet! " + examplesCaptured + " Landmark-Beispiele für Geste '"
+                + gestureLabel + "' in " + landmarksCsvFile.getName() + " gespeichert.");
         System.out.println("==================================================");
     }
 
-    /**
-     * Fragt per Dialog ab, welche Geste in diesem Run gesammelt werden soll.
-     * Bricht das Programm ab, falls der Nutzer den Dialog abbricht.
-     */
     private static String chooseGestureLabel() {
         String label = (String) JOptionPane.showInputDialog(
                 null,
@@ -170,11 +133,7 @@ public class DataCollectorApp {
         return label;
     }
 
-    /**
-     * Hilfsmethode: Konvertiert ein Java BufferedImage in eine OpenCV Mat.
-     */
     private static Mat bufferedImageToMat(BufferedImage bi) {
-        // Konvertiere zu Standard-RGB, falls es ein anderes Format hat
         BufferedImage convertedImg = new BufferedImage(bi.getWidth(), bi.getHeight(), BufferedImage.TYPE_3BYTE_BGR);
         convertedImg.getGraphics().drawImage(bi, 0, 0, null);
 
@@ -184,9 +143,6 @@ public class DataCollectorApp {
         return mat;
     }
 
-    /**
-     * Hilfsmethode: Begrenzt das Rechteck exakt auf die Bilddimensionen, um Out-of-Bounds-Fehler zu verhindern.
-     */
     private static Rect restrictToFrame(Rect rect, int maxWidth, int maxHeight) {
         int x = Math.max(0, rect.x);
         int y = Math.max(0, rect.y);
