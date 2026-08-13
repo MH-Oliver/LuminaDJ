@@ -117,7 +117,7 @@ public class LiveGestureTestApp {
             }
 
             try {
-                Thread.sleep(500);
+                Thread.sleep(50);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 break;
