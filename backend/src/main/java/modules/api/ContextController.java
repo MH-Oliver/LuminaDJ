@@ -1,3 +1,4 @@
+// modules/api/ContextController.java
 package modules.api;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -9,6 +10,7 @@ import modules.music.strategies.core.MusicPlayerAdapter;
 import modules.music.strategies.core.MusicSourceAdapter;
 import modules.music.strategies.music_player.MusicPlayerAdapterMock;
 import modules.music.strategies.music_player.spotify.SpotifyAdapter;
+import modules.music.strategies.music_player.spotify.SpotifyAuthenticator;
 import modules.music.strategies.music_source.HybridSourceAdapter;
 import modules.music.strategies.music_source.LocalSongDatabaseAdapter;
 import modules.music.strategies.music_source.SpotifySourceAdapter;
@@ -41,10 +43,12 @@ import java.util.Map;
 public class ContextController {
 
     private final ActiveSessionService sessionService;
+    private final SpotifyAuthenticator authenticator; // NEU
 
-    // Spring boot "injiziert" uns hier automatisch den ActiveSessionService
-    public ContextController(ActiveSessionService sessionService) {
+    // Spring boot injiziert uns hier automatisch den ActiveSessionService und den Authenticator
+    public ContextController(ActiveSessionService sessionService, SpotifyAuthenticator authenticator) {
         this.sessionService = sessionService;
+        this.authenticator = authenticator;
     }
 
     @PostMapping("/context")
@@ -52,10 +56,7 @@ public class ContextController {
         System.out.println("Endpoint /api/context wurde aufgerufen!");
         try {
             UserContextDTO context = mapUserContext(payload);
-
-            // Session in einem neuen Thread starten, damit der API Call direkt antworten kann
             new Thread(() -> startMusicSession(context)).start();
-
             return ResponseEntity.ok(Map.of("status", "ok"));
         } catch (Exception e) {
             e.printStackTrace();
@@ -65,35 +66,21 @@ public class ContextController {
 
     private void startMusicSession(UserContextDTO context) {
         System.out.println("Starte Musik-Session mit empfangenem Context...");
-
-        // 1. Context für diese Session setzen
         UserContextStrategy userContextStrategy = () -> context;
-
-        // 2. DjSessionController inkl. Mocks zusammenbauen
         DjSessionController controller = buildDjSessionWithMocks(userContextStrategy);
-
-        // 3. WICHTIG: Den fertigen Controller im Service speichern,
-        // damit das Frontend & der SessionController ihn abrufen können!
         sessionService.setActiveSession(controller);
 
-        // 4. Start-Genre ermitteln & Ersten Song suchen
         Map<Genre, Double> startWeights = context.timeline().getWeightsAt(0.0);
         var localDb = new LocalSongDatabaseAdapter(controller.getPlayedSongRepo(), userContextStrategy);
         var sessionBootstrapper = new SessionBootstrapper(localDb);
-        Track entrySong = sessionBootstrapper.generateFirstTrack(startWeights);
 
+        Track entrySong = sessionBootstrapper.generateFirstTrack(startWeights);
         controller.getPlayedSongRepo().markAsPlayed(entrySong.id());
         System.out.println("Gefundener Entry Song: " + entrySong);
 
-        // 5. Los geht's!
         controller.startSession(entrySong);
     }
 
-    /**
-     * ZENTRALE BAU-STELLE FÜR DEINE MOCKS
-     * Hier kannst du durch einfaches Ein- und Auskommentieren zwischen Mock
-     * und echter Implementierung wechseln.
-     */
     private DjSessionController buildDjSessionWithMocks(UserContextStrategy contextStrategy) {
         var playedSongRepo = new PlayedSongRepository();
         var historyRepo = new SessionHistoryRepository();
@@ -103,7 +90,9 @@ public class ContextController {
         // 1. PLAYER (Audio abspielen)
         // =========================================
         //MusicPlayerAdapter player = new MusicPlayerAdapterMock();
-         MusicPlayerAdapter player = new SpotifyAdapter();
+
+        // NEU: Übergabe des Authenticators, damit der Adapter die Spotify-API erhält
+        MusicPlayerAdapter player = new SpotifyAdapter(this.authenticator);
 
         // =========================================
         // 2. LIVE-FEEDBACK (Kamera)
@@ -117,14 +106,12 @@ public class ContextController {
         MusicSourceAdapter sourceAdapter = localDb; // Mock: Nur lokaler CSV-Datensatz
         // MusicSourceAdapter sourceAdapter = new HybridSourceAdapter(localDb, new SpotifySourceAdapter());
 
-        // Prediction Aggregator bleibt echt (Mathematik)
         List<PredictionStrategy> strategies = List.of(
                 new MacroCurveStrategy(localDb, contextStrategy),
                 new HistoryStrategy(historyRepo)
         );
         var aggregator = new PredictionAggregator(strategies);
 
-        // Den finalen Controller bauen und zurückgeben
         return new DjSessionController(
                 player, liveFeedback, aggregator, sourceAdapter, historyRepo, playedSongRepo, contextStrategy.getUserContext()
         );
@@ -138,8 +125,6 @@ public class ContextController {
         LocalTime startTime = LocalTime.parse(startTimeRaw);
         GenreTimeline timeline = mapTimeline(payload.path("timeline"));
         int cooldown = payload.path("songCooldownMinutes").asInt(30);
-
-        // NEU: Gesamtlänge exakt aus dem Payload auslesen
         int totalMinutes = payload.path("totalMinutes").asInt(120);
 
         return new UserContextDTO(tempo, location, startTime, timeline, cooldown, totalMinutes);

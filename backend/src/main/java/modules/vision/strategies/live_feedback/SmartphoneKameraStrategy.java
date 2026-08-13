@@ -22,7 +22,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * Live-Feedback wird über eine HTTP-Schnittstelle zu einem Smartphone realisiert.
  * Die Kamera-Daten werden gemäß einer FrameRate durch eine DetectionStrategy ausgewertet.
  */
-@Service
 public class SmartphoneKameraStrategy implements LiveFeedbackStrategy {
 
     private final String cameraUrl;

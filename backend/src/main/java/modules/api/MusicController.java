@@ -1,3 +1,4 @@
+// modules/api/MusicController.java
 package modules.api;
 
 import modules.music.strategies.music_player.spotify.SpotifyAuthenticator;
@@ -18,47 +19,43 @@ import java.util.stream.Collectors;
 @CrossOrigin(origins = "*")
 public class MusicController {
 
-     private final SpotifyAuthenticator authenticator;
+    private final SpotifyAuthenticator authenticator;
 
     public MusicController(SpotifyAuthenticator authenticator, TimelineFactory timelineFactory) {
         this.authenticator = authenticator;
     }
 
-    @GetMapping("/connectSpotify")
-    public ResponseEntity<Map<String, Boolean>> connectSpotify() {
+    @GetMapping("/spotify/url")
+    public ResponseEntity<Map<String, String>> getSpotifyUrl() {
+        if (authenticator.checkSavedToken()) {
+            return ResponseEntity.ok(Map.of("status", "already_connected"));
+        }
+        return ResponseEntity.ok(Map.of("url", authenticator.getAuthorizationUrl()));
+    }
 
-        boolean success = authenticator.authenticate() != null ;
-
-        return ResponseEntity.ok(Map.of("success", success));
+    @GetMapping("/spotify/check")
+    public ResponseEntity<Map<String, Boolean>> checkSpotifyConnection() {
+        return ResponseEntity.ok(Map.of("connected", authenticator.isAuthenticated()));
     }
 
     @GetMapping("/loadPresets")
     public ResponseEntity<List<String>> loadPresets() {
-
         List<String> presets = Arrays.stream(SessionVibe.values()).map(Enum::name).toList();
-
         return ResponseEntity.ok(presets);
     }
 
     @GetMapping("/selectPreset")
     public ResponseEntity<Map<String, Object>> selectPreset(@RequestParam String name) {
-
         GenreTimeline genreTimeline = TimelineFactory.createTimelineForVibe(SessionVibe.valueOf(name));
-
         return ResponseEntity.ok(Map.of("timeline", genreTimeline));
     }
 
     @GetMapping("/loadGenre")
     public ResponseEntity<List<String>> loadGenre(@RequestParam(required = false, defaultValue = "") String query) {
-
-        //TODO erstelle die suchfunktion bei den Genres im Frontend
-
-        // Sucht in deiner Genre.java nach Übereinstimmungen mit dem Such-String
         List<String> matchingGenres = Arrays.stream(Genre.values())
                 .map(Enum::name)
                 .filter(genreName -> genreName.toLowerCase().contains(query.toLowerCase()))
                 .collect(Collectors.toList());
-
         return ResponseEntity.ok(matchingGenres);
     }
 }

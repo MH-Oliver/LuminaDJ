@@ -1,6 +1,8 @@
+// services/context-api.service.ts
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+
 export interface TimelinePhaseDto {
   genre: string;
   durationMinutes: number;
@@ -15,16 +17,13 @@ export interface UserContextDto {
     phases: TimelinePhaseDto[];
   };
   songCooldownMinutes: number;
-  totalMinutes: number; // NEU: Hält die ausgewählte Gesamtlänge der Session
+  totalMinutes: number;
 }
 
 @Injectable({
   providedIn: 'root',
 })
 export class ContextApiService {
-
-
-  // Zeigt jetzt auf den Standard-Port von Spring Boot
   private readonly baseUrl = 'http://127.0.0.1:8080';
 
   constructor(private readonly http: HttpClient) {}
@@ -32,8 +31,12 @@ export class ContextApiService {
   // ==========================================
   // MUSIC ENDPOINTS
   // ==========================================
-  connectSpotify(): Observable<{ success: boolean }> {
-    return this.http.get<{ success: boolean }>(`${this.baseUrl}/music/connectSpotify`);
+  getSpotifyAuthUrl(): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/music/spotify/url`);
+  }
+
+  checkSpotifyConnection(): Observable<{ connected: boolean }> {
+    return this.http.get<{ connected: boolean }>(`${this.baseUrl}/music/spotify/check`);
   }
 
   loadPresets(): Observable<string[]> {
@@ -66,7 +69,6 @@ export class ContextApiService {
     return this.http.post<{ status: string }>(`${this.baseUrl}/api/context`, payload);
   }
 
-  // NEU: Aktuellen Context für den Edit-Modus laden
   getCurrentContext(): Observable<any> {
     return this.http.get<any>(`${this.baseUrl}/api/context/current`);
   }
@@ -74,8 +76,6 @@ export class ContextApiService {
   // ==========================================
   // SESSION ENDPOINTS
   // ==========================================
-
-// NEU: Der echte Endpoint zum Backend
   toggleFavorite(isFavorite: boolean): Observable<{ success: boolean }> {
     return this.http.post<{ success: boolean }>(`${this.baseUrl}/session/favorite`, { isFavorite });
   }
@@ -96,8 +96,6 @@ export class ContextApiService {
     return this.http.post<void>(`${this.baseUrl}/session/cancel`, {});
   }
 
-
-
   togglePlayPause(): Observable<any> {
     return this.http.post<any>(`${this.baseUrl}/session/playPause`, {});
   }
@@ -109,6 +107,4 @@ export class ContextApiService {
   previousSong(): Observable<any> {
     return this.http.post<any>(`${this.baseUrl}/session/previous`, {});
   }
-
-
 }

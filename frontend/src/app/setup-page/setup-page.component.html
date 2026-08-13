@@ -1,17 +1,24 @@
+<!-- setup-page/setup-page.component.html -->
 <main class="page-container">
   <div class="lumina-ambient-glow"></div>
   <div class="setup-content">
     <h1>setup</h1>
     <p class="subtitle">before starting:</p>
+
     <div class="connection-list">
       <div class="connection-item">
         <input type="checkbox" [checked]="isSpotifyConnected" disabled class="custom-checkbox">
         <span class="item-text">
           Connect to Spotify
-          <a class="highlight-link" (click)="connectSpotify()">here</a>
+          @if (!isSpotifyConnected) {
+            <a class="highlight-link" (click)="connectSpotify()">here</a>
+          } @else {
+            <span style="color: var(--color-accent-lightblue); font-weight: bold; margin-left: 5px;">connected</span>
+          }
         </span>
         <span class="tooltip" title="Connect your Spotify account">i</span>
       </div>
+
       <div class="connection-item">
         <input type="checkbox" [checked]="isCameraConnected" disabled class="custom-checkbox">
         <span class="item-text">
@@ -21,8 +28,39 @@
         <span class="tooltip" title="Connect your camera">i</span>
       </div>
     </div>
+
     <button class="btn-primary continue-btn" [disabled]="!isSpotifyConnected || !isCameraConnected" routerLink="/session-setup">
       continue
     </button>
   </div>
+
+  <!-- Camera Connection Dialog -->
+  @if (showCameraDialog) {
+    <div class="modal-overlay" (click)="closeCameraDialog()">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <h3>Connect Camera</h3>
+
+        <div class="camera-option">
+          <button class="btn-primary modal-btn" (click)="autoDetectCamera()" [disabled]="isDetecting">
+            {{ isDetecting ? 'Detecting...' : 'Auto Detect IP' }}
+          </button>
+          @if (detectedIp) {
+            <p class="success-text">Found: {{ detectedIp }}</p>
+          }
+        </div>
+
+        <hr class="divider">
+
+        <div class="camera-option">
+          <label>Manual IP Address:</label>
+          <input type="text" [(ngModel)]="manualIp" class="text-input" placeholder="e.g. 192.168.178.50">
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn-danger modal-btn" (click)="closeCameraDialog()">Cancel</button>
+          <button class="btn-primary modal-btn" (click)="confirmCameraIp()" [disabled]="!detectedIp && !manualIp">Connect</button>
+        </div>
+      </div>
+    </div>
+  }
 </main>
