@@ -66,6 +66,10 @@ export class ContextApiService {
     return this.http.get<{ image: string, gestures: { [key: string]: number } }>(`${this.baseUrl}/vision/currentFrame`);
   }
 
+  toggleCameraProcessing(active: boolean): Observable<{ isActive: boolean }> {
+    return this.http.post<{ isActive: boolean }>(`${this.baseUrl}/vision/toggleState`, { active });
+  }
+
   // ==========================================
   // CONTEXT ENDPOINTS
   // ==========================================

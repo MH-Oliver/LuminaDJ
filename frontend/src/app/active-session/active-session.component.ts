@@ -1,14 +1,16 @@
-// active-session/active-session.component.ts
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { RouterLink, Router } from '@angular/router';
+import { Router } from '@angular/router'; // RouterLink können wir entfernen, da nicht genutzt
 import { CommonModule } from '@angular/common';
 import { ContextApiService } from '../services/context-api.service';
 import { Subscription, interval } from 'rxjs';
 
+import { FormsModule } from '@angular/forms';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+
 @Component({
   selector: 'app-active-session',
   standalone: true,
-  imports: [RouterLink, CommonModule],
+  imports: [CommonModule, FormsModule, MatSlideToggleModule],
   templateUrl: './active-session.component.html',
   styleUrls: ['./active-session.component.scss']
 })
@@ -16,6 +18,7 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
   spotifyUser = 'DJ_Lumina_Test';
   isCameraExpanded = true;
   isPlaying = false;
+  isCameraProcessing = true;
 
   cameraImage: string | null = null;
   detectedGestures: { name: string, count: number }[] = [];
@@ -81,9 +84,19 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
     if (this.cameraPollTimer) clearInterval(this.cameraPollTimer);
   }
 
+  onCameraToggleChange(): void {
+    this.apiService.toggleCameraProcessing(this.isCameraProcessing).subscribe({
+      error: (err) => console.error('Kamera-Toggle fehlgeschlagen', err)
+    });
+
+    if (!this.isCameraProcessing) {
+      this.cameraImage = null;
+    }
+  }
+
   fetchCameraData(): void {
     // Nur abfragen, wenn die Kamera-Sicht ausgeklappt ist, um Netzwerklast zu sparen
-    if (this.isCameraExpanded) {
+    if (this.isCameraExpanded && this.isCameraProcessing) {
       this.apiService.getCurrentFrame().subscribe({
         next: (data) => {
           this.cameraImage = data.image;

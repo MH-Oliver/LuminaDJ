@@ -4,6 +4,7 @@ package modules.api;
 import modules.core.DjSessionController;
 import modules.music.structures.Track;
 import modules.music.strategies.music_player.spotify.SpotifyAdapter;
+import modules.vision.services.GestureRecognitionService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,13 +15,15 @@ import java.util.Map;
 @CrossOrigin(origins = "*")
 public class SessionController {
     private final ActiveSessionService sessionService;
+    private final GestureRecognitionService gestureService;
 
     private String cachedTrackId = null;
     private String cachedCoverUrl = "https://via.placeholder.com/150/1e1e1e/ffffff?text=Kein+Cover";
     private long cachedDurationMs = 0;
 
-    public SessionController(ActiveSessionService sessionService) {
+    public SessionController(ActiveSessionService sessionService, GestureRecognitionService gestureService) {
         this.sessionService = sessionService;
+        this.gestureService = gestureService; // NEU
     }
 
     @GetMapping("/update")
@@ -112,9 +115,9 @@ public class SessionController {
         if (sessionController != null) {
             sessionController.stopSession();
         }
+        gestureService.pauseProcessing();
         cachedTrackId = null;
         cachedCoverUrl = "https://via.placeholder.com/150/1e1e1e/ffffff?text=Kein+Cover";
-
         return ResponseEntity.ok(Map.of("status", "stopped", "message", "Session gestoppt."));
     }
 
@@ -125,6 +128,7 @@ public class SessionController {
             sessionController.stopSession();
             sessionService.setActiveSession(null);
         }
+        gestureService.pauseProcessing();
         cachedTrackId = null;
         cachedCoverUrl = "https://via.placeholder.com/150/1e1e1e/ffffff?text=Kein+Cover";
         return ResponseEntity.ok().build();

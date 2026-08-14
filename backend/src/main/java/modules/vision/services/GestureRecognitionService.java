@@ -112,6 +112,22 @@ public class GestureRecognitionService {
         activeHolds.clear();
     }
 
+    public synchronized void pauseProcessing() {
+        this.running = false;
+        if (pollingThread != null) {
+            pollingThread.interrupt();
+        }
+    }
+
+    public synchronized void resumeProcessing() {
+        if (!running && cameraUrl != null) {
+            this.running = true;
+            pollingThread = new Thread(this::pollLoop);
+            pollingThread.setDaemon(true);
+            pollingThread.start();
+        }
+    }
+
     /**
      * @return null, solange noch kein Bild verarbeitet wurde (z.B. direkt nach connect())
      *         oder noch keine Kamera verbunden ist.

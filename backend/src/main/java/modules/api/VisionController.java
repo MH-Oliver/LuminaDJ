@@ -71,4 +71,15 @@ public class VisionController {
         gestureService.resetGestureCounts();
         return ResponseEntity.ok().build();
     }
+
+    @PostMapping("/toggleState")
+    public ResponseEntity<Map<String, Boolean>> toggleState(@RequestBody Map<String, Boolean> payload) {
+        boolean active = payload.getOrDefault("active", true);
+        if (active) {
+            gestureService.resumeProcessing();
+        } else {
+            gestureService.pauseProcessing();
+        }
+        return ResponseEntity.ok(Map.of("isActive", active));
+    }
 }

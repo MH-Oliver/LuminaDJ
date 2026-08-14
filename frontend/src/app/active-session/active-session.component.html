@@ -21,6 +21,13 @@
           <div class="camera-title-wrapper">
             <span class="material-icons-outlined camera-icon">videocam</span>
             <span class="camera-title">Live Camera</span>
+            <mat-slide-toggle
+              class="camera-toggle-margin"
+              [(ngModel)]="isCameraProcessing"
+              (change)="onCameraToggleChange()"
+              (click)="$event.stopPropagation()"
+              title="Toggle Camera Processing">
+            </mat-slide-toggle>
           </div>
           <span class="material-icons-outlined toggle-icon">
             <!-- MODERN ANGULAR @if (ternary) -->

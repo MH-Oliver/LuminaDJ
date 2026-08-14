@@ -21,6 +21,7 @@ import modules.prediction.strategies.core.PredictionStrategy;
 import modules.prediction.strategies.prediction.HistoryStrategy;
 import modules.prediction.strategies.prediction.MacroCurveStrategy;
 import modules.userContext.strategies.core.UserContextStrategy;
+import modules.vision.services.GestureRecognitionService;
 import modules.vision.strategies.core.LiveFeedbackStrategy;
 import modules.vision.strategies.live_feedback.LiveFeedbackStrategyMock;
 import modules.vision.strategies.live_feedback.SmartphoneKameraStrategy;
@@ -44,10 +45,12 @@ public class ContextController {
 
     private final ActiveSessionService sessionService;
     private final SpotifyAuthenticator authenticator;
+    private final GestureRecognitionService gestureService; // NEU
 
-    public ContextController(ActiveSessionService sessionService, SpotifyAuthenticator authenticator) {
+    public ContextController(ActiveSessionService sessionService, SpotifyAuthenticator authenticator, GestureRecognitionService gestureService) {
         this.sessionService = sessionService;
         this.authenticator = authenticator;
+        this.gestureService = gestureService; // NEU
     }
 
     @PostMapping("/context")
@@ -62,6 +65,7 @@ public class ContextController {
             DjSessionController controller = buildDjSessionWithMocks(userContextStrategy);
             sessionService.setActiveSession(controller);
 
+            gestureService.resumeProcessing();
             // 2. Die Musik-Suche und das Playback asynchron starten
             new Thread(() -> startMusicSession(controller, context, userContextStrategy)).start();
 
