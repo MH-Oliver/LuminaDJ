@@ -17,6 +17,10 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
   isCameraExpanded = true;
   isPlaying = false;
 
+  cameraImage: string | null = null;
+  detectedGestures: { name: string, count: number }[] = [];
+  private cameraPollTimer: any;
+
   currentSong = {
     title: 'Loading...',
     artist: 'Loading...',
@@ -34,12 +38,6 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
   private totalSessionDurationMs = 0;
   private sessionStartTime?: Date;
   private lastStartTimeRaw: string | null = null;
-
-  detectedGestures = [
-    { name: 'thumbs up detected', timeAgo: '2 sec ago' },
-    { name: 'swipe gesture detected (1/3 for skip)', timeAgo: '15 sec ago' },
-    { name: 'thumbs down detected', timeAgo: '45 sec ago' }
-  ];
 
   private countdownSub?: Subscription;
   private localProgressTimer: any;
@@ -71,11 +69,38 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
         this.updateProgressUI();
       }
     }, 1000);
+
+    this.cameraPollTimer = setInterval(() => {
+      this.fetchCameraData();
+    }, 100);
   }
 
   ngOnDestroy(): void {
     if (this.countdownSub) this.countdownSub.unsubscribe();
     if (this.localProgressTimer) clearInterval(this.localProgressTimer);
+    if (this.cameraPollTimer) clearInterval(this.cameraPollTimer);
+  }
+
+  fetchCameraData(): void {
+    // Nur abfragen, wenn die Kamera-Sicht ausgeklappt ist, um Netzwerklast zu sparen
+    if (this.isCameraExpanded) {
+      this.apiService.getCurrentFrame().subscribe({
+        next: (data) => {
+          this.cameraImage = data.image;
+          // Map { "peace": 2 } zu Array [ {name: "peace", count: 2} ] umwandeln
+          if (data.gestures) {
+            this.detectedGestures = Object.keys(data.gestures).map(key => ({
+              name: key,
+              count: data.gestures[key]
+            }));
+          }
+        },
+        error: (err) => {
+          // Optional: Fehler silent ignorieren, falls Kamera (noch) nicht verbunden ist
+          // console.error('Kamera-Daten konnten nicht geladen werden', err);
+        }
+      });
+    }
   }
 
   private updateProgressUI(): void {

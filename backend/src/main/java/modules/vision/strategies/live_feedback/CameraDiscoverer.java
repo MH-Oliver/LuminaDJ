@@ -1,6 +1,6 @@
 package modules.vision.strategies.live_feedback;
 
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
 import javax.swing.JOptionPane;
 import java.net.InetAddress;
@@ -9,16 +9,15 @@ import java.util.concurrent.*;
 /**
  * Hilfsklasse, um automatisch die IP-Adresse von dem Smartphone mit dem Live-Kamera-Stream zu finden.
  */
-@Service
+@Component
 public class CameraDiscoverer {
 
     /**
      * Falls eine IP-Adresse mit einem Kamera-Stream gefunden wurde, wird diese zurückgegeben.
-     * Ansonsten kann diese über einen Dialog eingegeben werden, falls dies auch nicht passiert, wird eine Exception geworfen.
      * @return IP-Adresse vom Kamera Stream
      */
     public static String resolveCameraIp() {
-        return "192.168.42.157";
+        return autoDetectCameraIp();
 
 //        String ip = autoDetectCameraIp();
 //

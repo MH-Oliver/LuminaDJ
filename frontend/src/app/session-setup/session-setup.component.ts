@@ -188,7 +188,7 @@ export class SessionSetupComponent implements OnInit {
       location: "Bar",
       startTime: new Date().toTimeString().split(' ')[0],
       timeline: { phases: phases },
-      songCooldownMinutes: 30,
+      songCooldownMinutes: 100000,
       totalMinutes: this.totalMinutes
     };
 

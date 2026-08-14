@@ -34,7 +34,11 @@
               <span class="material-icons-outlined action-icon" title="Info">info</span>
               <span class="material-icons-outlined action-icon" title="Log/Details">assignment</span>
             </div>
-            <div class="camera-placeholder-text">Live Camera picture</div>
+            @if (cameraImage) {
+              <img [src]="cameraImage" alt="Live Camera" style="width: 100%; height: 100%; object-fit: contain;">
+            } @else {
+              <div class="camera-placeholder-text">Live Camera picture</div>
+            }
           </div>
         }
       </section>
@@ -42,16 +46,18 @@
         <h3>Detected Gestures</h3>
         <div class="gesture-log-box">
           <ul class="log-list">
-            <!-- MODERN ANGULAR @for -->
             @for (gesture of detectedGestures; track gesture.name) {
               <li class="log-item">
                 <span class="gesture-name">{{ gesture.name }}</span>
-                <span class="timestamp">{{ gesture.timeAgo }}</span>
+                <span class="timestamp" style="font-weight: bold; color: var(--color-accent-lightblue);">{{ gesture.count }}x</span>
               </li>
             }
-            <li class="log-item empty-log">
-              <span class="gesture-name">...</span>
-            </li>
+
+            @if (detectedGestures.length === 0) {
+              <li class="log-item empty-log">
+                <span class="gesture-name">Noch keine Gesten bestätigt...</span>
+              </li>
+            }
           </ul>
         </div>
       </section>
