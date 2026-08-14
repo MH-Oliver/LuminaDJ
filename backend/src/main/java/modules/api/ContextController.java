@@ -8,12 +8,9 @@ import modules.music.repositories.SessionHistoryRepository;
 import modules.music.services.SessionBootstrapper;
 import modules.music.strategies.core.MusicPlayerAdapter;
 import modules.music.strategies.core.MusicSourceAdapter;
-import modules.music.strategies.music_player.MusicPlayerAdapterMock;
 import modules.music.strategies.music_player.spotify.SpotifyAdapter;
 import modules.music.strategies.music_player.spotify.SpotifyAuthenticator;
-import modules.music.strategies.music_source.HybridSourceAdapter;
 import modules.music.strategies.music_source.LocalSongDatabaseAdapter;
-import modules.music.strategies.music_source.SpotifySourceAdapter;
 import modules.music.structures.Genre;
 import modules.music.structures.Track;
 import modules.prediction.services.PredictionAggregator;
@@ -22,10 +19,6 @@ import modules.prediction.strategies.prediction.HistoryStrategy;
 import modules.prediction.strategies.prediction.MacroCurveStrategy;
 import modules.userContext.strategies.core.UserContextStrategy;
 import modules.vision.services.GestureRecognitionService;
-import modules.vision.strategies.core.LiveFeedbackStrategy;
-import modules.vision.strategies.live_feedback.LiveFeedbackStrategyMock;
-import modules.vision.strategies.live_feedback.SmartphoneKameraStrategy;
-import modules.vision.strategies.detection.DetectionStrategyMock;
 import modules.userContext.structures.GenreTimeline;
 import modules.userContext.structures.Location;
 import modules.userContext.structures.TimelinePhase;
@@ -93,9 +86,7 @@ public class ContextController {
         var playedSongRepo = new PlayedSongRepository();
         var historyRepo = new SessionHistoryRepository();
         var localDb = new LocalSongDatabaseAdapter(playedSongRepo, contextStrategy);
-
         MusicPlayerAdapter player = new SpotifyAdapter(this.authenticator);
-        LiveFeedbackStrategy liveFeedback = new LiveFeedbackStrategyMock();
         MusicSourceAdapter sourceAdapter = localDb;
 
         List<PredictionStrategy> strategies = List.of(
@@ -104,8 +95,9 @@ public class ContextController {
         );
         var aggregator = new PredictionAggregator(strategies);
 
+        // Aufruf ohne liveFeedback
         return new DjSessionController(
-                player, liveFeedback, aggregator, sourceAdapter, historyRepo, playedSongRepo, contextStrategy.getUserContext()
+                player, aggregator, sourceAdapter, historyRepo, playedSongRepo, contextStrategy.getUserContext()
         );
     }
 

@@ -1,9 +1,8 @@
 package modules.vision.training;
 
-import modules.vision.strategies.detection.DetectionStrategyMock;
 import modules.vision.strategies.detection.HandLandmarkExtractor;
 import modules.vision.strategies.detection.PalmDetector;
-import modules.vision.strategies.live_feedback.SmartphoneKameraStrategy;
+import modules.vision.strategies.live_feedback.CameraDiscoverer;
 import modules.vision.structures.HandLandmarks;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
@@ -13,16 +12,21 @@ import javax.imageio.ImageIO;
 import javax.swing.JOptionPane;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 /**
  * Sammelt gelabelte Trainingsdaten für die Gesten-Klassifikation. Pro erfolgreich erkannter
  * Geste wird EIN Debug-Bild (Original-Frame mit eingezeichnetem Landmark-Skelett) sowie der
- * normalisierte Feature-Vektor in der wachsenden CSV gespeichert - keine Rohbilder mehr,
- * die werden für Training/Betrieb nicht gebraucht.
+ * normalisierte Feature-Vektor in der wachsenden CSV gespeichert.
  */
 public class DataCollectorApp {
 
@@ -52,16 +56,24 @@ public class DataCollectorApp {
         System.out.println("[INFO] Geste: " + gestureLabel);
         System.out.println("[INFO] Speichere Debug-Bilder in: " + runDir.getAbsolutePath());
 
-        // Eine gemeinsame, wachsende CSV-Datei für ALLE Gesten - jede Zeile trägt ihr Label
-        // selbst, daher reicht eine Datei über alle Runs/Gesten hinweg.
+        // Eine gemeinsame, wachsende CSV-Datei für ALLE Gesten
         File landmarksCsvFile = new File("backend/src/main/resources/training_data/gesture_landmarks.csv");
 
-        SmartphoneKameraStrategy camera = new SmartphoneKameraStrategy(new DetectionStrategyMock());
+        System.out.println("[INFO] Suche Kamera im Netzwerk...");
+        String cameraIp = CameraDiscoverer.resolveCameraIp();
+        if (cameraIp == null) {
+            System.err.println("[FEHLER] Keine Kamera gefunden.");
+            return;
+        }
+
+        String cameraUrl = "http://" + cameraIp + "/shot.jpg";
+        HttpClient httpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(3)).build();
+
         PalmDetector palmDetector = new PalmDetector();
         HandLandmarkExtractor landmarkExtractor = new HandLandmarkExtractor();
 
-        int totalExamplesToCapture = 50; // Anzahl der zu sammelnden Landmark-Beispiele pro Run
-        int frameDelayMs = 500;
+        int totalExamplesToCapture = 50;
+        int frameDelayMs = 100;
         int examplesCaptured = 0;
 
         System.out.println("\n[INFO] Starte Aufnahme in 3 Sekunden... Mach die Geste '" + gestureLabel + "' vor die Kamera!");
@@ -70,7 +82,17 @@ public class DataCollectorApp {
         } catch (InterruptedException ignored) {}
 
         while (examplesCaptured < totalExamplesToCapture) {
-            BufferedImage bufferedImage = camera.fetchSingleFrame();
+            BufferedImage bufferedImage = null;
+
+            try {
+                HttpRequest request = HttpRequest.newBuilder().uri(URI.create(cameraUrl)).build();
+                HttpResponse<byte[]> response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
+                if (response.statusCode() == 200) {
+                    bufferedImage = ImageIO.read(new ByteArrayInputStream(response.body()));
+                }
+            } catch (Exception e) {
+                System.err.println("[FEHLER] Konnte kein Bild von der Kamera empfangen: " + e.getMessage());
+            }
 
             if (bufferedImage != null) {
                 Mat frame = bufferedImageToMat(bufferedImage);
@@ -97,8 +119,6 @@ public class DataCollectorApp {
                 }
 
                 frame.release();
-            } else {
-                System.err.println("[FEHLER] Konnte kein Bild von der Kamera empfangen.");
             }
 
             try {

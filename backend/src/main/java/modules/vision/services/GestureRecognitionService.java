@@ -141,7 +141,7 @@ public class GestureRecognitionService {
     }
 
     private void pollLoop() {
-        System.out.println("GestureRecognitionService: Kamera-Auswertung gestartet (" + cameraUrl + ")");
+        System.out.println("GestureRecognitionService: Kamera-Auswertung gestartet");
 
         while (running) {
             try {

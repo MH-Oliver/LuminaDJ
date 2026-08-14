@@ -2,7 +2,6 @@ package modules.music.repositories;
 
 import modules.music.structures.HistoryEntry;
 import modules.music.structures.Track;
-import modules.vision.structures.FeedbackResult;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -14,8 +13,9 @@ public class SessionHistoryRepository {
     /**
      * Fügt einen gespielten Song samt dem dazugehörigen Crowd-Feedback zur Historie hinzu.
      */
-    public void addEntry(Track track, FeedbackResult feedback) {
-        history.add(new HistoryEntry(track, feedback));
+    // Signatur und Instanziierung anpassen
+    public void addEntry(Track track) {
+        history.add(new HistoryEntry(track));
     }
 
     /**

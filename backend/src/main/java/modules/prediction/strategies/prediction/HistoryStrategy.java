@@ -57,17 +57,14 @@ public class HistoryStrategy implements PredictionStrategy {
 
         for (HistoryEntry entry : history) {
             Track xi = entry.track();
-            var feedback = entry.feedback();
 
             // 1. d(x, xi) - Normalisierte Euklidische Distanz
             double distance = calculateDistance(x, xi);
-
             // 2. K(x, xi) - Gauss-Kernel (Radial Basis Function)
             double gaussianKernel = Math.exp(-(distance * distance) / (2 * SIGMA * SIGMA));
 
-            // 3. R(fi) - Feedback Reward ermitteln
-            double intensity = feedback.intensity();
-            double feedbackReward = feedback.isPositiveTrend() ? intensity : (1.0 - intensity) * 0.2;
+            // NEU: Konstantes Feedback (früher aus FeedbackResult)
+            double feedbackReward = 1.0;
 
             // 4. wi - Gesamtgewichtung für diesen historischen Beitrag
             double wi = gaussianKernel * feedbackReward;
@@ -77,8 +74,6 @@ public class HistoryStrategy implements PredictionStrategy {
         }
 
         if (totalWeight == 0) return 1.0;
-
-        // 5. y_hat - Der lokal gewichtete, geschätzte Zielwert
         double yHat = weightedSum / totalWeight;
         return yHat / Math.max(0.01, currentValue);
     }

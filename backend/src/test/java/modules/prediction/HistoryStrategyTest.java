@@ -4,7 +4,6 @@ import modules.music.repositories.SessionHistoryRepository;
 import modules.music.structures.Track;
 import modules.prediction.strategies.prediction.HistoryStrategy;
 import modules.prediction.structures.PredictionFactor;
-import modules.vision.structures.FeedbackResult;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
@@ -41,7 +40,7 @@ class HistoryStrategyTest {
         Map<String, Double> histFeatures = new HashMap<>();
         histFeatures.put("energy", 0.8);
         Track histTrack = new Track("id1", "Banger", "DJ", "edm", histFeatures);
-        repo.addEntry(histTrack, new FeedbackResult(true, 0.9));
+        repo.addEntry(histTrack);
 
         HistoryStrategy strategy = new HistoryStrategy(repo);
 

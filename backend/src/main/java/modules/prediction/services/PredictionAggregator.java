@@ -2,8 +2,6 @@ package modules.prediction.services;
 
 import modules.music.structures.Track;
 import modules.prediction.strategies.core.PredictionStrategy;
-import modules.prediction.strategies.prediction.LiveFeedbackAdapter;
-import modules.vision.structures.FeedbackResult;
 import modules.prediction.structures.PredictedAttributes;
 import modules.prediction.structures.PredictionFactor;
 import org.springframework.stereotype.Service;
@@ -26,13 +24,12 @@ public class PredictionAggregator {
      * Am Ende wird der Durchschnitt des veränderten Wertes über alle Gewichte genommen.
      */
 
-    public PredictedAttributes calculateNextAttributes(Track currentSong, FeedbackResult feedback) {
+    public PredictedAttributes calculateNextAttributes(Track currentSong) {
         Map<String, Double> baseValues = currentSong.features();
         Map<String, Double> finalValues = new HashMap<>();
         Map<String, Double> finalGenreWeights = new HashMap<>();
 
         List<PredictionStrategy> runStrategies = new ArrayList<>(this.strategies);
-        runStrategies.add(new LiveFeedbackAdapter(feedback, 0.8));
 
         List<PredictionFactor> strategyFactors = runStrategies.stream()
                 .map(predictionStrategy -> predictionStrategy.calculate(currentSong))
