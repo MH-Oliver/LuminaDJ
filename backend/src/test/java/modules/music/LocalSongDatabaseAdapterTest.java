@@ -56,7 +56,7 @@ class LocalSongDatabaseAdapterTest {
 
         UserContextStrategy mockContext = mock(UserContextStrategy.class);
         when(mockContext.getUserContext()).thenReturn(
-                new UserContextDTO(100, null, null, null, 60)
+                new UserContextDTO(100, null, null, null, 60,60)
         );
 
         adapter = new LocalSongDatabaseAdapter(mockRepo, mockContext);

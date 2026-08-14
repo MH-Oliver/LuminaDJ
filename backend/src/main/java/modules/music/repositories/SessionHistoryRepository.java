@@ -3,10 +3,11 @@ package modules.music.repositories;
 import modules.music.structures.HistoryEntry;
 import modules.music.structures.Track;
 import modules.vision.structures.FeedbackResult;
+import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
-
+@Service
 public class SessionHistoryRepository {
     private final List<HistoryEntry> history = new ArrayList<>();
 

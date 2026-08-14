@@ -42,7 +42,7 @@
     "@types/jasmine": "~5.1.0",
     "concurrently": "^10.0.4",
     "cross-env": "^10.1.0",
-    "electron": "^31.7.7",
+    "electron": "^43.2.0",
     "jasmine-core": "~5.9.0",
     "karma": "~6.4.0",
     "karma-chrome-launcher": "~3.2.0",

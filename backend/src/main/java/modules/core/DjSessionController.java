@@ -9,9 +9,10 @@ import modules.prediction.services.PredictionAggregator;
 import modules.vision.structures.FeedbackResult;
 import modules.prediction.structures.PredictedAttributes;
 import modules.vision.strategies.core.LiveFeedbackStrategy;
+import modules.userContext.structures.UserContextDTO;
+
 
 public class DjSessionController {
-
     private final MusicPlayerAdapter player;
     private final LiveFeedbackStrategy liveFeedback;
     private final PredictionAggregator aggregator;
@@ -19,32 +20,42 @@ public class DjSessionController {
     private final SessionHistoryRepository history;
     private final PlayedSongRepository playedSongRepo;
 
+    private final UserContextDTO context; // NEU: Speichert die Timeline
     private boolean sessionActive = true;
+    private Track currentTrack;
 
-    // Dependency Injection über den Konstruktor
+    // Konstruktor um den Parameter 'context' erweitern
     public DjSessionController(
             MusicPlayerAdapter player,
             LiveFeedbackStrategy liveFeedback,
             PredictionAggregator aggregator,
             MusicSourceAdapter sourceAdapter,
             SessionHistoryRepository history,
-            PlayedSongRepository playedSongRepo) {
+            PlayedSongRepository playedSongRepo,
+            UserContextDTO context) {
         this.player = player;
         this.liveFeedback = liveFeedback;
         this.aggregator = aggregator;
         this.sourceAdapter = sourceAdapter;
         this.history = history;
         this.playedSongRepo = playedSongRepo;
+        this.context = context;
     }
+
+    public UserContextDTO getContext() { return context; } // Getter für das Frontend
+    public Track getCurrentTrack() { return this.currentTrack; }
+    public MusicPlayerAdapter getPlayer() { return player; }
+    public LiveFeedbackStrategy getLiveFeedback() { return liveFeedback; }
+    public PredictionAggregator getAggregator() { return aggregator; }
+    public MusicSourceAdapter getSourceAdapter() { return sourceAdapter; }
+    public SessionHistoryRepository getHistory() { return history; }
+    public PlayedSongRepository getPlayedSongRepo() { return playedSongRepo; }
 
     public void startSession(Track entrySong) {
         Track currentSong = entrySong;
-
         while (sessionActive) {
-            // 1. ZUSTAND: Abspielen & parallel Beobachten (Fork)
+            this.currentTrack = currentSong;
             liveFeedback.startParallelEvaluation(currentSong);
-
-            // Simuliert das Blockieren, bis der Song zu Ende ist
             try {
                 player.play(currentSong);
             } catch (IllegalArgumentException exception) {
@@ -53,23 +64,24 @@ public class DjSessionController {
                 return;
             }
 
-            // 2. TRIGGER: Song beendet -> Ergebnisse einsammeln
+            // WICHTIG: Prüfen, ob in der Zwischenzeit Edit/Cancel gedrückt wurde
+            if (!sessionActive) {
+                liveFeedback.stopAndGetResult();
+                break;
+            }
+
             FeedbackResult feedback = liveFeedback.stopAndGetResult();
-
             history.addEntry(currentSong, feedback);
-
-            // 3. AUSWERTUNG: Aggregator verrechnet alle Parameter
             PredictedAttributes predictedTarget = aggregator.calculateNextAttributes(currentSong, feedback);
-
-            System.out.println("General Predicted Target: " + predictedTarget);
-            // 4. NEUEN SONG FINDEN: Über Graph oder API
             Track nextSong = sourceAdapter.getNextSong(predictedTarget, currentSong);
-
-            System.out.println("DJSessionController | Gefundener Song: " + nextSong);
-
             playedSongRepo.markAsPlayed(nextSong.id());
-
             currentSong = nextSong;
         }
+    }
+
+    // NEU: Bricht die Session sauber ab
+    public void stopSession() {
+        this.sessionActive = false;
+        this.player.stop();
     }
 }

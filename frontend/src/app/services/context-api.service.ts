@@ -1,14 +1,15 @@
+// services/context-api.service.ts
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
-interface TimelinePhaseDto {
+export interface TimelinePhaseDto {
   genre: string;
   durationMinutes: number;
   transitionOutMinutes: number;
 }
 
-interface UserContextDto {
+export interface UserContextDto {
   tempo: number;
   location: string;
   startTime: string;
@@ -16,30 +17,94 @@ interface UserContextDto {
     phases: TimelinePhaseDto[];
   };
   songCooldownMinutes: number;
+  totalMinutes: number;
 }
 
 @Injectable({
   providedIn: 'root',
 })
 export class ContextApiService {
-  private readonly baseUrl = 'http://127.0.0.1:8081';
+  private readonly baseUrl = 'http://127.0.0.1:8080';
 
   constructor(private readonly http: HttpClient) {}
 
-  sendDummyContext(): Observable<{ status: string }> {
-    const payload: UserContextDto = {
-      tempo: 124,
-      location: 'Party',
-      startTime: '21:00:00',
-      timeline: {
-        phases: [
-          { genre: 'EDM', durationMinutes: 45, transitionOutMinutes: 5 },
-          { genre: 'HIP_HOP', durationMinutes: 35, transitionOutMinutes: 5 },
-        ],
-      },
-      songCooldownMinutes: 30,
-    };
+  // ==========================================
+  // MUSIC ENDPOINTS
+  // ==========================================
+  getSpotifyAuthUrl(): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/music/spotify/url`);
+  }
 
+  checkSpotifyConnection(): Observable<{ connected: boolean }> {
+    return this.http.get<{ connected: boolean }>(`${this.baseUrl}/music/spotify/check`);
+  }
+
+  loadPresets(): Observable<string[]> {
+    return this.http.get<string[]>(`${this.baseUrl}/music/loadPresets`);
+  }
+
+  selectPreset(name: string): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/music/selectPreset?name=${encodeURIComponent(name)}`);
+  }
+
+  loadGenre(query: string = ''): Observable<string[]> {
+    return this.http.get<string[]>(`${this.baseUrl}/music/loadGenre?query=${encodeURIComponent(query)}`);
+  }
+
+  // ==========================================
+  // VISION ENDPOINTS
+  // ==========================================
+  deviceFound(): Observable<{ ip: string }> {
+    return this.http.get<{ ip: string }>(`${this.baseUrl}/vision/deviceFound`);
+  }
+
+  selectedDevice(ipAddress: string): Observable<{ connectedIp: string }> {
+    return this.http.post<{ connectedIp: string }>(`${this.baseUrl}/vision/selectedDevice`, { ip: ipAddress });
+  }
+
+  // ==========================================
+  // CONTEXT ENDPOINTS
+  // ==========================================
+  sendContext(payload: UserContextDto): Observable<{ status: string }> {
     return this.http.post<{ status: string }>(`${this.baseUrl}/api/context`, payload);
+  }
+
+  getCurrentContext(): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/api/context/current`);
+  }
+
+  // ==========================================
+  // SESSION ENDPOINTS
+  // ==========================================
+  toggleFavorite(isFavorite: boolean): Observable<{ success: boolean }> {
+    return this.http.post<{ success: boolean }>(`${this.baseUrl}/session/favorite`, { isFavorite });
+  }
+
+  updateSession(): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/session/update`);
+  }
+
+  skipSong(): Observable<{ nextSong: string }> {
+    return this.http.post<{ nextSong: string }>(`${this.baseUrl}/session/skipSong`, {});
+  }
+
+  editSession(): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/session/edit`, {});
+  }
+
+  cancelSession(): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/session/cancel`, {});
+  }
+
+  togglePlayPause(): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/session/playPause`, {});
+  }
+
+  seek(positionMs: number): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/session/seek`, { position: positionMs });
+  }
+
+  previousSong(): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/session/previous`, {});
   }
 }

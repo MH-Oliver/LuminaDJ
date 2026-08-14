@@ -1,5 +1,7 @@
 package modules.vision.strategies.live_feedback;
 
+import org.springframework.stereotype.Service;
+
 import javax.swing.JOptionPane;
 import java.net.InetAddress;
 import java.util.concurrent.*;
@@ -7,30 +9,33 @@ import java.util.concurrent.*;
 /**
  * Hilfsklasse, um automatisch die IP-Adresse von dem Smartphone mit dem Live-Kamera-Stream zu finden.
  */
+@Service
 public class CameraDiscoverer {
 
     /**
      * Falls eine IP-Adresse mit einem Kamera-Stream gefunden wurde, wird diese zurückgegeben.
-     * Ansonsten kann diese über einen Dialog eingegeben werden, falls dies auch nicht passiert wird eine Exception geworfen.
+     * Ansonsten kann diese über einen Dialog eingegeben werden, falls dies auch nicht passiert, wird eine Exception geworfen.
      * @return IP-Adresse vom Kamera Stream
      */
     public static String resolveCameraIp() {
-        String ip = autoDetectCameraIp();
+        return "192.168.42.157";
 
-        if (ip == null) {
-            ip = JOptionPane.showInputDialog(
-                    null,
-                    "Keine Kamera im WLAN gefunden.\nBitte IP der Webcam-App manuell eintragen:",
-                    "Kamera verbinden",
-                    JOptionPane.QUESTION_MESSAGE
-            );
-
-            if (ip == null || ip.trim().isEmpty()) {
-                System.err.println("Abbruch durch Nutzer.");
-                throw new IllegalStateException("Keine Kamera-IP angegeben.");
-            }
-        }
-        return ip.replace("http://", "").replace("/shot.jpg", "");
+//        String ip = autoDetectCameraIp();
+//
+//        if (ip == null) {
+//            ip = JOptionPane.showInputDialog(
+//                    null,
+//                    "Keine Kamera im WLAN gefunden.\nBitte IP der Webcam-modules.App manuell eintragen:",
+//                    "Kamera verbinden",
+//                    JOptionPane.QUESTION_MESSAGE
+//            );
+//
+//            if (ip == null || ip.trim().isEmpty()) {
+//                System.err.println("Abbruch durch Nutzer.");
+//                throw new IllegalStateException("Keine Kamera-IP angegeben.");
+//            }
+//        }
+//        return ip.replace("http://", "").replace("/shot.jpg", "");
     }
 
     /**

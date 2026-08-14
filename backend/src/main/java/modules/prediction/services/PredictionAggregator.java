@@ -6,9 +6,11 @@ import modules.prediction.strategies.prediction.LiveFeedbackAdapter;
 import modules.vision.structures.FeedbackResult;
 import modules.prediction.structures.PredictedAttributes;
 import modules.prediction.structures.PredictionFactor;
+import org.springframework.stereotype.Service;
 
 import java.util.*;
 
+@Service
 public class PredictionAggregator {
     private final List<PredictionStrategy> strategies;
 

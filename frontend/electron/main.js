@@ -13,7 +13,7 @@ function startBackend() {
     windowsHide: true,
     env: {
       ...process.env,
-      SPOTIFY_CLIENT_SECRET: "value1",
+      SPOTIFY_CLIENT_SECRET: "54ac515fed40427facf841f22461b7e7",
       GROQ_API_KEY: "value2"
     }
   });
@@ -39,9 +39,14 @@ function createWindow() {
     },
   });
 
+  // Entfernt die native System-Menüleiste (Datei, Bearbeiten, Ansicht...)
+  win.removeMenu();
+
   const startUrl = process.env.ELECTRON_START_URL;
   if (startUrl) {
     win.loadURL(startUrl);
+
+    win.webContents.openDevTools();
   } else {
     const indexPath = path.resolve(__dirname, '../dist/frontend/browser/index.html');
     win.loadFile(indexPath);

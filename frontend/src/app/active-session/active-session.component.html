@@ -1,0 +1,129 @@
+<main class="page-container">
+  <div class="lumina-ambient-glow"></div>
+  <header class="header">
+    <div class="header-left">
+      <div class="logo">LuminaDJ</div>
+      <div class="session-time-badge">
+        time left: <span class="highlight">{{ sessionTimeLeft }}</span>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="spotify-account">
+        <span class="spotify-icon"></span>
+        <span class="account-name">{{ spotifyUser }}</span>
+      </div>
+    </div>
+  </header>
+  <div class="main-layout">
+    <div class="column-left">
+      <section class="card camera-card">
+        <div class="camera-card-header" (click)="toggleCamera()" title="Click to hide/show camera">
+          <div class="camera-title-wrapper">
+            <span class="material-icons-outlined camera-icon">videocam</span>
+            <span class="camera-title">Live Camera</span>
+          </div>
+          <span class="material-icons-outlined toggle-icon">
+            <!-- MODERN ANGULAR @if (ternary) -->
+            {{ isCameraExpanded ? 'expand_more' : 'chevron_right' }}
+          </span>
+        </div>
+        <!-- MODERN ANGULAR @if -->
+        @if (isCameraExpanded) {
+          <div class="camera-feed-box">
+            <div class="camera-header-icons">
+              <span class="material-icons-outlined action-icon" title="Info">info</span>
+              <span class="material-icons-outlined action-icon" title="Log/Details">assignment</span>
+            </div>
+            <div class="camera-placeholder-text">Live Camera picture</div>
+          </div>
+        }
+      </section>
+      <section class="card log-card">
+        <h3>Detected Gestures</h3>
+        <div class="gesture-log-box">
+          <ul class="log-list">
+            <!-- MODERN ANGULAR @for -->
+            @for (gesture of detectedGestures; track gesture.name) {
+              <li class="log-item">
+                <span class="gesture-name">{{ gesture.name }}</span>
+                <span class="timestamp">{{ gesture.timeAgo }}</span>
+              </li>
+            }
+            <li class="log-item empty-log">
+              <span class="gesture-name">...</span>
+            </li>
+          </ul>
+        </div>
+      </section>
+    </div>
+    <div class="column-right">
+      <section class="card player-card">
+        <div class="player-layout">
+          <img [src]="currentSong.coverUrl" alt="Album Cover" class="album-cover">
+          <div class="player-details">
+            <div class="track-info">
+              <h3 class="song-title">{{ currentSong.title }}</h3>
+              <p class="song-artist">{{ currentSong.artist }}</p>
+            </div>
+          </div>
+        </div>
+        <!-- NEU: Zeit-Labels und dynamische Progress-Bar hinzugefügt -->
+        <div class="progress-container">
+          <span class="time-label">{{ formattedProgress }}</span>
+          <!-- (click) hinzugefügt, um zu Spulen -->
+          <div class="progress-bar" (click)="onProgressBarClick($event)">
+            <div class="progress-fill" [style.width.%]="progressPercent"></div>
+            <div class="progress-handle" [style.left.%]="progressPercent"></div>
+          </div>
+          <span class="time-label">{{ formattedDuration }}</span>
+        </div>
+
+        <!-- NEU: Favorite Button und Icons hinzugefügt -->
+        <div class="player-controls">
+          <button class="control-btn" title="Add to Favorites" (click)="toggleFavorite()" [class.is-favorite]="isFavorite">
+            <span class="material-icons-outlined">{{ isFavorite ? 'favorite' : 'favorite_border' }}</span>
+          </button>
+
+          <!-- Methoden-Bindings und dynamisches isPlaying Icon hinzugefügt -->
+          <button class="control-btn" title="Restart Song" (click)="previousSong()">
+            <span class="material-icons-outlined">skip_previous</span>
+          </button>
+
+          <button class="control-btn play-pause-btn" title="Play/Pause" (click)="togglePlayPause()">
+            <span class="material-icons-outlined">{{ isPlaying ? 'pause_circle' : 'play_circle' }}</span>
+          </button>
+
+          <button class="control-btn" title="Skip Forward" (click)="skipSong()">
+            <span class="material-icons-outlined">skip_next</span>
+          </button>
+        </div>
+      </section>
+      <section class="card legend-card">
+        <h3>Gesture Actions</h3>
+        <div class="gesture-table">
+          <div class="gesture-row">
+            <span class="gesture-icon">Peace</span>
+            <span class="gesture-action">Skip Song</span>
+          </div>
+          <div class="gesture-row">
+            <span class="gesture-icon">Index Finger</span>
+            <span class="gesture-action">Skip Genre</span>
+          </div>
+          <div class="gesture-row">
+            <span class="gesture-icon">Thumbs up</span>
+            <span class="gesture-action">Prioritize current genre</span>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <footer class="action-footer">
+    <button class="btn-secondary btn-small" (click)="editSessionAction()">
+      edit session
+    </button>
+    <button class="btn-danger btn-small" (click)="cancelSessionAction()">
+      cancel session
+    </button>
+  </footer>
+</main>

@@ -8,12 +8,14 @@ import modules.music.strategies.core.MusicSourceAdapter;
 import modules.music.structures.Track;
 import modules.prediction.structures.PredictedAttributes;
 import modules.userContext.strategies.core.UserContextStrategy;
+import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.util.*;
 
 // "Spotify Tracks Dataset" (von Maharshi Pandya) --> Kaggle
+@Service
 public class LocalSongDatabaseAdapter implements MusicSourceAdapter {
 
     private final List<Track> database = new ArrayList<>();

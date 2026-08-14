@@ -4,7 +4,7 @@
       <env name="GROQ_API_KEY" value="value" />
       <env name="SPOTIFY_CLIENT_SECRET" value="value2" />
     </envs>
-    <option name="MAIN_CLASS_NAME" value="App" />
+    <option name="MAIN_CLASS_NAME" value="modules.App" />
     <module name="LuminaDJ" />
     <method v="2">
       <option name="Make" enabled="true" />
