@@ -1,17 +1,18 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router } from '@angular/router'; // NEU: Router importieren
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
+import { MatButtonModule } from '@angular/material/button'; // Wichtig für Material Buttons
 import { ContextApiService } from '../services/context-api.service';
-import { NotificationService } from '../services/notification.service'; // NEU
+import { NotificationService } from '../services/notification.service';
+import { ButtonComponent } from '../shared/button/button.component';
 
 @Component({
   selector: 'app-setup-page',
   standalone: true,
-  imports: [RouterLink, FormsModule, CommonModule, MatFormFieldModule, MatInputModule, MatButtonModule],
+  imports: [FormsModule, CommonModule, MatFormFieldModule, MatInputModule, ButtonComponent], // ButtonComponent hinzugefügt
   templateUrl: './setup-page.component.html',
   styleUrls: ['./setup-page.component.scss']
 })
@@ -29,7 +30,8 @@ export class SetupPageComponent implements OnInit, OnDestroy {
 
   constructor(
     private readonly apiService: ContextApiService,
-    private readonly notificationService: NotificationService // NEU
+    private readonly notificationService: NotificationService,
+    private readonly router: Router // NEU
   ) {}
 
   ngOnInit() {
@@ -46,6 +48,12 @@ export class SetupPageComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     if (this.spotifyPollTimer) clearInterval(this.spotifyPollTimer);
+  }
+
+  submitSetup(): void {
+    if (this.isSpotifyConnected && this.isCameraConnected) {
+      this.router.navigate(['/session-setup']);
+    }
   }
 
   connectSpotify() {
@@ -129,7 +137,6 @@ export class SetupPageComponent implements OnInit, OnDestroy {
       next: () => {
         this.isCameraConnected = true;
         this.showCameraDialog = false;
-        this.notificationService.showSuccess('Kamera verbunden!');
       },
       error: (err) => {
         console.error('Device Selection Error', err);

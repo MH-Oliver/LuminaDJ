@@ -1,9 +1,9 @@
-<!-- setup-page/setup-page.component.html -->
 <main class="page-container">
   <div class="lumina-ambient-glow"></div>
-  <div class="setup-content">
-    <h1>setup</h1>
-    <p class="subtitle">before starting:</p>
+
+  <form class="setup-content" (ngSubmit)="submitSetup()">
+    <h1>Setup</h1>
+    <p class="subtitle">Before starting:</p>
 
     <div class="connection-list">
       <div class="connection-item">
@@ -29,39 +29,61 @@
       </div>
     </div>
 
-    <button class="btn-primary continue-btn" [disabled]="!isSpotifyConnected || !isCameraConnected" routerLink="/session-setup">
-      continue
-    </button>
-  </div>
+    <app-button
+      type="submit"
+      variant="primary"
+      [disabled]="!isSpotifyConnected || !isCameraConnected"
+      style="margin-top: 1rem;">
+      Continue
+    </app-button>
+  </form>
 
-  <!-- Camera Connection Dialog -->
   @if (showCameraDialog) {
     <div class="modal-overlay" (click)="closeCameraDialog()">
-      <div class="modal-content" (click)="$event.stopPropagation()">
+      <form class="modal-content" (click)="$event.stopPropagation()" (ngSubmit)="confirmCameraIp()">
         <h3>Connect Camera</h3>
 
         <div class="camera-option">
-          <button class="btn-primary modal-btn" (click)="autoDetectCamera()" [disabled]="isDetecting">
+          <app-button
+            type="button"
+            variant="primary"
+            [isStroked]="true"
+            [disabled]="isDetecting"
+            (clicked)="autoDetectCamera()">
             {{ isDetecting ? 'Detecting...' : 'Auto Detect IP' }}
-          </button>
+          </app-button>
+
           @if (detectedIp) {
             <p class="success-text">Found: {{ detectedIp }}</p>
           }
         </div>
 
         <hr class="divider">
-        <form class="camera-option">
+
+        <div class="camera-option">
           <mat-form-field appearance="outline" style="width: 100%; margin-top: 1rem;">
             <mat-label>Manual IP Address</mat-label>
-            <input matInput [(ngModel)]="manualIp" name="manualIp" placeholder="z.B. 192.168.178.50">
+            <input matInput [(ngModel)]="manualIp" name="manualIp" placeholder="e.g. 192.168.178.50">
           </mat-form-field>
-        </form>
+        </div>
 
         <div class="modal-actions">
-          <button class="btn-danger modal-btn" (click)="closeCameraDialog()">Cancel</button>
-          <button class="btn-primary modal-btn" (click)="confirmCameraIp()" [disabled]="!detectedIp && !manualIp">Connect</button>
+          <app-button
+            type="button"
+            variant="danger"
+            [isStroked]="true"
+            (clicked)="closeCameraDialog()">
+            Cancel
+          </app-button>
+
+          <app-button
+            type="submit"
+            variant="primary"
+            [disabled]="!detectedIp && !manualIp">
+            Connect
+          </app-button>
         </div>
-      </div>
+      </form>
     </div>
   }
 </main>

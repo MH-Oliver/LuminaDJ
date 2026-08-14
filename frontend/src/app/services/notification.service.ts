@@ -8,18 +8,19 @@ export class NotificationService {
   constructor(private snackBar: MatSnackBar) {}
 
   showError(message: string): void {
-    this.snackBar.open(message, 'Schließen', {
-      duration: 5000,
-      panelClass: ['error-snackbar'], // Optional für Custom CSS
+    // Leerer String '' blendet den Button aus
+    this.snackBar.open(message, '', {
+      duration: 3000,
+      panelClass: ['custom-snackbar', 'error-snackbar'],
       horizontalPosition: 'center',
       verticalPosition: 'bottom',
     });
   }
 
   showSuccess(message: string): void {
-    this.snackBar.open(message, 'OK', {
+    this.snackBar.open(message, '', {
       duration: 3000,
-      panelClass: ['success-snackbar'],
+      panelClass: ['custom-snackbar', 'success-snackbar'],
       horizontalPosition: 'center',
       verticalPosition: 'bottom',
     });
