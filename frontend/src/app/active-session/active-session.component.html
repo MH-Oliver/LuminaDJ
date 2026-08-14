@@ -38,6 +38,13 @@
         @if (isCameraExpanded) {
           <div class="camera-feed-box">
             <div class="camera-header-icons">
+              <span class="material-icons-outlined action-icon"
+                    style="cursor: default;"
+                    [style.color]="isCameraReachable ? '#4caf50' : '#f44336'"
+                    [title]="isCameraReachable ? 'Kamera erreichbar' : 'Kamera nicht erreichbar (Offline/Fehler)'">
+                {{ isCameraReachable ? 'wifi' : 'wifi_off' }}
+              </span>
+
               <span class="material-icons-outlined action-icon" title="Info">info</span>
               <span class="material-icons-outlined action-icon" title="Log/Details">assignment</span>
             </div>

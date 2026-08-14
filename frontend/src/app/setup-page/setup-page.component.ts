@@ -1,13 +1,17 @@
-// setup-page/setup-page.component.ts
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { CommonModule } from '@angular/common';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
 import { ContextApiService } from '../services/context-api.service';
+import { NotificationService } from '../services/notification.service'; // NEU
 
 @Component({
   selector: 'app-setup-page',
   standalone: true,
-  imports: [RouterLink, FormsModule],
+  imports: [RouterLink, FormsModule, CommonModule, MatFormFieldModule, MatInputModule, MatButtonModule],
   templateUrl: './setup-page.component.html',
   styleUrls: ['./setup-page.component.scss']
 })
@@ -23,7 +27,10 @@ export class SetupPageComponent implements OnInit, OnDestroy {
 
   private spotifyPollTimer: any;
 
-  constructor(private readonly apiService: ContextApiService) {}
+  constructor(
+    private readonly apiService: ContextApiService,
+    private readonly notificationService: NotificationService // NEU
+  ) {}
 
   ngOnInit() {
     // Beim Laden nur prüfen, ob wir evtl. schon eingeloggt sind
@@ -99,14 +106,17 @@ export class SetupPageComponent implements OnInit, OnDestroy {
   autoDetectCamera() {
     this.isDetecting = true;
     this.apiService.deviceFound().subscribe({
-      next: (response) => {
+      next: (response: any) => {
         this.detectedIp = response.ip;
         this.isDetecting = false;
         this.manualIp = '';
+        this.notificationService.showSuccess('Kamera erfolgreich gefunden!');
       },
       error: (err) => {
         console.error('Camera Auto Detect Error', err);
         this.isDetecting = false;
+        const errMsg = err.error?.error || 'Fehler beim automatischen Suchen der Kamera.';
+        this.notificationService.showError(errMsg);
       }
     });
   }
@@ -119,8 +129,13 @@ export class SetupPageComponent implements OnInit, OnDestroy {
       next: () => {
         this.isCameraConnected = true;
         this.showCameraDialog = false;
+        this.notificationService.showSuccess('Kamera verbunden!');
       },
-      error: (err) => console.error('Device Selection Error', err)
+      error: (err) => {
+        console.error('Device Selection Error', err);
+        const errMsg = err.error?.error || 'Die Kamera konnte nicht verbunden werden.';
+        this.notificationService.showError(errMsg);
+      }
     });
   }
 }

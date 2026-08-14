@@ -257,6 +257,7 @@ public class GestureRecognitionService {
                 return ImageIO.read(new ByteArrayInputStream(response.body()));
             }
         } catch (Exception e) {
+            latestAnnotatedJpeg = null;
             System.err.println("Fehler beim Abrufen des Einzelbildes: " + e.getMessage());
         }
         return null;

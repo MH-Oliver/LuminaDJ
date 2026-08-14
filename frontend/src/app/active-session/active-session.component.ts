@@ -19,6 +19,7 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
   isCameraExpanded = true;
   isPlaying = false;
   isCameraProcessing = true;
+  isCameraReachable = false;
 
   cameraImage: string | null = null;
   detectedGestures: { name: string, count: number }[] = [];
@@ -95,10 +96,10 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
   }
 
   fetchCameraData(): void {
-    // Nur abfragen, wenn die Kamera-Sicht ausgeklappt ist, um Netzwerklast zu sparen
     if (this.isCameraExpanded && this.isCameraProcessing) {
       this.apiService.getCurrentFrame().subscribe({
-        next: (data) => {
+        next: (data: any) => {
+          this.isCameraReachable = true; // Erfolgreich!
           this.cameraImage = data.image;
           // Map { "peace": 2 } zu Array [ {name: "peace", count: 2} ] umwandeln
           if (data.gestures) {
@@ -109,8 +110,8 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
           }
         },
         error: (err) => {
-          // Optional: Fehler silent ignorieren, falls Kamera (noch) nicht verbunden ist
-          // console.error('Kamera-Daten konnten nicht geladen werden', err);
+          this.cameraImage = null;
+          this.isCameraReachable = false; // Fehler/Offline!
         }
       });
     }

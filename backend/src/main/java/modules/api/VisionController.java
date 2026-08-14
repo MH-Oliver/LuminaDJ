@@ -23,25 +23,32 @@ public class VisionController {
     }
 
     @GetMapping("/deviceFound")
-    public ResponseEntity<Map<String, String>> deviceFound() {
-        String foundIp = CameraDiscoverer.resolveCameraIp();
-
-        // Wir verpacken die IP sauber in ein JSON-Objekt
-        return ResponseEntity.ok(Map.of("ip", foundIp));
+    public ResponseEntity<?> deviceFound() {
+        try {
+            String foundIp = CameraDiscoverer.resolveCameraIp();
+            if (foundIp == null) {
+                // Sauberer Fehler statt null-Response
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(Map.of("error", "Es konnte automatisch keine Kamera im Netzwerk gefunden werden."));
+            }
+            return ResponseEntity.ok(Map.of("ip", foundIp));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Interner Fehler beim Kamera-Scan."));
+        }
     }
 
     @PostMapping("/selectedDevice")
-    public ResponseEntity<Map<String, Object>> selectedDevice(@RequestBody Map<String, String> payload) {
+    public ResponseEntity<?> selectedDevice(@RequestBody Map<String, String> payload) {
         String ipAddress = payload.get("ip");
         System.out.println("Verbinde mit Device IP: " + ipAddress);
-
         try {
             gestureService.connect(ipAddress);
+            return ResponseEntity.ok(Map.of("connectedIp", ipAddress));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            // StackTrace abfangen und als Message an das Frontend geben
+            return ResponseEntity.badRequest().body(Map.of("error", "Verbindung fehlgeschlagen: " + e.getMessage()));
         }
-
-        return ResponseEntity.ok(Map.of("connectedIp", ipAddress));
     }
 
     /**
