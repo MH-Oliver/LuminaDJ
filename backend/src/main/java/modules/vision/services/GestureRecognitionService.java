@@ -77,22 +77,15 @@ public class GestureRecognitionService {
      */
     public synchronized void connect(String ipAddress) throws IOException {
         stop();
-
         if (palmDetector == null) {
             palmDetector = new PalmDetector();
             landmarkExtractor = new HandLandmarkExtractor();
             gestureClassifier = GestureClassifier.load(resolveGestureModelFile(), K_NEAREST_NEIGHBORS);
         }
-
         this.cameraUrl = "http://" + ipAddress + "/shot.jpg";
         this.confirmedGestureCounts.clear();
         this.activeHolds.clear();
         this.latestAnnotatedJpeg = null;
-        this.running = true;
-
-        pollingThread = new Thread(this::pollLoop);
-        pollingThread.setDaemon(true);
-        pollingThread.start();
     }
 
     public synchronized void stop() {

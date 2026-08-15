@@ -8,17 +8,19 @@ import { MatButtonModule } from '@angular/material/button'; // Wichtig für Mate
 import { ContextApiService } from '../services/context-api.service';
 import { NotificationService } from '../services/notification.service';
 import { ButtonComponent } from '../shared/button/button.component';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 
 @Component({
   selector: 'app-setup-page',
   standalone: true,
-  imports: [FormsModule, CommonModule, MatFormFieldModule, MatInputModule, ButtonComponent], // ButtonComponent hinzugefügt
+  imports: [FormsModule, CommonModule, MatFormFieldModule, MatInputModule, ButtonComponent, MatCheckboxModule], // ButtonComponent hinzugefügt
   templateUrl: './setup-page.component.html',
   styleUrls: ['./setup-page.component.scss']
 })
 export class SetupPageComponent implements OnInit, OnDestroy {
   isSpotifyConnected = false;
   isCameraConnected = false;
+  isCameraSkipped = false;
 
   // Camera Dialog State
   showCameraDialog = false;
@@ -51,7 +53,14 @@ export class SetupPageComponent implements OnInit, OnDestroy {
   }
 
   submitSetup(): void {
-    if (this.isSpotifyConnected && this.isCameraConnected) {
+    if (this.isSpotifyConnected && (this.isCameraConnected || this.isCameraSkipped)) {
+
+      if (this.isCameraSkipped) {
+        sessionStorage.setItem('skipCamera', 'true');
+      } else {
+        sessionStorage.removeItem('skipCamera');
+      }
+
       this.router.navigate(['/session-setup']);
     }
   }

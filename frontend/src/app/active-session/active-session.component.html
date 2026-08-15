@@ -24,6 +24,7 @@
             <mat-slide-toggle
               class="camera-toggle-margin"
               [(ngModel)]="isCameraProcessing"
+              [disabled]="isCameraSkipped"
               (change)="onCameraToggleChange()"
               (click)="$event.stopPropagation()"
               title="Toggle Camera Processing">
@@ -48,7 +49,9 @@
             @if (cameraImage) {
               <img [src]="cameraImage" alt="Live Camera" style="width: 100%; height: 100%; object-fit: contain;">
             } @else {
-              <div class="camera-placeholder-text">Live Camera picture</div>
+              <div class="camera-placeholder-text">
+                {{ isCameraSkipped ? 'Camera skipped in setup' : 'Live Camera picture' }}
+              </div>
             }
           </div>
         }

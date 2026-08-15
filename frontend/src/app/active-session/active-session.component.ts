@@ -21,6 +21,7 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
   isPlaying = false;
   isCameraProcessing = true;
   isCameraReachable = false;
+  isCameraSkipped = false;
 
   cameraImage: string | null = null;
   detectedGestures: { name: string, count: number }[] = [];
@@ -56,6 +57,12 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    this.isCameraSkipped = sessionStorage.getItem('skipCamera') === 'true';
+    if (this.isCameraSkipped) {
+      this.isCameraProcessing = false;
+      this.isCameraExpanded = false; // Kamera einklappen
+    }
+
     this.fetchUpdate();
 
     this.countdownSub = interval(1000).subscribe(() => {
