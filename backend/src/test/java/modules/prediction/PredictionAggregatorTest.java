@@ -5,14 +5,12 @@ import modules.prediction.services.PredictionAggregator;
 import modules.prediction.strategies.core.PredictionStrategy;
 import modules.prediction.structures.PredictedAttributes;
 import modules.prediction.structures.PredictionFactor;
-import modules.vision.structures.FeedbackResult;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PredictionAggregatorTest {
@@ -22,8 +20,6 @@ class PredictionAggregatorTest {
         Map<String, Double> baseFeatures = new HashMap<>();
         baseFeatures.put("energy", 0.5);
         Track currentSong = new Track("id", "Test Song", "Test Artist", "rock", baseFeatures);
-
-        FeedbackResult neutralFeedback = new FeedbackResult(true, 0.5);
 
         // Dummy Strategie 1: Möchte die Energy um +20% (Faktor 1.2) mit 100% Gewicht anheben
         PredictionStrategy strategy1 = new PredictionStrategy() {
@@ -42,7 +38,7 @@ class PredictionAggregatorTest {
 
         PredictionAggregator aggregator = new PredictionAggregator(List.of(strategy1, strategy2));
 
-        PredictedAttributes result = aggregator.calculateNextAttributes(currentSong, neutralFeedback);
+        PredictedAttributes result = aggregator.calculateNextAttributes(currentSong);
 
         double resultEnergy = result.features().get("energy");
 

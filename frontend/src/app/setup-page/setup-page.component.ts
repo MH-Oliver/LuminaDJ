@@ -1,19 +1,26 @@
-// setup-page/setup-page.component.ts
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router } from '@angular/router'; // NEU: Router importieren
 import { FormsModule } from '@angular/forms';
+import { CommonModule } from '@angular/common';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button'; // Wichtig für Material Buttons
 import { ContextApiService } from '../services/context-api.service';
+import { NotificationService } from '../services/notification.service';
+import { ButtonComponent } from '../shared/button/button.component';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 
 @Component({
   selector: 'app-setup-page',
   standalone: true,
-  imports: [RouterLink, FormsModule],
+  imports: [FormsModule, CommonModule, MatFormFieldModule, MatInputModule, ButtonComponent, MatCheckboxModule], // ButtonComponent hinzugefügt
   templateUrl: './setup-page.component.html',
   styleUrls: ['./setup-page.component.scss']
 })
 export class SetupPageComponent implements OnInit, OnDestroy {
   isSpotifyConnected = false;
   isCameraConnected = false;
+  isCameraSkipped = false;
 
   // Camera Dialog State
   showCameraDialog = false;
@@ -23,7 +30,11 @@ export class SetupPageComponent implements OnInit, OnDestroy {
 
   private spotifyPollTimer: any;
 
-  constructor(private readonly apiService: ContextApiService) {}
+  constructor(
+    private readonly apiService: ContextApiService,
+    private readonly notificationService: NotificationService,
+    private readonly router: Router // NEU
+  ) {}
 
   ngOnInit() {
     // Beim Laden nur prüfen, ob wir evtl. schon eingeloggt sind
@@ -39,6 +50,19 @@ export class SetupPageComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     if (this.spotifyPollTimer) clearInterval(this.spotifyPollTimer);
+  }
+
+  submitSetup(): void {
+    if (this.isSpotifyConnected && (this.isCameraConnected || this.isCameraSkipped)) {
+
+      if (this.isCameraSkipped) {
+        sessionStorage.setItem('skipCamera', 'true');
+      } else {
+        sessionStorage.removeItem('skipCamera');
+      }
+
+      this.router.navigate(['/session-setup']);
+    }
   }
 
   connectSpotify() {
@@ -99,14 +123,17 @@ export class SetupPageComponent implements OnInit, OnDestroy {
   autoDetectCamera() {
     this.isDetecting = true;
     this.apiService.deviceFound().subscribe({
-      next: (response) => {
+      next: (response: any) => {
         this.detectedIp = response.ip;
         this.isDetecting = false;
         this.manualIp = '';
+        this.notificationService.showSuccess('Kamera erfolgreich gefunden!');
       },
       error: (err) => {
         console.error('Camera Auto Detect Error', err);
         this.isDetecting = false;
+        const errMsg = err.error?.error || 'Fehler beim automatischen Suchen der Kamera.';
+        this.notificationService.showError(errMsg);
       }
     });
   }
@@ -120,7 +147,11 @@ export class SetupPageComponent implements OnInit, OnDestroy {
         this.isCameraConnected = true;
         this.showCameraDialog = false;
       },
-      error: (err) => console.error('Device Selection Error', err)
+      error: (err) => {
+        console.error('Device Selection Error', err);
+        const errMsg = err.error?.error || 'Die Kamera konnte nicht verbunden werden.';
+        this.notificationService.showError(errMsg);
+      }
     });
   }
 }

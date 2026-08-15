@@ -62,6 +62,14 @@ export class ContextApiService {
     return this.http.post<{ connectedIp: string }>(`${this.baseUrl}/vision/selectedDevice`, { ip: ipAddress });
   }
 
+  getCurrentFrame(): Observable<{ image: string, gestures: { [key: string]: number } }> {
+    return this.http.get<{ image: string, gestures: { [key: string]: number } }>(`${this.baseUrl}/vision/currentFrame`);
+  }
+
+  toggleCameraProcessing(active: boolean): Observable<{ isActive: boolean }> {
+    return this.http.post<{ isActive: boolean }>(`${this.baseUrl}/vision/toggleState`, { active });
+  }
+
   // ==========================================
   // CONTEXT ENDPOINTS
   // ==========================================

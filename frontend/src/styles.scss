@@ -1,3 +1,22 @@
+
+// Include theming for Angular Material with `mat.theme()`.
+// This Sass mixin will define CSS variables that are used for styling Angular Material
+// components according to the Material 3 design spec.
+// Learn more about theming and how to use it for your application's
+// custom components at https://material.angular.dev/guide/theming
+@use '@angular/material' as mat;
+
+html {
+  @include mat.theme((
+    color: (
+      primary: mat.$magenta-palette,
+      tertiary: mat.$violet-palette,
+    ),
+    typography: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+    density: 0,
+  ));
+}
+
 /* ==========================================================================
    1. GLOBAL VARIABLES (COLORS, THEMING & EASING)
    ========================================================================== */
@@ -70,4 +89,66 @@ h1, h2, h3, h4, h5, h6 {
   pointer-events: none;
   z-index: -10;
   filter: blur(6rem);
+}
+
+.custom-snackbar {
+  .mdc-snackbar__surface {
+    border-radius: 0.75rem !important;
+    background-color: var(--color-bg-surface-light) !important;
+    color: var(--color-text-primary) !important;
+    box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.6) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  /* Der Text in der Snackbar */
+  .mdc-snackbar__label {
+    color: var(--color-text-primary) !important;
+    font-size: 1rem !important;
+  }
+
+  /* Rahmenfarben je nach Status */
+  &.error-snackbar .mdc-snackbar__surface {
+    border-color: var(--color-danger-base) !important;
+  }
+
+  &.success-snackbar .mdc-snackbar__surface {
+    border-color: var(--color-accent-lightblue) !important;
+  }
+}
+
+.mat-mdc-icon-button {
+  --mdc-icon-button-icon-color: var(--color-text-primary) !important;
+  color: var(--color-text-primary) !important;
+}
+
+.mdc-text-field__input,
+.mat-mdc-input-element {
+  color: var(--color-text-primary) !important;
+}
+
+/* ==========================================================================
+   FIX MATERIAL SELECT (DROPDOWN) COLORS
+   ========================================================================== */
+/* 1. Die Schrift des aktuell ausgewählten Werts im Feld und der kleine Pfeil */
+.mat-mdc-select-value,
+.mat-mdc-select-arrow {
+  color: var(--color-text-primary) !important;
+}
+
+/* 2. Der Hintergrund des aufklappenden Menüs (Panel) */
+.mat-mdc-select-panel {
+  background-color: var(--color-bg-surface-light) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* 3. Die Schrift der einzelnen Auswahl-Optionen im Menü */
+.mat-mdc-option .mdc-list-item__primary-text,
+.mat-mdc-option {
+  color: var(--color-text-primary) !important;
+}
+
+/* 4. Ein schöner Hover- und Selected-Effekt für die Optionen */
+.mat-mdc-option:hover:not(.mdc-list-item--disabled),
+.mat-mdc-option.mdc-list-item--selected {
+  background-color: rgba(255, 255, 255, 0.1) !important;
 }

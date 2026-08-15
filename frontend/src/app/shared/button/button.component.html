@@ -1,0 +1,8 @@
+<button
+  [type]="type"
+  [disabled]="disabled"
+  class="custom-btn"
+  [ngClass]="['btn-' + variant, isStroked ? 'is-stroked' : 'is-flat']"
+  (click)="onClick($event)">
+  <ng-content></ng-content>
+</button>

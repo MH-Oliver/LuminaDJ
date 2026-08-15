@@ -1,14 +1,17 @@
-// active-session/active-session.component.ts
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { RouterLink, Router } from '@angular/router';
+import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { ContextApiService } from '../services/context-api.service';
 import { Subscription, interval } from 'rxjs';
 
+import { FormsModule } from '@angular/forms';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import {ButtonComponent} from '../shared/button/button.component';
+
 @Component({
   selector: 'app-active-session',
   standalone: true,
-  imports: [RouterLink, CommonModule],
+  imports: [CommonModule, FormsModule, MatSlideToggleModule, ButtonComponent],
   templateUrl: './active-session.component.html',
   styleUrls: ['./active-session.component.scss']
 })
@@ -16,6 +19,13 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
   spotifyUser = 'DJ_Lumina_Test';
   isCameraExpanded = true;
   isPlaying = false;
+  isCameraProcessing = true;
+  isCameraReachable = false;
+  isCameraSkipped = false;
+
+  cameraImage: string | null = null;
+  detectedGestures: { name: string, count: number }[] = [];
+  private cameraPollTimer: any;
 
   currentSong = {
     title: 'Loading...',
@@ -35,12 +45,6 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
   private sessionStartTime?: Date;
   private lastStartTimeRaw: string | null = null;
 
-  detectedGestures = [
-    { name: 'thumbs up detected', timeAgo: '2 sec ago' },
-    { name: 'swipe gesture detected (1/3 for skip)', timeAgo: '15 sec ago' },
-    { name: 'thumbs down detected', timeAgo: '45 sec ago' }
-  ];
-
   private countdownSub?: Subscription;
   private localProgressTimer: any;
 
@@ -53,6 +57,12 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    this.isCameraSkipped = sessionStorage.getItem('skipCamera') === 'true';
+    if (this.isCameraSkipped) {
+      this.isCameraProcessing = false;
+      this.isCameraExpanded = false; // Kamera einklappen
+    }
+
     this.fetchUpdate();
 
     this.countdownSub = interval(1000).subscribe(() => {
@@ -71,11 +81,48 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
         this.updateProgressUI();
       }
     }, 1000);
+
+    this.cameraPollTimer = setInterval(() => {
+      this.fetchCameraData();
+    }, 100);
   }
 
   ngOnDestroy(): void {
     if (this.countdownSub) this.countdownSub.unsubscribe();
     if (this.localProgressTimer) clearInterval(this.localProgressTimer);
+    if (this.cameraPollTimer) clearInterval(this.cameraPollTimer);
+  }
+
+  onCameraToggleChange(): void {
+    this.apiService.toggleCameraProcessing(this.isCameraProcessing).subscribe({
+      error: (err) => console.error('Kamera-Toggle fehlgeschlagen', err)
+    });
+
+    if (!this.isCameraProcessing) {
+      this.cameraImage = null;
+    }
+  }
+
+  fetchCameraData(): void {
+    if (this.isCameraExpanded && this.isCameraProcessing) {
+      this.apiService.getCurrentFrame().subscribe({
+        next: (data: any) => {
+          this.isCameraReachable = true; // Erfolgreich!
+          this.cameraImage = data.image;
+          // Map { "peace": 2 } zu Array [ {name: "peace", count: 2} ] umwandeln
+          if (data.gestures) {
+            this.detectedGestures = Object.keys(data.gestures).map(key => ({
+              name: key,
+              count: data.gestures[key]
+            }));
+          }
+        },
+        error: (err) => {
+          this.cameraImage = null;
+          this.isCameraReachable = false; // Fehler/Offline!
+        }
+      });
+    }
   }
 
   private updateProgressUI(): void {
