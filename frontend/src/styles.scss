@@ -125,3 +125,30 @@ h1, h2, h3, h4, h5, h6 {
 .mat-mdc-input-element {
   color: var(--color-text-primary) !important;
 }
+
+/* ==========================================================================
+   FIX MATERIAL SELECT (DROPDOWN) COLORS
+   ========================================================================== */
+/* 1. Die Schrift des aktuell ausgewählten Werts im Feld und der kleine Pfeil */
+.mat-mdc-select-value,
+.mat-mdc-select-arrow {
+  color: var(--color-text-primary) !important;
+}
+
+/* 2. Der Hintergrund des aufklappenden Menüs (Panel) */
+.mat-mdc-select-panel {
+  background-color: var(--color-bg-surface-light) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* 3. Die Schrift der einzelnen Auswahl-Optionen im Menü */
+.mat-mdc-option .mdc-list-item__primary-text,
+.mat-mdc-option {
+  color: var(--color-text-primary) !important;
+}
+
+/* 4. Ein schöner Hover- und Selected-Effekt für die Optionen */
+.mat-mdc-option:hover:not(.mdc-list-item--disabled),
+.mat-mdc-option.mdc-list-item--selected {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}

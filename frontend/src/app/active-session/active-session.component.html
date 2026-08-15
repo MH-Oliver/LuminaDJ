@@ -139,11 +139,15 @@
   </div>
 
   <footer class="action-footer">
-    <button class="btn-secondary btn-small" (click)="editSessionAction()">
-      edit session
-    </button>
-    <button class="btn-danger btn-small" (click)="cancelSessionAction()">
-      cancel session
-    </button>
+    <div style="width: 200px;">
+      <app-button variant="primary" (clicked)="editSessionAction()">
+        Edit session
+      </app-button>
+    </div>
+    <div style="width: 200px;">
+      <app-button variant="danger" (clicked)="cancelSessionAction()">
+        Cancel session
+      </app-button>
+    </div>
   </footer>
 </main>

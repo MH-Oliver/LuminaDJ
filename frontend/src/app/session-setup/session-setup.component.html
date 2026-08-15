@@ -11,19 +11,20 @@
   <section class="timeline-section">
     <div class="timeline-header">
       <h2>Select your Timeline</h2>
-      <select class="preset-dropdown" (change)="onPresetChange($event)">
-        <option value="" disabled selected>Preset wählen</option>
-        <!-- Iteriert über die vom Backend geladenen Presets -->
-        @for (preset of availablePresets; track preset) {
-          <option [value]="preset">{{ preset }}</option>
-        }
-      </select>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Preset wählen</mat-label>
+        <mat-select (selectionChange)="onPresetChange($event)">
+          @for (preset of availablePresets; track preset) {
+            <mat-option [value]="preset">{{ preset }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
 
-      <div class="length-input-wrapper">
-        <label>Timeline Länge:</label>
-        <input type="number" class="timeline-input" [value]="totalMinutes" step="5" min="10" (change)="updateTimelineLength($event)">
-        <span>min</span>
-      </div>
+      <!-- NEU: Material Input für die Länge -->
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" style="margin-left: auto; width: 180px;">
+        <mat-label>Timeline Länge (min)</mat-label>
+        <input matInput type="number" [value]="totalMinutes" step="5" min="10" (change)="updateTimelineLength($event)">
+      </mat-form-field>
     </div>
 
     <div class="timeline-widget">
@@ -49,7 +50,7 @@
                   <span class="genre-duration">{{ block.duration }} min</span>
 
                   <div class="resize-handle" (mousedown)="onMouseDownResize($event, block)"></div>
-                  <div class="delete-overlay">drop to delete</div>
+                  <div class="delete-overlay">Drop to delete</div>
                 </div>
               }
             </div>
@@ -78,32 +79,53 @@
   </section>
 
   <footer class="footer">
-    <button class="btn-primary ready-btn" (click)="onReady()">Ready</button>
+    <div style="width: 250px;">
+      <app-button variant="primary" (clicked)="onReady()">Ready</app-button>
+    </div>
   </footer>
 
   <!-- MODERN ANGULAR @if -->
   @if (selectedBlock) {
     <div class="modal-overlay" (click)="closeDialog()">
       <div class="modal-content" (click)="$event.stopPropagation()">
-        <h3>Edit Block</h3>
+        <h3 style="margin-bottom: 1.5rem;">Edit Block</h3>
+
         <div class="input-group">
-          <label>Genre:</label>
-          <select class="modal-dropdown" [value]="selectedBlock.title" (change)="updateGenre($event)">
-            <!-- MODERN ANGULAR @for -->
-            @for (genre of availableGenres; track genre) {
-              <option [value]="genre">{{ genre }}</option>
-            }
-          </select>
+          <!-- NEU: Material Select für Genre -->
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" style="width: 100%;">
+            <mat-label>Genre</mat-label>
+            <mat-select [value]="selectedBlock.title" (selectionChange)="updateGenre($event)">
+              @for (genre of availableGenres; track genre) {
+                <mat-option [value]="genre">{{ genre }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
         </div>
-        <div class="input-group">
-          <label>Duration: <span class="highlight">{{ selectedBlock.duration }} min</span></label>
-          <input type="range" class="duration-slider" min="5" max="120" step="5"
-                 [value]="selectedBlock.duration"
-                 (input)="updateDuration($event)">
+
+        <div class="input-group" style="margin-top: 1.5rem;">
+          <mat-label>Duration</mat-label>
+          <div style="display: flex; align-items: center; gap: 1rem;">
+            <mat-slider min="5" max="120" step="1" discrete style="flex: 1;">
+              <input matSliderThumb [value]="selectedBlock.duration" (input)="updateDuration($event)">
+            </mat-slider>
+
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" style="width: 90px;">
+              <input matInput type="number" min="5" max="120" step="1"
+                     [value]="selectedBlock.duration"
+                     (input)="updateDuration($event)">
+              <span matSuffix style="color: var(--color-text-muted); margin-right: 4px;">min</span>
+            </mat-form-field>
+          </div>
         </div>
-        <div class="modal-actions">
-          <button class="btn-danger modal-btn" (click)="deleteSelectedBlock()">Delete</button>
-          <button class="btn-primary modal-btn" (click)="closeDialog()">Done</button>
+
+        <!-- NEU: Buttons durch app-button ersetzt -->
+        <div class="modal-actions" style="display: flex; gap: 1rem; margin-top: 2rem;">
+          <div style="flex: 1;">
+            <app-button variant="danger" [isStroked]="true" (clicked)="deleteSelectedBlock()">Delete</app-button>
+          </div>
+          <div style="flex: 1;">
+            <app-button variant="primary" (clicked)="closeDialog()">Done</app-button>
+          </div>
         </div>
       </div>
     </div>
@@ -115,7 +137,9 @@
       <div class="modal-content error-modal" (click)="$event.stopPropagation()">
         <h3>Achtung</h3>
         <p>{{ errorMessage }}</p>
-        <button class="btn-primary modal-btn error-btn" (click)="closeError()">Verstanden</button>
+        <div style="margin-top: 1.5rem;">
+          <app-button variant="primary" (clicked)="closeError()">Verstanden</app-button>
+        </div>
       </div>
     </div>
   }

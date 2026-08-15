@@ -3,6 +3,11 @@ import { Component, HostListener, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { ContextApiService, UserContextDto, TimelinePhaseDto } from '../services/context-api.service';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatSelectModule } from '@angular/material/select';
+import { MatInputModule } from '@angular/material/input';
+import { MatSliderModule } from '@angular/material/slider';
+import { ButtonComponent } from '../shared/button/button.component';
 
 interface GenreBlock {
   id: number;
@@ -15,7 +20,7 @@ interface GenreBlock {
 @Component({
   selector: 'app-session-setup',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, MatFormFieldModule, MatSelectModule, MatInputModule, MatSliderModule, ButtonComponent],
   templateUrl: './session-setup.component.html',
   styleUrls: ['./session-setup.component.scss']
 })
@@ -77,8 +82,8 @@ export class SessionSetupComponent implements OnInit {
   // ==========================================
   // JSON -> UI: Preset vom Backend laden
   // ==========================================
-  onPresetChange(event: Event): void {
-    const presetName = (event.target as HTMLSelectElement).value;
+  onPresetChange(event: any): void {
+    const presetName = event.value || event.target?.value;
     if (!presetName) return;
 
     this.apiService.selectPreset(presetName).subscribe({
@@ -369,8 +374,8 @@ export class SessionSetupComponent implements OnInit {
     this.errorMessage = null;
   }
 
-  updateGenre(event: Event): void {
-    const newGenre = (event.target as HTMLSelectElement).value;
+  updateGenre(event: any): void {
+    const newGenre = event.value || event.target?.value;
     if (this.selectedBlock) {
       this.selectedBlock.title = newGenre;
     }

@@ -1,16 +1,17 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { Router } from '@angular/router'; // RouterLink können wir entfernen, da nicht genutzt
+import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { ContextApiService } from '../services/context-api.service';
 import { Subscription, interval } from 'rxjs';
 
 import { FormsModule } from '@angular/forms';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import {ButtonComponent} from '../shared/button/button.component';
 
 @Component({
   selector: 'app-active-session',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatSlideToggleModule],
+  imports: [CommonModule, FormsModule, MatSlideToggleModule, ButtonComponent],
   templateUrl: './active-session.component.html',
   styleUrls: ['./active-session.component.scss']
 })
