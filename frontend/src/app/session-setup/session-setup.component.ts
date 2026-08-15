@@ -8,6 +8,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatInputModule } from '@angular/material/input';
 import { MatSliderModule } from '@angular/material/slider';
 import { ButtonComponent } from '../shared/button/button.component';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 interface GenreBlock {
   id: number;
@@ -20,7 +21,7 @@ interface GenreBlock {
 @Component({
   selector: 'app-session-setup',
   standalone: true,
-  imports: [CommonModule, MatFormFieldModule, MatSelectModule, MatInputModule, MatSliderModule, ButtonComponent],
+  imports: [CommonModule, MatFormFieldModule, MatSelectModule, MatInputModule, MatSliderModule, ButtonComponent, MatTooltipModule],
   templateUrl: './session-setup.component.html',
   styleUrls: ['./session-setup.component.scss']
 })
@@ -270,6 +271,12 @@ export class SessionSetupComponent implements OnInit {
     const pixelsPerMinute = rect.width / this.totalMinutes;
     const deltaMinutes = (event.clientX - this.startX) / pixelsPerMinute;
 
+    const activeBlock = this.draggingBlock || this.resizingBlock;
+
+    // NEU: Mögliche Einrast-Punkte und die Toleranz (z.B. schnappt er ab 1.5 Minuten Entfernung ein)
+    const snapPoints = this.getSnapPoints(activeBlock!.id);
+    const SNAP_THRESHOLD = 1.5;
+
     if (this.draggingBlock) {
       const isOutY = event.clientY < rect.top - 30 || event.clientY > rect.bottom + 30;
       const isOutX = event.clientX < rect.left - 30 || event.clientX > rect.right + 30;
@@ -280,8 +287,30 @@ export class SessionSetupComponent implements OnInit {
         this.draggingBlock.row = event.clientY < midPoint ? 0 : 1;
       }
 
-      let newStart = this.startValue + deltaMinutes;
-      newStart = Math.round(newStart / 5) * 5;
+      // Rohe, nicht gerundete Positionen
+      const rawStart = this.startValue + deltaMinutes;
+      const rawEnd = rawStart + this.draggingBlock.duration;
+
+      let snappedStart = Math.round(rawStart / 5) * 5; // Standard: 5-Minuten-Raster
+      let minDiff = SNAP_THRESHOLD;
+
+      // NEU: Magnetisches Snapping (Prüfe alle Ränder der anderen Blöcke)
+      for (const p of snapPoints) {
+        // Snappt der linke Rand unseres Blocks an einen anderen?
+        const diffStart = Math.abs(rawStart - p);
+        if (diffStart < minDiff) {
+          minDiff = diffStart;
+          snappedStart = p;
+        }
+        // Snappt der rechte Rand unseres Blocks an einen anderen?
+        const diffEnd = Math.abs(rawEnd - p);
+        if (diffEnd < minDiff) {
+          minDiff = diffEnd;
+          snappedStart = p - this.draggingBlock.duration;
+        }
+      }
+
+      let newStart = snappedStart;
       if (newStart < 0) newStart = 0;
       if (newStart + this.draggingBlock.duration > this.totalMinutes) {
         newStart = this.totalMinutes - this.draggingBlock.duration;
@@ -290,9 +319,26 @@ export class SessionSetupComponent implements OnInit {
     }
 
     if (this.resizingBlock) {
-      let newDuration = this.startValue + deltaMinutes;
-      newDuration = Math.round(newDuration / 5) * 5;
-      if (newDuration < 5) newDuration = 5;
+      // Rohes, nicht gerundetes Ende beim Resizen
+      const rawEnd = this.resizingBlock.start + this.startValue + deltaMinutes;
+
+      let snappedEnd = Math.round(rawEnd / 5) * 5; // Standard: 5-Minuten-Raster
+      let minDiff = SNAP_THRESHOLD;
+
+      // NEU: Magnetisches Snapping für das Ende beim Langziehen
+      for (const p of snapPoints) {
+        const diffEnd = Math.abs(rawEnd - p);
+        if (diffEnd < minDiff) {
+          minDiff = diffEnd;
+          snappedEnd = p;
+        }
+      }
+
+      let newDuration = snappedEnd - this.resizingBlock.start;
+
+      // NEU: Damit man sehr kurze Blöcke bauen kann (z.B. Snapping an 1-Minuten Lücke)
+      if (newDuration < 1) newDuration = 1;
+
       if (this.resizingBlock.start + newDuration > this.totalMinutes) {
         newDuration = this.totalMinutes - this.resizingBlock.start;
       }
@@ -404,5 +450,19 @@ export class SessionSetupComponent implements OnInit {
       duration: 5,
       row: row
     });
+  }
+
+  private getSnapPoints(excludeId: number): number[] {
+    const points = new Set<number>();
+    points.add(0); // Immer am Anfang einrasten
+    points.add(this.totalMinutes); // Immer am Ende einrasten
+
+    for (const b of this.blocks) {
+      if (b.id !== excludeId) {
+        points.add(b.start);
+        points.add(b.start + b.duration);
+      }
+    }
+    return Array.from(points);
   }
 }

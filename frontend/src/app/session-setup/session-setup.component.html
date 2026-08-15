@@ -44,7 +44,9 @@
                      [style.left]="getLeft(block)"
                      [style.width]="getWidth(block)"
                      (mousedown)="onMouseDownMove($event, block)"
-                     (click)="openDialog(block)">
+                     (click)="openDialog(block)"
+                     [matTooltip]="block.title + ' (' + block.duration + ' min)'"
+                     matTooltipPosition="above">
 
                   <span class="genre-title">{{ block.title }}</span>
                   <span class="genre-duration">{{ block.duration }} min</span>
@@ -105,7 +107,7 @@
         <div class="input-group" style="margin-top: 1.5rem;">
           <mat-label>Duration</mat-label>
           <div style="display: flex; align-items: center; gap: 1rem;">
-            <mat-slider min="5" max="120" step="1" discrete style="flex: 1;">
+            <mat-slider min="1" max="120" step="1" discrete style="flex: 1;">
               <input matSliderThumb [value]="selectedBlock.duration" (input)="updateDuration($event)">
             </mat-slider>
 

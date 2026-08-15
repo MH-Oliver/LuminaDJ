@@ -6,12 +6,12 @@
     <p class="subtitle">Before starting:</p>
 
     <div class="connection-list">
-      <div class="connection-item">
+      <div class="connection-item" (click)="connectSpotify()">
         <input type="checkbox" [checked]="isSpotifyConnected" disabled class="custom-checkbox">
         <span class="item-text">
           Connect to Spotify
           @if (!isSpotifyConnected) {
-            <a class="highlight-link" (click)="connectSpotify()">here</a>
+            <a class="highlight-link">here</a>
           } @else {
             <span style="color: var(--color-accent-lightblue); font-weight: bold; margin-left: 5px;">connected</span>
           }
@@ -19,11 +19,11 @@
         <span class="tooltip" title="Connect your Spotify account">i</span>
       </div>
 
-      <div class="connection-item">
+      <div class="connection-item" (click)="connectCamera()">
         <input type="checkbox" [checked]="isCameraConnected" disabled class="custom-checkbox">
         <span class="item-text">
           Connect to Smartphone with Camera
-          <a class="highlight-link" (click)="connectCamera()">here</a>
+          <a class="highlight-link">here</a>
         </span>
         <span class="tooltip" title="Connect your camera">i</span>
       </div>

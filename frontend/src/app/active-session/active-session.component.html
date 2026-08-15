@@ -44,9 +44,6 @@
                     [title]="isCameraReachable ? 'Kamera erreichbar' : 'Kamera nicht erreichbar (Offline/Fehler)'">
                 {{ isCameraReachable ? 'wifi' : 'wifi_off' }}
               </span>
-
-              <span class="material-icons-outlined action-icon" title="Info">info</span>
-              <span class="material-icons-outlined action-icon" title="Log/Details">assignment</span>
             </div>
             @if (cameraImage) {
               <img [src]="cameraImage" alt="Live Camera" style="width: 100%; height: 100%; object-fit: contain;">

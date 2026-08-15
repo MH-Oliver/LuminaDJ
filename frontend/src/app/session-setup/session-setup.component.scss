@@ -156,6 +156,7 @@
                 box-sizing: border-box;
                 mix-blend-mode: screen;
                 transition: border-color 0.2s ease, top 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+                overflow: hidden;
 
                 &:active {
                   cursor: grabbing;
@@ -180,6 +181,12 @@
                   font-size: 1.2rem;
                   font-weight: bold;
                   pointer-events: none;
+                  white-space: nowrap;
+                  overflow: hidden;
+                  text-overflow: ellipsis;
+                  max-width: 100%;
+                  padding: 0 0.8rem;
+                  box-sizing: border-box;
                 }
 
                 .genre-duration {
@@ -188,6 +195,12 @@
                   pointer-events: none;
                   text-align: center;
                   line-height: 1.1;
+                  white-space: nowrap;
+                  overflow: hidden;
+                  text-overflow: ellipsis;
+                  max-width: 100%;
+                  padding: 0 0.8rem;
+                  box-sizing: border-box;
                 }
 
                 .resize-handle {
