@@ -86,7 +86,7 @@
         overflow: hidden;
 
         .segment {
-          position: relative; /* WICHTIG: Erlaubt das absolute Positionieren des Overlays innerhalb */
+          position: relative;
           height: 100%;
           display: flex;
           align-items: center;
@@ -96,38 +96,24 @@
           transition: background-color 0.2s ease;
 
           &:last-child { border-right: none; }
-          &:hover { background-color: rgba(255, 255, 255, 0.1); }
+          &:hover { background-color: rgba(255, 255, 255, 0.08); } // Etwas weicherer Hover
 
-          .segment-label {
-            position: relative;
-            z-index: 2; /* Über dem Mix-Pattern halten */
-            font-size: 0.85rem;
-            font-weight: bold;
-            color: var(--color-text-primary);
-            opacity: 0.8;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            padding: 0 5px;
-            pointer-events: none;
-          }
-
-          /* NEU: Styling für den Mix / Overlap Bereich */
+          /* Styling für den Mix / Overlap Bereich (Subtiler als vorher) */
           .mix-overlay {
             position: absolute;
             top: 0;
             right: 0;
             bottom: 0;
             z-index: 1;
-            /* Schraffiertes Muster für den Übergang */
+            /* Sehr subtiles Schraffiertes Muster */
             background: repeating-linear-gradient(
               45deg,
               transparent,
               transparent 4px,
-              rgba(255, 255, 255, 0.1) 4px,
-              rgba(255, 255, 255, 0.1) 8px
+              rgba(255, 255, 255, 0.04) 4px,
+              rgba(255, 255, 255, 0.04) 8px
             );
-            border-left: 1px dashed rgba(255, 255, 255, 0.2);
+            border-left: 1px dashed rgba(255, 255, 255, 0.1); /* Subtile Kante */
             pointer-events: auto; /* Tooltip beim Hover ermöglichen */
 
             &:hover {
@@ -135,8 +121,8 @@
                 45deg,
                 transparent,
                 transparent 4px,
-                rgba(255, 255, 255, 0.2) 4px,
-                rgba(255, 255, 255, 0.2) 8px
+                rgba(255, 255, 255, 0.08) 4px,
+                rgba(255, 255, 255, 0.08) 8px
               );
             }
           }
