@@ -1,4 +1,3 @@
-// modules/api/ContextController.java
 package modules.api;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -38,12 +37,12 @@ public class ContextController {
 
     private final ActiveSessionService sessionService;
     private final SpotifyAuthenticator authenticator;
-    private final GestureRecognitionService gestureService; // NEU
+    private final GestureRecognitionService gestureService;
 
     public ContextController(ActiveSessionService sessionService, SpotifyAuthenticator authenticator, GestureRecognitionService gestureService) {
         this.sessionService = sessionService;
         this.authenticator = authenticator;
-        this.gestureService = gestureService; // NEU
+        this.gestureService = gestureService;
     }
 
     @PostMapping("/context")
@@ -51,15 +50,19 @@ public class ContextController {
         System.out.println("Endpoint /api/context wurde aufgerufen!");
         try {
             UserContextDTO context = mapUserContext(payload);
-            UserContextStrategy userContextStrategy = () -> context;
 
-            // 1. Controller SYNCHRON bauen und sofort als aktiv setzen!
-            // Dadurch erhält das Frontend beim sofortigen Weiterleiten garantiert die neue Zeit und Länge.
+            UserContextStrategy userContextStrategy = new UserContextStrategy() {
+                @Override
+                public UserContextDTO getUserContext() {
+                    DjSessionController active = sessionService.getActiveSession();
+                    return active != null ? active.getContext() : context;
+                }
+            };
+
             DjSessionController controller = buildDjSessionWithMocks(userContextStrategy);
             sessionService.setActiveSession(controller);
 
             gestureService.resumeProcessing();
-            // 2. Die Musik-Suche und das Playback asynchron starten
             new Thread(() -> startMusicSession(controller, context, userContextStrategy)).start();
 
             return ResponseEntity.ok(Map.of("status", "ok"));
@@ -95,7 +98,6 @@ public class ContextController {
         );
         var aggregator = new PredictionAggregator(strategies);
 
-        // Aufruf ohne liveFeedback
         return new DjSessionController(
                 player, aggregator, sourceAdapter, historyRepo, playedSongRepo, contextStrategy.getUserContext()
         );

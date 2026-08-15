@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { ContextApiService } from '../services/context-api.service';
@@ -6,7 +6,7 @@ import { Subscription, interval } from 'rxjs';
 
 import { FormsModule } from '@angular/forms';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import {ButtonComponent} from '../shared/button/button.component';
+import { ButtonComponent } from '../shared/button/button.component';
 
 @Component({
   selector: 'app-active-session',
@@ -45,6 +45,13 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
   private sessionStartTime?: Date;
   private lastStartTimeRaw: string | null = null;
 
+  // TIMELINE DRAGGING LOGIK
+  phases: any[] = [];
+  totalMinutes = 120;
+  elapsedMinutes = 0;
+  ticks: number[] = [];
+  isDraggingMarker = false;
+
   private countdownSub?: Subscription;
   private localProgressTimer: any;
 
@@ -60,7 +67,7 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
     this.isCameraSkipped = sessionStorage.getItem('skipCamera') === 'true';
     if (this.isCameraSkipped) {
       this.isCameraProcessing = false;
-      this.isCameraExpanded = false; // Kamera einklappen
+      this.isCameraExpanded = false;
     }
 
     this.fetchUpdate();
@@ -93,6 +100,50 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
     if (this.cameraPollTimer) clearInterval(this.cameraPollTimer);
   }
 
+  @HostListener('window:mousemove', ['$event'])
+  onWindowMouseMove(event: MouseEvent): void {
+    if (this.isDraggingMarker) {
+      this.updateMarkerPosition(event);
+    }
+  }
+
+  @HostListener('window:mouseup', ['$event'])
+  onWindowMouseUp(event: MouseEvent): void {
+    if (this.isDraggingMarker) {
+      this.isDraggingMarker = false;
+      this.isWaitingForPlayback = true;
+
+      this.apiService.jumpSession(Math.round(this.elapsedMinutes)).subscribe({
+        next: () => setTimeout(() => this.fetchUpdate(), 500),
+        error: (err) => console.error('Error jumping session', err)
+      });
+    }
+  }
+
+  onMarkerMouseDown(event: MouseEvent): void {
+    this.isDraggingMarker = true;
+    this.updateMarkerPosition(event);
+  }
+
+  private updateMarkerPosition(event: MouseEvent): void {
+    const bar = document.querySelector('.session-timeline-track') as HTMLElement;
+    if (!bar) return;
+    const rect = bar.getBoundingClientRect();
+    const clickX = event.clientX - rect.left;
+    let percent = clickX / rect.width;
+    if (percent < 0) percent = 0;
+    if (percent > 1) percent = 1;
+    this.elapsedMinutes = percent * this.totalMinutes;
+    this.updateSessionTimer();
+  }
+
+  private generateTicks(): void {
+    this.ticks = [];
+    for (let i = 0; i <= this.totalMinutes; i += 5) {
+      this.ticks.push(i);
+    }
+  }
+
   onCameraToggleChange(): void {
     this.apiService.toggleCameraProcessing(this.isCameraProcessing).subscribe({
       error: (err) => console.error('Kamera-Toggle fehlgeschlagen', err)
@@ -107,9 +158,8 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
     if (this.isCameraExpanded && this.isCameraProcessing) {
       this.apiService.getCurrentFrame().subscribe({
         next: (data: any) => {
-          this.isCameraReachable = true; // Erfolgreich!
+          this.isCameraReachable = true;
           this.cameraImage = data.image;
-          // Map { "peace": 2 } zu Array [ {name: "peace", count: 2} ] umwandeln
           if (data.gestures) {
             this.detectedGestures = Object.keys(data.gestures).map(key => ({
               name: key,
@@ -119,7 +169,7 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
         },
         error: (err) => {
           this.cameraImage = null;
-          this.isCameraReachable = false; // Fehler/Offline!
+          this.isCameraReachable = false;
         }
       });
     }
@@ -137,12 +187,16 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const now = new Date().getTime();
-    const elapsedMs = now - this.sessionStartTime.getTime();
-    const remainingMs = this.totalSessionDurationMs - elapsedMs;
+    if (!this.isDraggingMarker) {
+      const now = new Date().getTime();
+      this.elapsedMinutes = (now - this.sessionStartTime.getTime()) / 60000;
+      if (this.elapsedMinutes < 0) this.elapsedMinutes = 0;
+    }
+
+    const remainingMs = this.totalSessionDurationMs - (this.elapsedMinutes * 60000);
 
     if (remainingMs <= 0) {
-      this.sessionTimeLeft = '00:00 min';
+      this.sessionTimeLeft = '00:00';
       return;
     }
 
@@ -153,7 +207,7 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
     const paddedMin = minutes.toString();
     const paddedSec = seconds.toString().padStart(2, '0');
 
-    this.sessionTimeLeft = `${paddedMin}:${paddedSec} min`;
+    this.sessionTimeLeft = `${paddedMin}:${paddedSec}`;
   }
 
   toggleCamera(): void {
@@ -176,11 +230,17 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
           this.updateProgressUI();
           this.formattedDuration = this.formatTime(this.durationMs);
 
+          if (data.timeline) {
+            this.phases = data.timeline;
+          }
+
           if (data.startTime && data.totalMinutes) {
             const rawStart = data.startTime.toString();
             if (this.lastStartTimeRaw !== rawStart) {
               this.lastStartTimeRaw = rawStart;
+              this.totalMinutes = data.totalMinutes;
               this.totalSessionDurationMs = data.totalMinutes * 60 * 1000;
+              this.generateTicks();
 
               const timeParts = typeof data.startTime === 'string' ? data.startTime.split(':') : data.startTime;
               const now = new Date();
@@ -193,12 +253,10 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
             }
           }
 
-          // SMART POLLING: Checkt auch das Cover
           const hasNoCover = this.currentSong.coverUrl.includes('Kein+Cover');
           const isDummy = this.currentSong.title === 'Wird gestartet...';
 
           if (this.isWaitingForPlayback || isDummy || hasNoCover) {
-
             if (this.isPlaying && this.durationMs > 0 && !isDummy && !hasNoCover) {
               this.isWaitingForPlayback = false;
             } else if (!this.isFetchingInit) {
@@ -206,7 +264,7 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
               setTimeout(() => {
                 this.isFetchingInit = false;
                 this.fetchUpdate();
-              }, 2000); // Polling alle 2 Sekunden, bis ALLES bereit ist
+              }, 2000);
             }
           }
         }

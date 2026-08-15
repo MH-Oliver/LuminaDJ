@@ -1,13 +1,14 @@
-// modules/api/SessionController.java
 package modules.api;
 
 import modules.core.DjSessionController;
 import modules.music.structures.Track;
 import modules.music.strategies.music_player.spotify.SpotifyAdapter;
+import modules.userContext.structures.UserContextDTO;
 import modules.vision.services.GestureRecognitionService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalTime;
 import java.util.Map;
 
 @RestController
@@ -23,7 +24,7 @@ public class SessionController {
 
     public SessionController(ActiveSessionService sessionService, GestureRecognitionService gestureService) {
         this.sessionService = sessionService;
-        this.gestureService = gestureService; // NEU
+        this.gestureService = gestureService;
     }
 
     @GetMapping("/update")
@@ -46,16 +47,14 @@ public class SessionController {
         boolean isNewTrack = cachedTrackId == null || !cachedTrackId.equals(currentTrack.id());
         boolean hasFailedCover = cachedCoverUrl.contains("Kein+Cover");
 
-        // Wenn neuer Song ODER das Cover vorher fehlgeschlagen ist, fragen wir Spotify neu
         if (isNewTrack || hasFailedCover) {
             if (isNewTrack) {
                 cachedTrackId = currentTrack.id();
-                cachedDurationMs = 180000; // Notfall-Dauer (3 Min)
+                cachedDurationMs = 180000;
             }
 
             try {
                 if (SpotifyAdapter.spotifyApi != null) {
-                    // Stellt sicher, dass das Prefix entfernt wird, sonst scheitert die API sofort
                     String pureId = currentTrack.id().replace("spotify:track:", "");
                     var spotifyTrack = SpotifyAdapter.spotifyApi.getTrack(pureId).build().execute();
                     if (spotifyTrack != null) {
@@ -63,7 +62,7 @@ public class SessionController {
                         if (spotifyTrack.getAlbum() != null && spotifyTrack.getAlbum().getImages().length > 0) {
                             cachedCoverUrl = spotifyTrack.getAlbum().getImages()[0].getUrl();
                         } else {
-                            cachedCoverUrl = "https://via.placeholder.com/150/1e1e1e/ffffff?text=No+Cover+Found"; // Cover existiert wirklich nicht
+                            cachedCoverUrl = "https://via.placeholder.com/150/1e1e1e/ffffff?text=No+Cover+Found";
                         }
                     }
                 }
@@ -91,9 +90,28 @@ public class SessionController {
         if (sessionController.getContext() != null) {
             response.put("startTime", sessionController.getContext().startTime().toString());
             response.put("totalMinutes", sessionController.getContext().totalMinutes());
+            response.put("timeline", sessionController.getContext().timeline().getPhases());
         }
 
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/jump")
+    public ResponseEntity<Map<String, String>> jumpSession(@RequestBody Map<String, Integer> payload) {
+        DjSessionController sessionController = sessionService.getActiveSession();
+        if (sessionController != null && payload.containsKey("elapsedMinutes")) {
+            int elapsedMinutes = payload.get("elapsedMinutes");
+            UserContextDTO c = sessionController.getContext();
+
+            LocalTime newStartTime = LocalTime.now().minusMinutes(elapsedMinutes);
+
+            sessionController.setContext(new UserContextDTO(
+                    c.tempo(), c.location(), newStartTime, c.timeline(), c.songCooldownMinutes(), c.totalMinutes()
+            ));
+
+            sessionController.getPlayer().skip();
+        }
+        return ResponseEntity.ok(Map.of("status", "jumped"));
     }
 
     @PostMapping("/skipSong")
@@ -134,7 +152,6 @@ public class SessionController {
         return ResponseEntity.ok().build();
     }
 
-    // ... (restliche Endpoints toggleFavorite, playPause, seek, previous bleiben exakt gleich)
     @PostMapping("/favorite")
     public ResponseEntity<Map<String, Object>> toggleFavorite(@RequestBody Map<String, Boolean> payload) {
         DjSessionController sessionController = sessionService.getActiveSession();

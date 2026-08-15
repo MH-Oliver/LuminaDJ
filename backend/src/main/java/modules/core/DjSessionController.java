@@ -15,11 +15,10 @@ public class DjSessionController {
     private final MusicSourceAdapter sourceAdapter;
     private final SessionHistoryRepository history;
     private final PlayedSongRepository playedSongRepo;
-    private final UserContextDTO context;
+    private UserContextDTO context;
     private boolean sessionActive = true;
     private Track currentTrack;
 
-    // Konstruktor ohne LiveFeedbackStrategy
     public DjSessionController(
             MusicPlayerAdapter player,
             PredictionAggregator aggregator,
@@ -36,6 +35,7 @@ public class DjSessionController {
     }
 
     public UserContextDTO getContext() { return context; }
+    public void setContext(UserContextDTO context) { this.context = context; }
     public Track getCurrentTrack() { return this.currentTrack; }
     public MusicPlayerAdapter getPlayer() { return player; }
     public PredictionAggregator getAggregator() { return aggregator; }
@@ -60,10 +60,8 @@ public class DjSessionController {
                 break;
             }
 
-            // Kein Live-Feedback mehr abwarten, Song direkt in die Historie speichern
             history.addEntry(currentSong);
 
-            // Neue Song-Eigenschaften vorhersagen (ohne Feedback)
             PredictedAttributes predictedTarget = aggregator.calculateNextAttributes(currentSong);
 
             Track nextSong = sourceAdapter.getNextSong(predictedTarget, currentSong);

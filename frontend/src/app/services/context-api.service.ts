@@ -1,4 +1,3 @@
-// services/context-api.service.ts
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
@@ -84,6 +83,10 @@ export class ContextApiService {
   // ==========================================
   // SESSION ENDPOINTS
   // ==========================================
+  jumpSession(elapsedMinutes: number): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/session/jump`, { elapsedMinutes });
+  }
+
   toggleFavorite(isFavorite: boolean): Observable<{ success: boolean }> {
     return this.http.post<{ success: boolean }>(`${this.baseUrl}/session/favorite`, { isFavorite });
   }
