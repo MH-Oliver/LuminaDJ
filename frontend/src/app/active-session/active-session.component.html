@@ -24,6 +24,14 @@
         @for (phase of phases; track $index) {
           <div class="segment" [style.width.%]="(phase.durationMinutes / totalMinutes) * 100" [title]="phase.genre">
             <span class="segment-label">{{ phase.genre }}</span>
+
+            <!-- NEU: Overlap / Transition Mix Visualisierung -->
+            @if (phase.transitionOutMinutes > 0 && $index < phases.length - 1) {
+              <div class="mix-overlay"
+                   [style.width.%]="(phase.transitionOutMinutes / phase.durationMinutes) * 100"
+                   [title]="'Mix: ' + phase.genre + ' & ' + phases[$index + 1].genre">
+              </div>
+            }
           </div>
         }
       </div>
