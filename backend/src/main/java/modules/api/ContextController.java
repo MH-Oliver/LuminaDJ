@@ -38,12 +38,12 @@ public class ContextController {
 
     private final ActiveSessionService sessionService;
     private final SpotifyAuthenticator authenticator;
-    private final GestureRecognitionService gestureService; // NEU
+    private final GestureRecognitionService gestureService;
 
     public ContextController(ActiveSessionService sessionService, SpotifyAuthenticator authenticator, GestureRecognitionService gestureService) {
         this.sessionService = sessionService;
         this.authenticator = authenticator;
-        this.gestureService = gestureService; // NEU
+        this.gestureService = gestureService;
     }
 
     @PostMapping("/context")
@@ -51,15 +51,21 @@ public class ContextController {
         System.out.println("Endpoint /api/context wurde aufgerufen!");
         try {
             UserContextDTO context = mapUserContext(payload);
-            UserContextStrategy userContextStrategy = () -> context;
 
-            // 1. Controller SYNCHRON bauen und sofort als aktiv setzen!
-            // Dadurch erhält das Frontend beim sofortigen Weiterleiten garantiert die neue Zeit und Länge.
+            // FIX: Ein Array als Referenz speichert genau DEN Controller, den wir hier
+            // gleich instanziieren werden. Somit verhindern wir, dass sich die Anwendung
+            // versehentlich den Context der veralteten, gestoppten Session greift.
+            DjSessionController[] controllerRef = new DjSessionController[1];
+            UserContextStrategy userContextStrategy = () -> {
+                return controllerRef[0] != null ? controllerRef[0].getContext() : context;
+            };
+
             DjSessionController controller = buildDjSessionWithMocks(userContextStrategy);
+            controllerRef[0] = controller; // Ab jetzt liefert die Strategy dynamisch Updates (vom neuen Controller)
+
             sessionService.setActiveSession(controller);
 
             gestureService.resumeProcessing();
-            // 2. Die Musik-Suche und das Playback asynchron starten
             new Thread(() -> startMusicSession(controller, context, userContextStrategy)).start();
 
             return ResponseEntity.ok(Map.of("status", "ok"));
@@ -71,14 +77,17 @@ public class ContextController {
 
     private void startMusicSession(DjSessionController controller, UserContextDTO context, UserContextStrategy userContextStrategy) {
         System.out.println("Starte Musik-Session mit empfangenem Context...");
-        Map<Genre, Double> startWeights = context.timeline().getWeightsAt(0.0);
+
+        double elapsedMinutes = java.time.temporal.ChronoUnit.SECONDS.between(context.startTime(), java.time.LocalTime.now()) / 60.0;
+        double safeElapsed = Math.max(0.0, elapsedMinutes);
+
+        Map<Genre, Double> startWeights = context.timeline().getWeightsAt(safeElapsed);
+
         var localDb = new LocalSongDatabaseAdapter(controller.getPlayedSongRepo(), userContextStrategy);
         var sessionBootstrapper = new SessionBootstrapper(localDb);
-
         Track entrySong = sessionBootstrapper.generateFirstTrack(startWeights);
         controller.getPlayedSongRepo().markAsPlayed(entrySong.id());
         System.out.println("Gefundener Entry Song: " + entrySong);
-
         controller.startSession(entrySong);
     }
 
@@ -95,7 +104,6 @@ public class ContextController {
         );
         var aggregator = new PredictionAggregator(strategies);
 
-        // Aufruf ohne liveFeedback
         return new DjSessionController(
                 player, aggregator, sourceAdapter, historyRepo, playedSongRepo, contextStrategy.getUserContext()
         );
@@ -135,6 +143,7 @@ public class ContextController {
     @GetMapping("/context/current")
     public ResponseEntity<UserContextDTO> getCurrentContext() {
         DjSessionController sessionController = sessionService.getActiveSession();
+        // Hier greift das Frontend die gestoppte Session ab, um die UI im Setup vorauszufüllen
         if (sessionController != null && sessionController.getContext() != null) {
             return ResponseEntity.ok(sessionController.getContext());
         }

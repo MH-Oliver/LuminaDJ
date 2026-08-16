@@ -3,9 +3,6 @@
   <header class="header">
     <div class="header-left">
       <div class="logo">LuminaDJ</div>
-      <div class="session-time-badge">
-        time left: <span class="highlight">{{ sessionTimeLeft }}</span>
-      </div>
     </div>
     <div class="header-right">
       <div class="spotify-account">
@@ -14,6 +11,47 @@
       </div>
     </div>
   </header>
+
+  <!-- INTERAKTIVER SESSION PROGRESS BAR -->
+  <section class="card session-timeline-card">
+    <div class="timeline-header">
+      <h3 style="margin: 0; font-size: 1.1rem; color: var(--color-text-secondary);">Session Progress</h3>
+      <span class="remaining-time">time left: <span class="highlight">{{ sessionTimeLeft }} min</span></span>
+    </div>
+    <div class="session-timeline-track" (mousedown)="onMarkerMouseDown($event)">
+      <!-- Genres visualisieren (Ohne Text-Labels) -->
+      <div class="genre-segments">
+        @for (phase of phases; track $index) {
+          <div class="segment"
+               [style.width.%]="(phase.durationMinutes / totalMinutes) * 100"
+               [title]="phase.genre">
+
+            <!-- Subtile Overlap / Transition Mix Visualisierung -->
+            @if (phase.transitionOutMinutes > 0 && $index < phases.length - 1) {
+              <div class="mix-overlay"
+                   [style.width.%]="(phase.transitionOutMinutes / phase.durationMinutes) * 100"
+                   [title]="'Mix: ' + phase.genre + ' & ' + phases[$index + 1].genre">
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- 5 Minuten Markierungen -->
+      <div class="ticks-container">
+        @for (tick of ticks; track tick) {
+          <span class="tick" [style.left.%]="(tick / totalMinutes) * 100">{{ tick }}</span>
+        }
+      </div>
+
+      <!-- Interaktiver Fortschrittsmarker -->
+      <div class="playhead-marker" [style.left.%]="(elapsedMinutes / totalMinutes) * 100">
+        <div class="marker-handle"></div>
+        <div class="marker-line"></div>
+      </div>
+    </div>
+  </section>
+
   <div class="main-layout">
     <div class="column-left">
       <section class="card camera-card">
@@ -31,11 +69,9 @@
             </mat-slide-toggle>
           </div>
           <span class="material-icons-outlined toggle-icon">
-            <!-- MODERN ANGULAR @if (ternary) -->
             {{ isCameraExpanded ? 'expand_more' : 'chevron_right' }}
           </span>
         </div>
-        <!-- MODERN ANGULAR @if -->
         @if (isCameraExpanded) {
           <div class="camera-feed-box">
             <div class="camera-header-icons">
@@ -87,10 +123,8 @@
             </div>
           </div>
         </div>
-        <!-- NEU: Zeit-Labels und dynamische Progress-Bar hinzugefügt -->
         <div class="progress-container">
           <span class="time-label">{{ formattedProgress }}</span>
-          <!-- (click) hinzugefügt, um zu Spulen -->
           <div class="progress-bar" (click)="onProgressBarClick($event)">
             <div class="progress-fill" [style.width.%]="progressPercent"></div>
             <div class="progress-handle" [style.left.%]="progressPercent"></div>
@@ -98,13 +132,11 @@
           <span class="time-label">{{ formattedDuration }}</span>
         </div>
 
-        <!-- NEU: Favorite Button und Icons hinzugefügt -->
         <div class="player-controls">
           <button class="control-btn" title="Add to Favorites" (click)="toggleFavorite()" [class.is-favorite]="isFavorite">
             <span class="material-icons-outlined">{{ isFavorite ? 'favorite' : 'favorite_border' }}</span>
           </button>
 
-          <!-- Methoden-Bindings und dynamisches isPlaying Icon hinzugefügt -->
           <button class="control-btn" title="Restart Song" (click)="previousSong()">
             <span class="material-icons-outlined">skip_previous</span>
           </button>

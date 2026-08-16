@@ -1,4 +1,3 @@
-// active-session/active-session.component.scss
 @use '../../mixins' as *;
 @import url('https://fonts.googleapis.com/icon?family=Material+Icons+Outlined');
 
@@ -31,22 +30,6 @@
       @include ai-text-glow;
     }
 
-    .session-time-badge {
-      background-color: rgba(255, 255, 255, 0.05);
-      padding: 0.5rem 1rem;
-      border-radius: 0.5rem;
-      font-size: 0.95rem;
-      color: var(--color-text-muted);
-      border: 0.0625rem solid rgba(255,255,255,0.1);
-
-      .highlight {
-        font-weight: bold;
-        color: var(--color-accent-lightblue);
-        margin-left: 0.3rem;
-      }
-    }
-
-    /* Angepasst an Session-Setup (runder Glas-Look) */
     .spotify-account {
       display: flex;
       align-items: center;
@@ -58,6 +41,141 @@
       border-radius: 1.25rem;
       font-weight: bold;
       font-size: 0.9rem;
+    }
+  }
+
+  /* --- SESSION TIMELINE BAR --- */
+  .session-timeline-card {
+    @include glass-card;
+    border-radius: 0.75rem;
+    margin-bottom: 2rem;
+    padding: 1.5rem 2rem 2.5rem 2rem;
+
+    .timeline-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+
+      .remaining-time {
+        color: var(--color-text-muted);
+        font-size: 0.95rem;
+
+        .highlight {
+          font-weight: bold;
+          color: var(--color-accent-lightblue);
+          margin-left: 0.3rem;
+        }
+      }
+    }
+
+    .session-timeline-track {
+      position: relative;
+      height: 45px;
+      background-color: rgba(0, 0, 0, 0.4);
+      border-radius: 6px;
+      cursor: pointer;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      user-select: none;
+
+      .genre-segments {
+        display: flex;
+        width: 100%;
+        height: 100%;
+        border-radius: 5px;
+        overflow: hidden;
+
+        .segment {
+          position: relative;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-right: 1px solid rgba(255, 255, 255, 0.1);
+          background-color: rgba(255, 255, 255, 0.05);
+          transition: background-color 0.2s ease;
+
+          &:last-child { border-right: none; }
+          &:hover { background-color: rgba(255, 255, 255, 0.08); } // Etwas weicherer Hover
+
+          /* Styling für den Mix / Overlap Bereich (Subtiler als vorher) */
+          .mix-overlay {
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 1;
+            /* Sehr subtiles Schraffiertes Muster */
+            background: repeating-linear-gradient(
+              45deg,
+              transparent,
+              transparent 4px,
+              rgba(255, 255, 255, 0.04) 4px,
+              rgba(255, 255, 255, 0.04) 8px
+            );
+            border-left: 1px dashed rgba(255, 255, 255, 0.1); /* Subtile Kante */
+            pointer-events: auto; /* Tooltip beim Hover ermöglichen */
+
+            &:hover {
+              background: repeating-linear-gradient(
+                45deg,
+                transparent,
+                transparent 4px,
+                rgba(255, 255, 255, 0.08) 4px,
+                rgba(255, 255, 255, 0.08) 8px
+              );
+            }
+          }
+        }
+      }
+
+      .ticks-container {
+        position: absolute;
+        bottom: -22px;
+        left: 0; right: 0;
+        height: 20px;
+        pointer-events: none;
+
+        .tick {
+          position: absolute;
+          transform: translateX(-50%);
+          font-size: 0.75rem;
+          color: var(--color-text-disabled);
+
+          &::before {
+            content: '';
+            position: absolute;
+            top: -6px;
+            left: 50%;
+            width: 1px;
+            height: 4px;
+            background-color: rgba(255, 255, 255, 0.3);
+          }
+        }
+      }
+
+      .playhead-marker {
+        position: absolute;
+        top: -6px;
+        bottom: -6px;
+        width: 2px;
+        background-color: var(--color-text-primary);
+        pointer-events: none;
+        z-index: 10;
+        box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+
+        .marker-handle {
+          position: absolute;
+          top: -4px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 14px;
+          height: 14px;
+          background-color: var(--color-text-primary);
+          border-radius: 50%;
+          box-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
+        }
+      }
     }
   }
 
@@ -286,7 +404,6 @@
             background-color: var(--color-text-primary);
             border-radius: 0.1875rem;
             box-shadow: 0 0 10px rgba(255,255,255,0.5);
-            /* GEÄNDERT: Schnellere Animation statt 1s linear */
             transition: width 0.15s ease-out;
           }
 
@@ -299,7 +416,6 @@
             top: -0.25rem;
             transform: translateX(-50%);
             box-shadow: 0 0 8px rgba(255,255,255,0.8);
-            /* GEÄNDERT: Schnellere Animation statt 1s linear */
             transition: left 0.15s ease-out;
           }
         }
@@ -379,7 +495,7 @@
     }
   }
 
-  /* --- NEU: FOOTER FÜR AKTIONEN --- */
+  /* --- FOOTER FÜR AKTIONEN --- */
   .action-footer {
     display: flex;
     justify-content: flex-end;
