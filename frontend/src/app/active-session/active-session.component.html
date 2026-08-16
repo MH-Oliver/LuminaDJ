@@ -153,18 +153,22 @@
       <section class="card legend-card">
         <h3>Gesture Actions</h3>
         <div class="gesture-table">
-          <div class="gesture-row">
-            <span class="gesture-icon">Peace</span>
-            <span class="gesture-action">Skip Song</span>
-          </div>
-          <div class="gesture-row">
-            <span class="gesture-icon">Index Finger</span>
-            <span class="gesture-action">Skip Genre</span>
-          </div>
-          <div class="gesture-row">
-            <span class="gesture-icon">Thumbs up</span>
-            <span class="gesture-action">Prioritize current genre</span>
-          </div>
+
+          @for (action of gestureActions; track action.id) {
+            <div class="gesture-row">
+              <div class="gesture-select-wrapper">
+                <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                  <mat-select [(value)]="gestureMapping[action.id]">
+                    @for (gesture of availableGestures; track gesture) {
+                      <mat-option [value]="gesture">{{ gesture }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
+              <span class="gesture-action">{{ action.label }}</span>
+            </div>
+          }
+
         </div>
       </section>
     </div>

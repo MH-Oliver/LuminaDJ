@@ -7,11 +7,14 @@ import { Subscription, interval } from 'rxjs';
 import { FormsModule } from '@angular/forms';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { ButtonComponent } from '../shared/button/button.component';
+import { NotificationService } from '../services/notification.service';
+import { MatSelectModule } from '@angular/material/select';
+import { MatFormFieldModule } from '@angular/material/form-field';
 
 @Component({
   selector: 'app-active-session',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatSlideToggleModule, ButtonComponent],
+  imports: [CommonModule, FormsModule, MatSlideToggleModule, ButtonComponent, MatSelectModule, MatFormFieldModule],
   templateUrl: './active-session.component.html',
   styleUrls: ['./active-session.component.scss']
 })
@@ -24,7 +27,6 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
   isCameraSkipped = false;
 
   cameraImage: string | null = null;
-  detectedGestures: { name: string, count: number }[] = [];
   private cameraPollTimer: any;
 
   currentSong = {
@@ -32,6 +34,20 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
     artist: 'Loading...',
     coverUrl: 'https://via.placeholder.com/150/1e1e1e/ffffff?text=Album+Cover'
   };
+
+  availableGestures = ['offene_hand', 'faust', 'peace', 'daumen_hoch', 'zeigefinger'];
+  gestureMapping: { [key: string]: string } = {
+    playPause: 'zeigefinger',
+    skipGenre: 'peace',
+    prioritize: 'daumen_hoch'
+  };
+  gestureActions = [
+    { id: 'playPause', label: 'Play / Pause' },
+    { id: 'skipGenre', label: 'Skip Genre' },
+    { id: 'prioritize', label: 'Prioritize current genre' }
+  ];
+  detectedGestures: { name: string, count: number }[] = [];
+  previousGestures: { [key: string]: number } = {};
 
   durationMs = 0;
   progressMs = 0;
@@ -60,7 +76,8 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
 
   constructor(
     private readonly apiService: ContextApiService,
-    private readonly router: Router
+    private readonly router: Router,
+    private readonly notificationService: NotificationService // NEU injiziert
   ) {}
 
   ngOnInit(): void {
@@ -160,10 +177,35 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
         next: (data: any) => {
           this.isCameraReachable = true;
           this.cameraImage = data.image;
+
           if (data.gestures) {
-            this.detectedGestures = Object.keys(data.gestures).map(key => ({
+            const currentGestures = data.gestures;
+
+            // 1. DYNAMISCH: PLAY / PAUSE
+            const playPauseGesture = this.gestureMapping['playPause'];
+            const playPauseCount = currentGestures[playPauseGesture] || 0;
+            const prevPlayPauseCount = this.previousGestures[playPauseGesture] || 0;
+            if (playPauseCount > prevPlayPauseCount) {
+              this.notificationService.showSuccess(`Geste '${playPauseGesture}' erkannt: Play/Pause`);
+              this.togglePlayPause();
+            }
+
+            // 2. DYNAMISCH: PEACE -> GENRE SKIPPEN
+            const skipGenreGesture = this.gestureMapping['skipGenre'];
+            const skipGenreCount = currentGestures[skipGenreGesture] || 0;
+            const prevSkipGenreCount = this.previousGestures[skipGenreGesture] || 0;
+            if (skipGenreCount > prevSkipGenreCount) {
+              this.notificationService.showSuccess(`Geste '${skipGenreGesture}' erkannt: Überspringe Genre...`);
+              this.skipGenre();
+            }
+
+            // (Prioritize Current Genre kann analog umgesetzt werden, sobald du die Logik dafür bauen willst)
+
+            this.previousGestures = { ...currentGestures };
+
+            this.detectedGestures = Object.keys(currentGestures).map(key => ({
               name: key,
-              count: data.gestures[key]
+              count: currentGestures[key]
             }));
           }
         },
@@ -173,6 +215,39 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
         }
       });
     }
+  }
+
+  skipGenre(): void {
+    let accumulatedTime = 0;
+    let targetTime = this.totalMinutes;
+
+    // Wir summieren die Längen der Blöcke auf, bis wir den Block finden,
+    // der in der Zukunft liegt. Genau dort beginnt das neue Genre!
+    for (const phase of this.phases) {
+      accumulatedTime += phase.durationMinutes;
+      // + 0.1 als winziger Puffer, falls wir genau auf der Grenze stehen
+      if (accumulatedTime > this.elapsedMinutes + 0.1) {
+        targetTime = accumulatedTime;
+        break;
+      }
+    }
+
+    if (targetTime >= this.totalMinutes) {
+      this.notificationService.showError('Ende der Timeline erreicht.');
+      return;
+    }
+
+    this.isWaitingForPlayback = true;
+
+    // Wir runden den Wert, da das Backend einen Integer erwartet
+    this.apiService.jumpSession(Math.round(targetTime)).subscribe({
+      next: () => {
+        this.elapsedMinutes = targetTime;
+        this.updateSessionTimer();
+        setTimeout(() => this.fetchUpdate(), 500);
+      },
+      error: (err) => console.error('Error skipping genre', err)
+    });
   }
 
   private updateProgressUI(): void {
