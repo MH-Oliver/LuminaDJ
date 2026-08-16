@@ -199,7 +199,14 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
               this.skipGenre();
             }
 
-            // (Prioritize Current Genre kann analog umgesetzt werden, sobald du die Logik dafür bauen willst)
+            // 3. DYNAMISCH: PRIORITIZE
+            const prioritizeGesture = this.gestureMapping['prioritize'];
+            const prioritizeCount = currentGestures[prioritizeGesture] || 0;
+            const prevPrioritizeCount = this.previousGestures[prioritizeGesture] || 0;
+            if (prioritizeCount > prevPrioritizeCount) {
+              this.notificationService.showSuccess(`Geste '${prioritizeGesture}' erkannt: Genre & Vibe priorisiert!`);
+              this.prioritizeCurrent();
+            }
 
             this.previousGestures = { ...currentGestures };
 
@@ -215,6 +222,12 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
         }
       });
     }
+  }
+
+  prioritizeCurrent(): void {
+    this.apiService.prioritizeCurrentTrack().subscribe({
+      error: (err) => console.error('Error prioritizing track', err)
+    });
   }
 
   skipGenre(): void {

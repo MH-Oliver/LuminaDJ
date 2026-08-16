@@ -77,7 +77,7 @@ public class SpotifyAdapter implements MusicPlayerAdapter {
                 playRequest.build().execute();
             }
 
-            System.out.println("Spotify spielt jetzt: " + track.name());
+            System.out.println("Spotify spielt jetzt: " + track);
             isRunning = true;
 
             playbackThread = new Thread(() -> {

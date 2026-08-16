@@ -24,7 +24,7 @@ public class MacroCurveStrategy implements PredictionStrategy {
 
     @Override
     public double getWeight() {
-        return 0.9;
+        return 1.0;
     }
 
     @Override

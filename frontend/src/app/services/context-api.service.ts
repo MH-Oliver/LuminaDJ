@@ -99,6 +99,10 @@ export class ContextApiService {
     return this.http.post<{ nextSong: string }>(`${this.baseUrl}/session/skipSong`, {});
   }
 
+  prioritizeCurrentTrack(): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/session/prioritize`, {});
+  }
+
   editSession(): Observable<any> {
     return this.http.post<any>(`${this.baseUrl}/session/edit`, {});
   }

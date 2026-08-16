@@ -6,6 +6,7 @@ import modules.music.strategies.core.MusicPlayerAdapter;
 import modules.music.strategies.core.MusicSourceAdapter;
 import modules.music.structures.Track;
 import modules.prediction.services.PredictionAggregator;
+import modules.prediction.strategies.prediction.PrioritizeStrategy;
 import modules.prediction.structures.PredictedAttributes;
 import modules.userContext.structures.UserContextDTO;
 
@@ -15,6 +16,7 @@ public class DjSessionController {
     private final MusicSourceAdapter sourceAdapter;
     private final SessionHistoryRepository history;
     private final PlayedSongRepository playedSongRepo;
+    private final PrioritizeStrategy prioritizeStrategy;
     private UserContextDTO context;
     private boolean sessionActive = true;
     private Track currentTrack;
@@ -25,13 +27,16 @@ public class DjSessionController {
             MusicSourceAdapter sourceAdapter,
             SessionHistoryRepository history,
             PlayedSongRepository playedSongRepo,
-            UserContextDTO context) {
+            UserContextDTO context,
+            PrioritizeStrategy prioritizeStrategy) {
+
         this.player = player;
         this.aggregator = aggregator;
         this.sourceAdapter = sourceAdapter;
         this.history = history;
         this.playedSongRepo = playedSongRepo;
         this.context = context;
+        this.prioritizeStrategy = prioritizeStrategy;
     }
 
     public UserContextDTO getContext() { return context; }
@@ -67,6 +72,12 @@ public class DjSessionController {
             Track nextSong = sourceAdapter.getNextSong(predictedTarget, currentSong);
             playedSongRepo.markAsPlayed(nextSong.id());
             currentSong = nextSong;
+        }
+    }
+
+    public void prioritizeCurrentTrack() {
+        if (currentTrack != null && prioritizeStrategy != null) {
+            prioritizeStrategy.addTrack(currentTrack);
         }
     }
 
