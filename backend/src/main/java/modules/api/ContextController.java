@@ -77,14 +77,17 @@ public class ContextController {
 
     private void startMusicSession(DjSessionController controller, UserContextDTO context, UserContextStrategy userContextStrategy) {
         System.out.println("Starte Musik-Session mit empfangenem Context...");
-        Map<Genre, Double> startWeights = context.timeline().getWeightsAt(0.0);
+
+        double elapsedMinutes = java.time.temporal.ChronoUnit.SECONDS.between(context.startTime(), java.time.LocalTime.now()) / 60.0;
+        double safeElapsed = Math.max(0.0, elapsedMinutes);
+
+        Map<Genre, Double> startWeights = context.timeline().getWeightsAt(safeElapsed);
+
         var localDb = new LocalSongDatabaseAdapter(controller.getPlayedSongRepo(), userContextStrategy);
         var sessionBootstrapper = new SessionBootstrapper(localDb);
-
         Track entrySong = sessionBootstrapper.generateFirstTrack(startWeights);
         controller.getPlayedSongRepo().markAsPlayed(entrySong.id());
         System.out.println("Gefundener Entry Song: " + entrySong);
-
         controller.startSession(entrySong);
     }
 

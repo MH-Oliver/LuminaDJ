@@ -36,6 +36,8 @@ export class SessionSetupComponent implements OnInit {
   draggingBlock: GenreBlock | null = null;
   resizingBlock: GenreBlock | null = null;
 
+  elapsedMinutes = 0;
+
   startX = 0;
   startValue = 0;
   wasDragged = false;
@@ -65,14 +67,26 @@ export class SessionSetupComponent implements OnInit {
       error: (err) => console.error('Fehler beim Laden der Genres:', err)
     });
 
-    // 3. Prüfen, ob wir aus einer aktiven Session kommen (Edit-Modus)
     if (history.state && history.state.preserveConfig) {
       this.apiService.getCurrentContext().subscribe({
         next: (data) => {
-          console.log("Edit Session: Lade bestehende Timeline", data);
           const phases = data?.timeline?.phases || data?.phases;
           if (phases && Array.isArray(phases)) {
             this.convertJsonToBlocks(phases);
+          }
+
+          if (data?.startTime) {
+            const timeParts = typeof data.startTime === 'string' ? data.startTime.split(':') : data.startTime;
+            const now = new Date();
+            const sessionStartTime = new Date(
+              now.getFullYear(), now.getMonth(), now.getDate(),
+              parseInt(timeParts[0] || '0', 10),
+              parseInt(timeParts[1] || '0', 10),
+              parseInt(timeParts[2] || '0', 10)
+            );
+            const elapsedMs = now.getTime() - sessionStartTime.getTime();
+            this.elapsedMinutes = Math.max(0, elapsedMs / 60000);
+            if (this.elapsedMinutes > this.totalMinutes) this.elapsedMinutes = this.totalMinutes;
           }
         },
         error: (err) => console.error('Keine vorherige Session gefunden:', err)
@@ -188,11 +202,13 @@ export class SessionSetupComponent implements OnInit {
       };
     });
 
-    // 3. Baue das finale JSON (UserContextDto)
+    const adjustedStartTime = new Date(new Date().getTime() - (this.elapsedMinutes * 60000));
+    const startTimeString = adjustedStartTime.toTimeString().split(' ')[0];
+
     const payload: UserContextDto = {
       tempo: 120,
       location: "Bar",
-      startTime: new Date().toTimeString().split(' ')[0],
+      startTime: startTimeString, // <-- HIER ÄNDERN
       timeline: { phases: phases },
       songCooldownMinutes: 100000,
       totalMinutes: this.totalMinutes
