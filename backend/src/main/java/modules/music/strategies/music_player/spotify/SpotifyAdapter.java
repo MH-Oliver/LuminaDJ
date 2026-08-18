@@ -28,57 +28,87 @@ public class SpotifyAdapter implements MusicPlayerAdapter {
     @Override
     public void play(Track track) {
         try {
-            // Merken, welcher Song ab jetzt laufen muss
             this.expectedTrackId = track.id();
+            String trackUri = track.id().startsWith("spotify:track:") ? track.id() : "spotify:track:" + track.id();
 
+            String targetDeviceId = null;
             Device[] devices;
+
             synchronized (spotifyApi) {
                 devices = spotifyApi.getUsersAvailableDevices().build().execute();
             }
 
-            String targetDeviceId = null;
-            boolean isActiveDevicePresent = false;
-
+            // 1. Suche nach einem bereits aktiven oder verfügbaren Gerät
             if (devices.length > 0) {
                 for (Device d : devices) {
                     if (d.getIs_active()) {
-                        isActiveDevicePresent = true;
                         targetDeviceId = d.getId();
                         break;
                     }
                 }
-                if (!isActiveDevicePresent) {
-                    targetDeviceId = devices[0].getId();
-                }
-            } else {
-                System.out.println("Spotify: Kein Gerät gefunden. Versuche Spotify automatisch zu starten...");
-                if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
-                    Desktop.getDesktop().browse(new URI("spotify:"));
-                    Thread.sleep(4000);
+                if (targetDeviceId == null) targetDeviceId = devices[0].getId();
+            }
 
+            // 2. Gerät wecken, falls Spotify geschlossen war
+            if (targetDeviceId == null) {
+                System.out.println("Spotify: Kein Gerät gefunden. Starte Spotify im Hintergrund...");
+
+                // NEU: Eigener Try-Catch-Block nur für den OS-Aufruf, damit die Schleife danach auf jeden Fall läuft
+                try {
+                    String os = System.getProperty("os.name").toLowerCase();
+                    if (os.contains("win")) {
+                        // Robusterer Windows-Aufruf für Protokolle wie spotify:
+                        Runtime.getRuntime().exec(new String[]{"cmd", "/c", "start", trackUri});
+                    } else if (os.contains("mac")) {
+                        Runtime.getRuntime().exec(new String[]{"open", trackUri});
+                    } else if (java.awt.Desktop.isDesktopSupported()) {
+                        java.awt.Desktop.getDesktop().browse(new java.net.URI(trackUri));
+                    }
+                } catch (Exception e) {
+                    System.out.println("Automatischer OS-Start fehlgeschlagen: " + e.getMessage());
+                }
+
+                // Polling: Wir fragen bis zu 15 Sekunden lang
+                for (int i = 0; i < 15; i++) {
+                    Thread.sleep(1000);
                     synchronized (spotifyApi) {
                         devices = spotifyApi.getUsersAvailableDevices().build().execute();
                     }
                     if (devices.length > 0) {
                         targetDeviceId = devices[0].getId();
+                        System.out.println("Spotify-Gerät online nach " + (i + 1) + " Sekunden!");
+
+                        try {
+                            com.google.gson.JsonArray deviceIds = new com.google.gson.JsonArray();
+                            deviceIds.add(targetDeviceId);
+                            synchronized (spotifyApi) {
+                                spotifyApi.transferUsersPlayback(deviceIds).play(false).build().execute();
+                            }
+                            Thread.sleep(500);
+                        } catch (Exception ignored) {}
+
+                        break;
                     }
                 }
             }
 
-            String trackUri = track.id().startsWith("spotify:track:") ? track.id() : "spotify:track:" + track.id();
-            com.google.gson.JsonArray uris = new com.google.gson.JsonArray();
-            uris.add(trackUri);
-
-            synchronized (spotifyApi) {
-                var playRequest = spotifyApi.startResumeUsersPlayback().uris(uris);
-                if (targetDeviceId != null) {
-                    playRequest.device_id(targetDeviceId);
+            // 3. Play-Befehl über die API senden
+            if (targetDeviceId != null) {
+                com.google.gson.JsonArray uris = new com.google.gson.JsonArray();
+                uris.add(trackUri);
+                synchronized (spotifyApi) {
+                    spotifyApi.startResumeUsersPlayback().uris(uris).device_id(targetDeviceId).build().execute();
                 }
-                playRequest.build().execute();
+            } else {
+                System.err.println("Konnte Spotify nicht automatisch starten. Bitte öffne die App manuell!");
+                // WICHTIG: Das wirft den Fehler, den der DjSessionController fängt, um die Endlosschleife zu verhindern!
+                throw new IllegalArgumentException("Kein aktives Spotify-Gerät gefunden.");
             }
 
-            System.out.println("Spotify spielt jetzt: " + track);
+            System.out.println("Spotify spielt jetzt: " + track.name());
             isRunning = true;
+
+            // ... (Hier bleibt dein aktueller playbackThread = new Thread(() -> { ... ); Block exakt so, wie er ist)
 
             playbackThread = new Thread(() -> {
                 try { Thread.sleep(3000); } catch (InterruptedException e) { return; }
@@ -115,6 +145,9 @@ public class SpotifyAdapter implements MusicPlayerAdapter {
             });
             playbackThread.start();
             playbackThread.join();
+        } catch (IllegalArgumentException e) {
+            // NEU: Diese Exception leiten wir gezielt nach draußen weiter zum Controller
+            throw e;
         } catch (Exception e) {
             System.err.println("Fehler beim Starten der Wiedergabe: " + e.getMessage());
         }
