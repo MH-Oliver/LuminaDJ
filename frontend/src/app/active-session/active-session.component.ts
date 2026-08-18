@@ -344,20 +344,29 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
           const hasNoCover = this.currentSong.coverUrl.includes('Kein+Cover');
           const isDummy = this.currentSong.title === 'Wird gestartet...';
 
-          if (this.isWaitingForPlayback || isDummy || hasNoCover) {
-            if (this.isPlaying && this.durationMs > 0 && !isDummy && !hasNoCover) {
-              this.isWaitingForPlayback = false;
-            } else if (!this.isFetchingInit) {
-              this.isFetchingInit = true;
-              setTimeout(() => {
-                this.isFetchingInit = false;
-                this.fetchUpdate();
-              }, 2000);
-            }
+          // Status aktualisieren, falls wir vorher noch gewartet haben
+          if (this.isPlaying && this.durationMs > 0 && !isDummy && !hasNoCover) {
+            this.isWaitingForPlayback = false;
           }
+
+        } // Ende von: if (data && data.currentSong)
+
+        // NEU: IMMER weiter pollen! Unabhängig davon, ob der Song schon läuft oder nicht.
+        // Das ist wichtig, um externe Klicks aus Spotify mitzubekommen.
+        if (!this.isFetchingInit) {
+          this.isFetchingInit = true;
+          setTimeout(() => {
+            this.isFetchingInit = false;
+            this.fetchUpdate();
+          }, 3000); // 3 Sekunden reichen völlig und schonen die API
         }
+
       },
-      error: (err) => console.error('Error fetching session update', err)
+      error: (err) => {
+        console.error('Error fetching session update', err);
+        // Auch bei einem Netzwerkfehler die Schleife am Leben halten!
+        setTimeout(() => this.fetchUpdate(), 5000);
+      }
     });
   }
 
