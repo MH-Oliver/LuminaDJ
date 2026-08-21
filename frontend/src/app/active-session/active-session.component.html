@@ -133,7 +133,12 @@
         </div>
 
         <div class="player-controls">
-          <button class="control-btn" title="Add to Favorites" (click)="toggleFavorite()" [class.is-favorite]="isFavorite">
+          <button class="control-btn"
+                  title="Prioritize current genre"
+                  (click)="toggleFavorite()"
+                  [class.is-favorite]="isFavorite"
+                  [disabled]="isFavorite"
+                  [style.cursor]="isFavorite ? 'default' : 'pointer'">
             <span class="material-icons-outlined">{{ isFavorite ? 'favorite' : 'favorite_border' }}</span>
           </button>
 

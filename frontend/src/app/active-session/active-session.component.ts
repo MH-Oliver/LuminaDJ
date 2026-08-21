@@ -306,8 +306,14 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
     this.apiService.updateSession().subscribe({
       next: (data) => {
         if (data && data.currentSong) {
+          const incomingTitle = data.currentSong['Name'];
+
+          if (this.currentSong.title !== 'Loading...' && this.currentSong.title !== incomingTitle) {
+            this.isFavorite = false;
+          }
+
           this.currentSong = {
-            title: data.currentSong['Name'],
+            title: incomingTitle,
             artist: data.currentSong['Author'],
             coverUrl: data.currentSong['Album-Bild'] || this.currentSong.coverUrl
           };
@@ -390,10 +396,22 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
   }
 
   toggleFavorite(): void {
-    this.isFavorite = !this.isFavorite;
+    if (this.isFavorite) {
+      return;
+    }
+
+    this.isFavorite = true;
+
+    // 1. Song in Spotify speichern
     this.apiService.toggleFavorite(this.isFavorite).subscribe({
       error: (err) => console.error('Error updating favorite state', err)
     });
+
+    // 2. Song in LuminaDJ priorisieren
+    this.prioritizeCurrent();
+
+    // 3. Optisches Feedback
+    this.notificationService.showSuccess('Genre & Vibe priorisiert!');
   }
 
   togglePlayPause(): void {
