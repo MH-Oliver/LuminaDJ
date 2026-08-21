@@ -13,7 +13,7 @@
       <h2>Select your Timeline</h2>
       <mat-form-field appearance="outline" subscriptSizing="dynamic">
         <mat-label>Preset wählen</mat-label>
-        <mat-select (selectionChange)="onPresetChange($event)">
+        <mat-select (selectionChange)="onPresetChange($event)" panelClass="custom-dark-panel">
           @for (preset of availablePresets; track preset) {
             <mat-option [value]="preset">{{ preset }}</mat-option>
           }
@@ -97,14 +97,20 @@
         <h3 style="margin-bottom: 1.5rem;">Edit Block</h3>
 
         <div class="input-group">
-          <!-- NEU: Material Select für Genre -->
           <mat-form-field appearance="outline" subscriptSizing="dynamic" style="width: 100%;">
-            <mat-label>Genre</mat-label>
-            <mat-select [value]="selectedBlock.title" (selectionChange)="updateGenre($event)">
-              @for (genre of availableGenres; track genre) {
+            <mat-label>Genre suchen oder wählen</mat-label>
+            <!-- (input) setzt das Signal direkt -->
+            <input type="text"
+                   matInput
+                   [value]="selectedBlock.title"
+                   (input)="searchQuery.set($any($event.target).value)"
+                   [matAutocomplete]="auto">
+
+            <mat-autocomplete #auto="matAutocomplete" (optionSelected)="updateGenreAuto($event)" class="custom-dark-panel">
+              @for (genre of filteredGenres(); track genre) {
                 <mat-option [value]="genre">{{ genre }}</mat-option>
               }
-            </mat-select>
+            </mat-autocomplete>
           </mat-form-field>
         </div>
 
