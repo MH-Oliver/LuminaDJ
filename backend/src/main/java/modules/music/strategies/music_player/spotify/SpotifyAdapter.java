@@ -21,6 +21,11 @@ public class SpotifyAdapter implements MusicPlayerAdapter {
     // NEU: Hält fest, welcher Song eigentlich laufen soll
     private String expectedTrackId = null;
 
+    private volatile boolean isCurrentlyPlaying = false;
+    private volatile long currentProgressMs = 0;
+    private volatile long lastUpdateTimestamp = 0;
+    private volatile long lastSeekTimestamp = 0;
+
     public SpotifyAdapter(SpotifyAuthenticator authenticator) {
         SpotifyAdapter.spotifyApi = authenticator.getSpotifyApi();
     }
@@ -28,66 +33,106 @@ public class SpotifyAdapter implements MusicPlayerAdapter {
     @Override
     public void play(Track track) {
         try {
-            // Merken, welcher Song ab jetzt laufen muss
             this.expectedTrackId = track.id();
+            String trackUri = track.id().startsWith("spotify:track:") ? track.id() : "spotify:track:" + track.id();
 
+            String targetDeviceId = null;
             Device[] devices;
+
             synchronized (spotifyApi) {
                 devices = spotifyApi.getUsersAvailableDevices().build().execute();
             }
 
-            String targetDeviceId = null;
-            boolean isActiveDevicePresent = false;
-
+            // 1. Suche nach einem bereits aktiven oder verfügbaren Gerät
             if (devices.length > 0) {
                 for (Device d : devices) {
                     if (d.getIs_active()) {
-                        isActiveDevicePresent = true;
                         targetDeviceId = d.getId();
                         break;
                     }
                 }
-                if (!isActiveDevicePresent) {
-                    targetDeviceId = devices[0].getId();
-                }
-            } else {
-                System.out.println("Spotify: Kein Gerät gefunden. Versuche Spotify automatisch zu starten...");
-                if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
-                    Desktop.getDesktop().browse(new URI("spotify:"));
-                    Thread.sleep(4000);
+                if (targetDeviceId == null) targetDeviceId = devices[0].getId();
+            }
 
+            // 2. Gerät wecken, falls Spotify geschlossen war
+            if (targetDeviceId == null) {
+                System.out.println("Spotify: Kein Gerät gefunden. Starte Spotify im Hintergrund...");
+
+                // NEU: Eigener Try-Catch-Block nur für den OS-Aufruf, damit die Schleife danach auf jeden Fall läuft
+                try {
+                    String os = System.getProperty("os.name").toLowerCase();
+                    if (os.contains("win")) {
+                        // Robusterer Windows-Aufruf für Protokolle wie spotify:
+                        Runtime.getRuntime().exec(new String[]{"cmd", "/c", "start", trackUri});
+                    } else if (os.contains("mac")) {
+                        Runtime.getRuntime().exec(new String[]{"open", trackUri});
+                    } else if (java.awt.Desktop.isDesktopSupported()) {
+                        java.awt.Desktop.getDesktop().browse(new java.net.URI(trackUri));
+                    }
+                } catch (Exception e) {
+                    System.out.println("Automatischer OS-Start fehlgeschlagen: " + e.getMessage());
+                }
+
+                // Polling: Wir fragen bis zu 15 Sekunden lang
+                for (int i = 0; i < 15; i++) {
+                    Thread.sleep(1000);
                     synchronized (spotifyApi) {
                         devices = spotifyApi.getUsersAvailableDevices().build().execute();
                     }
                     if (devices.length > 0) {
                         targetDeviceId = devices[0].getId();
+                        System.out.println("Spotify-Gerät online nach " + (i + 1) + " Sekunden!");
+
+                        try {
+                            com.google.gson.JsonArray deviceIds = new com.google.gson.JsonArray();
+                            deviceIds.add(targetDeviceId);
+                            synchronized (spotifyApi) {
+                                spotifyApi.transferUsersPlayback(deviceIds).play(false).build().execute();
+                            }
+                            Thread.sleep(500);
+                        } catch (Exception ignored) {}
+
+                        break;
                     }
                 }
             }
 
-            String trackUri = track.id().startsWith("spotify:track:") ? track.id() : "spotify:track:" + track.id();
-            com.google.gson.JsonArray uris = new com.google.gson.JsonArray();
-            uris.add(trackUri);
-
-            synchronized (spotifyApi) {
-                var playRequest = spotifyApi.startResumeUsersPlayback().uris(uris);
-                if (targetDeviceId != null) {
-                    playRequest.device_id(targetDeviceId);
+            // 3. Play-Befehl über die API senden
+            if (targetDeviceId != null) {
+                com.google.gson.JsonArray uris = new com.google.gson.JsonArray();
+                uris.add(trackUri);
+                synchronized (spotifyApi) {
+                    spotifyApi.startResumeUsersPlayback().uris(uris).device_id(targetDeviceId).build().execute();
                 }
-                playRequest.build().execute();
+            } else {
+                System.err.println("Konnte Spotify nicht automatisch starten. Bitte öffne die App manuell!");
+                // WICHTIG: Das wirft den Fehler, den der DjSessionController fängt, um die Endlosschleife zu verhindern!
+                throw new IllegalArgumentException("Kein aktives Spotify-Gerät gefunden.");
             }
 
-            System.out.println("Spotify spielt jetzt: " + track.name());
+            System.out.println("Spotify spielt jetzt: " + track);
+            isCurrentlyPlaying = true;
+            currentProgressMs = 0;
+            lastUpdateTimestamp = System.currentTimeMillis();
             isRunning = true;
 
             playbackThread = new Thread(() -> {
                 try { Thread.sleep(3000); } catch (InterruptedException e) { return; }
+
+                boolean hasStartedPlayingCorrectSong = false;
+                int syncAttempts = 0;
+
                 while (isRunning) {
                     try {
-                        CurrentlyPlayingContext context;
+                        CurrentlyPlayingContext context = null;
                         synchronized (spotifyApi) {
-                            context = spotifyApi.getInformationAboutUsersCurrentPlayback().build().execute();
+                            try {
+                                context = spotifyApi.getInformationAboutUsersCurrentPlayback().build().execute();
+                            } catch (Exception apiEx) {
+                                System.err.println("Spotify API Warnung (Background Check): " + apiEx.getMessage());
+                            }
                         }
+
                         if (context != null && context.getItem() != null) {
                             String currentPlayingId = context.getItem().getId();
                             Integer progressMs = context.getProgress_ms();
@@ -96,15 +141,52 @@ public class SpotifyAdapter implements MusicPlayerAdapter {
                                 durationMs = t.getDurationMs();
                             }
 
-                            if (currentPlayingId != null && !currentPlayingId.equals(track.id())) {
-                                isRunning = false;
-                            } else if (context.getIs_playing() && durationMs != null && progressMs != null) {
-                                if ((durationMs - progressMs) <= POLL_INTERVAL_MS) {
-                                    System.out.println("Song nähert sich dem natürlichen Ende.");
+                            if (currentPlayingId != null) {
+                                if (currentPlayingId.equals(track.id())) {
+                                    hasStartedPlayingCorrectSong = true;
+                                    syncAttempts = 0;
+
+                                    // Alten Wert merken, bevor wir ihn überschreiben
+                                    long oldProgress = currentProgressMs;
+
+                                    isCurrentlyPlaying = context.getIs_playing() != null ? context.getIs_playing() : false;
+                                    currentProgressMs = progressMs != null ? progressMs : 0;
+                                    lastUpdateTimestamp = System.currentTimeMillis();
+
+                                    // NEU: Erkennen, wenn Spotify bei leerer Queue abbricht oder "Next" gedrückt wird (Reset auf 0)
+                                    // Wir triggern den Skip nur, wenn wir nicht gerade selbst über die UI auf 0 gespult haben!
+                                    if (currentProgressMs < 1000 && oldProgress > 3000 && (System.currentTimeMillis() - lastSeekTimestamp > 3000)) {
+                                        System.out.println("Externer Skip (Spotify-Reset auf 0) erkannt! Lade nächsten Song...");
+                                        isRunning = false; // Löst das Laden des neuen Songs im Controller aus!
+                                    }
+
+                                    if (isCurrentlyPlaying && durationMs != null && progressMs != null) {
+                                        if ((durationMs - progressMs) <= POLL_INTERVAL_MS) {
+                                            System.out.println("Song nähert sich dem natürlichen Ende.");
+                                            isRunning = false;
+                                        }
+                                    }
+                                } else if (hasStartedPlayingCorrectSong) {
+                                    System.out.println("Externer Skip erkannt (Neue ID)! Lade nächsten Song...");
                                     isRunning = false;
+                                } else {
+                                    syncAttempts++;
                                 }
                             }
+                        } else if (hasStartedPlayingCorrectSong) {
+                            // NEU: Wenn der Song lief, aber jetzt kein Context mehr kommt,
+                            // wurde er wahrscheinlich manuell pausiert (oder Gerät ist im Standby)
+                            isCurrentlyPlaying = false;
+                            lastUpdateTimestamp = System.currentTimeMillis();
+                        } else {
+                            syncAttempts++;
                         }
+
+                        if (!hasStartedPlayingCorrectSong && syncAttempts > 10) {
+                            System.err.println("Timeout: Spotify hat den Song nicht synchronisiert.");
+                            isRunning = false;
+                        }
+
                         if (isRunning) Thread.sleep(POLL_INTERVAL_MS);
                     } catch (InterruptedException e) {
                         break;
@@ -113,8 +195,12 @@ public class SpotifyAdapter implements MusicPlayerAdapter {
                     }
                 }
             });
+
             playbackThread.start();
             playbackThread.join();
+
+        } catch (IllegalArgumentException e) {
+            throw e;
         } catch (Exception e) {
             System.err.println("Fehler beim Starten der Wiedergabe: " + e.getMessage());
         }
@@ -122,41 +208,16 @@ public class SpotifyAdapter implements MusicPlayerAdapter {
 
     @Override
     public boolean isPlaying() {
-        try {
-            synchronized (spotifyApi) {
-                CurrentlyPlayingContext ctx = spotifyApi.getInformationAboutUsersCurrentPlayback().build().execute();
-                if (ctx != null && ctx.getItem() != null) {
-                    // NEU: Wenn Spotify noch den alten Song meldet, lügen wir das Frontend an (false),
-                    // damit es im "Loading" Status bleibt, bis der neue Song WIRKLICH läuft.
-                    if (expectedTrackId != null && !expectedTrackId.equals(ctx.getItem().getId())) {
-                        return false;
-                    }
-                    return ctx.getIs_playing();
-                }
-                return false;
-            }
-        } catch (Exception e) {
-            return false;
-        }
+        return isCurrentlyPlaying;
     }
 
     @Override
     public long getPlaybackPosition() {
-        try {
-            synchronized (spotifyApi) {
-                CurrentlyPlayingContext ctx = spotifyApi.getInformationAboutUsersCurrentPlayback().build().execute();
-                if (ctx != null && ctx.getItem() != null) {
-                    // NEU: Wenn Spotify noch den alten Song meldet, setzen wir die Position knallhart auf 0
-                    if (expectedTrackId != null && !expectedTrackId.equals(ctx.getItem().getId())) {
-                        return 0;
-                    }
-                    return ctx.getProgress_ms() != null ? ctx.getProgress_ms() : 0;
-                }
-                return 0;
-            }
-        } catch (Exception e) {
-            return 0;
+        // Rechnet die Zeit zwischen den 3-Sekunden-API-Checks künstlich hoch, für eine butterweiche UI!
+        if (isCurrentlyPlaying) {
+            return currentProgressMs + (System.currentTimeMillis() - lastUpdateTimestamp);
         }
+        return currentProgressMs;
     }
 
     @Override
@@ -165,6 +226,7 @@ public class SpotifyAdapter implements MusicPlayerAdapter {
             synchronized (spotifyApi) {
                 spotifyApi.pauseUsersPlayback().build().execute();
             }
+            isCurrentlyPlaying = false; // Sofortiges UI-Feedback
         } catch (Exception e) {}
     }
 
@@ -174,6 +236,8 @@ public class SpotifyAdapter implements MusicPlayerAdapter {
             synchronized (spotifyApi) {
                 spotifyApi.startResumeUsersPlayback().build().execute();
             }
+            isCurrentlyPlaying = true; // Sofortiges UI-Feedback
+            lastUpdateTimestamp = System.currentTimeMillis();
         } catch (Exception e) {}
     }
 
@@ -183,6 +247,9 @@ public class SpotifyAdapter implements MusicPlayerAdapter {
             synchronized (spotifyApi) {
                 spotifyApi.seekToPositionInCurrentlyPlayingTrack((int) positionMs).build().execute();
             }
+            currentProgressMs = positionMs;
+            lastUpdateTimestamp = System.currentTimeMillis();
+            lastSeekTimestamp = System.currentTimeMillis(); // <-- HIER SETZEN
         } catch (Exception e) {}
     }
 

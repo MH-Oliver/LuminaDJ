@@ -127,6 +127,16 @@ public class SessionController {
         return ResponseEntity.ok(Map.of("nextSong", "Wird geladen..."));
     }
 
+    @PostMapping("/prioritize")
+    public ResponseEntity<Map<String, String>> prioritizeSong() {
+        DjSessionController sessionController = sessionService.getActiveSession();
+        if (sessionController != null) {
+            sessionController.prioritizeCurrentTrack();
+            return ResponseEntity.ok(Map.of("status", "prioritized"));
+        }
+        return ResponseEntity.badRequest().body(Map.of("error", "Keine aktive Session"));
+    }
+
     @PostMapping("/edit")
     public ResponseEntity<Map<String, Object>> editSession() {
         DjSessionController sessionController = sessionService.getActiveSession();

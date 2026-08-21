@@ -17,6 +17,7 @@ import modules.prediction.services.PredictionAggregator;
 import modules.prediction.strategies.core.PredictionStrategy;
 import modules.prediction.strategies.prediction.HistoryStrategy;
 import modules.prediction.strategies.prediction.MacroCurveStrategy;
+import modules.prediction.strategies.prediction.PrioritizeStrategy;
 import modules.userContext.strategies.core.UserContextStrategy;
 import modules.vision.services.GestureRecognitionService;
 import modules.userContext.structures.GenreTimeline;
@@ -98,14 +99,17 @@ public class ContextController {
         MusicPlayerAdapter player = new SpotifyAdapter(this.authenticator);
         MusicSourceAdapter sourceAdapter = localDb;
 
+        var prioritizeStrategy = new PrioritizeStrategy();
+
         List<PredictionStrategy> strategies = List.of(
                 new MacroCurveStrategy(localDb, contextStrategy),
-                new HistoryStrategy(historyRepo)
+                new HistoryStrategy(historyRepo),
+                prioritizeStrategy
         );
         var aggregator = new PredictionAggregator(strategies);
 
         return new DjSessionController(
-                player, aggregator, sourceAdapter, historyRepo, playedSongRepo, contextStrategy.getUserContext()
+                player, aggregator, sourceAdapter, historyRepo, playedSongRepo, contextStrategy.getUserContext(), prioritizeStrategy
         );
     }
 

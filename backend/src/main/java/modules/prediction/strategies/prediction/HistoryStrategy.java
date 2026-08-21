@@ -23,7 +23,7 @@ public class HistoryStrategy implements PredictionStrategy {
 
     @Override
     public double getWeight() {
-        return 0.3;
+        return 0.2;
     }
 
     @Override

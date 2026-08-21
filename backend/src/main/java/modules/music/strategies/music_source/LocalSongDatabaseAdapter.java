@@ -22,7 +22,7 @@ public class LocalSongDatabaseAdapter implements MusicSourceAdapter {
     private final UserContextStrategy contextStrategy;
 
     // GEFIXT: Drastisch erhöht, um unerwünschte Genres strikt zu blockieren
-    private final double WRONG_GENRE_PENALITY = 0.15;
+    private final double WRONG_GENRE_PENALITY = 100.0;
 
     private final Map<String, PredictedAttributes> genreCentroids = new HashMap<>();
 

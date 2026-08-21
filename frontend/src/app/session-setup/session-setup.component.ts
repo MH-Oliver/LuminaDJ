@@ -1,5 +1,5 @@
 // session-setup/session-setup.component.ts
-import { Component, HostListener, OnInit } from '@angular/core';
+import {Component, computed, HostListener, OnInit, signal} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { ContextApiService, UserContextDto, TimelinePhaseDto } from '../services/context-api.service';
@@ -9,6 +9,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSliderModule } from '@angular/material/slider';
 import { ButtonComponent } from '../shared/button/button.component';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import {MatAutocomplete, MatAutocompleteTrigger} from '@angular/material/autocomplete';
 
 interface GenreBlock {
   id: number;
@@ -21,7 +22,7 @@ interface GenreBlock {
 @Component({
   selector: 'app-session-setup',
   standalone: true,
-  imports: [CommonModule, MatFormFieldModule, MatSelectModule, MatInputModule, MatSliderModule, ButtonComponent, MatTooltipModule],
+  imports: [CommonModule, MatFormFieldModule, MatSelectModule, MatInputModule, MatSliderModule, ButtonComponent, MatTooltipModule, MatAutocomplete, MatAutocompleteTrigger],
   templateUrl: './session-setup.component.html',
   styleUrls: ['./session-setup.component.scss']
 })
@@ -29,8 +30,14 @@ export class SessionSetupComponent implements OnInit {
   spotifyUser = 'DJ_Lumina_Test';
   totalMinutes = 120;
 
-  availableGenres: string[] = [];
+  availableGenres = signal<string[]>([]);
+  searchQuery = signal<string>('');
   availablePresets: string[] = [];
+
+  filteredGenres = computed(() => {
+    const query = this.searchQuery().toLowerCase();
+    return this.availableGenres().filter(g => g.toLowerCase().includes(query));
+  });
 
   blocks: GenreBlock[] = [];
   draggingBlock: GenreBlock | null = null;
@@ -61,7 +68,7 @@ export class SessionSetupComponent implements OnInit {
     this.apiService.loadGenre('').subscribe({
       next: (genres) => {
         if (genres && genres.length > 0) {
-          this.availableGenres = genres;
+          this.availableGenres.set(genres); // 3. Signal füllen
         }
       },
       error: (err) => console.error('Fehler beim Laden der Genres:', err)
@@ -419,6 +426,13 @@ export class SessionSetupComponent implements OnInit {
       return;
     }
     this.selectedBlock = block;
+    this.searchQuery.set('');
+  }
+
+  updateGenreAuto(event: any): void {
+    if (this.selectedBlock) {
+      this.selectedBlock.title = event.option.value;
+    }
   }
 
   closeDialog(): void {
@@ -459,9 +473,11 @@ export class SessionSetupComponent implements OnInit {
       return;
     }
 
+    const currentGenres = this.availableGenres();
+
     this.blocks.push({
       id: Date.now(),
-      title: this.availableGenres.length > 0 ? this.availableGenres[0] : 'NEW',
+      title: currentGenres.length > 0 ? currentGenres[0] : 'NEW',
       start: maxEnd,
       duration: 5,
       row: row
