@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const { spawn } = require('node:child_process');
 const path = require('node:path');
 
@@ -12,9 +12,7 @@ function startBackend() {
     stdio: 'inherit',
     windowsHide: true,
     env: {
-      ...process.env,
-      SPOTIFY_CLIENT_SECRET: "54ac515fed40427facf841f22461b7e7",
-      GROQ_API_KEY: "value2"
+      ...process.env
     }
   });
 
@@ -36,6 +34,7 @@ function createWindow() {
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
+      preload: path.resolve(__dirname, 'preload.js'),
     },
   });
 
@@ -54,6 +53,13 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  ipcMain.handle('open-external-url', async (_event, url) => {
+    if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) {
+      throw new Error('Ungültige URL');
+    }
+    await shell.openExternal(url);
+  });
+
   if (!process.env.ELECTRON_START_URL) {
     startBackend();
   }

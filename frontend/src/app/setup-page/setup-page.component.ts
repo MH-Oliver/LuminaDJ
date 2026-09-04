@@ -10,6 +10,14 @@ import { NotificationService } from '../services/notification.service';
 import { ButtonComponent } from '../shared/button/button.component';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 
+declare global {
+  interface Window {
+    electronAPI?: {
+      openExternalUrl: (url: string) => Promise<void>;
+    };
+  }
+}
+
 @Component({
   selector: 'app-setup-page',
   standalone: true,
@@ -94,20 +102,15 @@ export class SetupPageComponent implements OnInit, OnDestroy {
   }
 
   private openInExternalBrowser(url: string) {
-    // Versuch 1: Wir prüfen, ob wir in Electron sind (mit Node-Integration)
-    if (typeof window !== 'undefined' && (window as any).require) {
-      try {
-        const electron = (window as any).require('electron');
-        if (electron && electron.shell) {
-          electron.shell.openExternal(url);
-          return;
-        }
-      } catch (e) {
-        console.warn('Electron require fehlgeschlagen, nutze Fallback.', e);
-      }
+    if (window.electronAPI?.openExternalUrl) {
+      window.electronAPI.openExternalUrl(url).catch((err) => {
+        console.warn('Externes Öffnen über Electron fehlgeschlagen, nutze Browser-Fallback.', err);
+        window.open(url, '_blank', 'noopener,noreferrer');
+      });
+      return;
     }
-    // Versuch 2: Standard-Browser Fallback (falls Node-Integration in Electron deaktiviert ist)
-    window.open(url, '_blank');
+
+    window.open(url, '_blank', 'noopener,noreferrer');
   }
 
   connectCamera() {

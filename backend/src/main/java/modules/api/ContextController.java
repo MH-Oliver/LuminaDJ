@@ -10,7 +10,9 @@ import modules.music.strategies.core.MusicPlayerAdapter;
 import modules.music.strategies.core.MusicSourceAdapter;
 import modules.music.strategies.music_player.spotify.SpotifyAdapter;
 import modules.music.strategies.music_player.spotify.SpotifyAuthenticator;
+import modules.music.strategies.music_source.HybridSourceAdapter;
 import modules.music.strategies.music_source.LocalSongDatabaseAdapter;
+import modules.music.strategies.music_source.SpotifySourceAdapter;
 import modules.music.structures.Genre;
 import modules.music.structures.Track;
 import modules.prediction.services.PredictionAggregator;
@@ -97,7 +99,7 @@ public class ContextController {
         var historyRepo = new SessionHistoryRepository();
         var localDb = new LocalSongDatabaseAdapter(playedSongRepo, contextStrategy);
         MusicPlayerAdapter player = new SpotifyAdapter(this.authenticator);
-        MusicSourceAdapter sourceAdapter = localDb;
+        MusicSourceAdapter sourceAdapter = new HybridSourceAdapter(localDb, new SpotifySourceAdapter());
 
         var prioritizeStrategy = new PrioritizeStrategy();
 
