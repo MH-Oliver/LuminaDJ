@@ -37,6 +37,7 @@ export class SetupPageComponent implements OnInit, OnDestroy {
   manualIp = '';
 
   private spotifyPollTimer: any;
+  private spotifyInitRetryTimer: any;
 
   constructor(
     private readonly apiService: ContextApiService,
@@ -45,19 +46,31 @@ export class SetupPageComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit() {
-    // Beim Laden nur prüfen, ob wir evtl. schon eingeloggt sind
+    this.checkSpotifyConnectionWithRetry();
+  }
+
+  ngOnDestroy() {
+    if (this.spotifyPollTimer) clearInterval(this.spotifyPollTimer);
+    if (this.spotifyInitRetryTimer) clearTimeout(this.spotifyInitRetryTimer);
+  }
+
+  private checkSpotifyConnectionWithRetry(remainingAttempts: number = 10): void {
     this.apiService.checkSpotifyConnection().subscribe({
       next: (res) => {
         if (res.connected) {
           this.isSpotifyConnected = true;
         }
       },
-      error: (err) => console.error('Fehler beim Check der Spotify Verbindung:', err)
+      error: (err) => {
+        if (remainingAttempts > 1) {
+          this.spotifyInitRetryTimer = setTimeout(() => {
+            this.checkSpotifyConnectionWithRetry(remainingAttempts - 1);
+          }, 1000);
+          return;
+        }
+        console.error('Fehler beim Check der Spotify Verbindung:', err);
+      }
     });
-  }
-
-  ngOnDestroy() {
-    if (this.spotifyPollTimer) clearInterval(this.spotifyPollTimer);
   }
 
   submitSetup(): void {

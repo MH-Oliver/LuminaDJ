@@ -40,6 +40,17 @@ function loadEnvFromFile() {
 function startBackend() {
   const jarPath = path.resolve(__dirname, '../../backend/target/lumina-backend-1.0-SNAPSHOT.jar');
   const fileEnv = loadEnvFromFile();
+  const resolveEnvValue = (key) => {
+    const fromProcess = process.env[key];
+    if (typeof fromProcess === 'string' && fromProcess.trim().length > 0) {
+      return fromProcess;
+    }
+    const fromFile = fileEnv[key];
+    if (typeof fromFile === 'string' && fromFile.trim().length > 0) {
+      return fromFile;
+    }
+    return '';
+  };
 
   backendProcess = spawn('java', ['-jar', jarPath], {
     cwd: path.resolve(__dirname, '../..'),
@@ -47,10 +58,13 @@ function startBackend() {
     windowsHide: true,
     env: {
       ...process.env,
-      SPOTIFY_CLIENT_SECRET:
-        process.env.SPOTIFY_CLIENT_SECRET ?? fileEnv.SPOTIFY_CLIENT_SECRET ?? '',
-      GROQ_API_KEY: process.env.GROQ_API_KEY ?? fileEnv.GROQ_API_KEY ?? '',
+      SPOTIFY_CLIENT_SECRET: resolveEnvValue('SPOTIFY_CLIENT_SECRET'),
+      GROQ_API_KEY: resolveEnvValue('GROQ_API_KEY'),
     }
+  });
+
+  backendProcess.on('error', (error) => {
+    console.error('Backend-Prozess konnte nicht gestartet werden:', error);
   });
 
   backendProcess.on('exit', () => {
@@ -97,7 +111,7 @@ app.whenReady().then(() => {
     await shell.openExternal(url);
   });
 
-  if (!process.env.ELECTRON_START_URL) {
+  if (process.env.LUMINA_SKIP_BACKEND !== 'true') {
     startBackend();
   }
 
