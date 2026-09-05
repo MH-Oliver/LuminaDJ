@@ -51,25 +51,19 @@ public class VisionController {
         }
     }
 
-    /**
-     * Liefert das aktuelle Kamerabild (mit eingezeichnetem Landmark-Skelett, Base64-kodiert
-     * als data-URL) sowie die Gesten, die über das 5-Sekunden-Hold-Verfahren bislang
-     * bestätigt wurden (Label -> Anzahl seit dem letzten Reset).
-     */
     @GetMapping("/currentFrame")
     public ResponseEntity<Map<String, Object>> currentFrame() {
         GestureRecognitionService.Snapshot snapshot = gestureService.getSnapshot();
-
         if (snapshot == null) {
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                     .body(Map.of("error", "Noch kein Bild verfügbar - ist eine Kamera verbunden?"));
         }
 
         String base64Image = Base64.getEncoder().encodeToString(snapshot.jpegImage());
-
         return ResponseEntity.ok(Map.of(
                 "image", "data:image/jpeg;base64," + base64Image,
-                "gestures", snapshot.confirmedGestureCounts()
+                "gestures", snapshot.confirmedGestureCounts(),
+                "status", snapshot.status() // NEU: Status an Frontend senden
         ));
     }
 
