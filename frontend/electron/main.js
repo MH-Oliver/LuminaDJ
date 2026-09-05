@@ -1,11 +1,56 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const { spawn } = require('node:child_process');
+const fs = require('node:fs');
 const path = require('node:path');
 
 let backendProcess;
 
+function loadEnvFromFile() {
+  const envPath = path.resolve(__dirname, '../../.env');
+  if (!fs.existsSync(envPath)) {
+    return {};
+  }
+
+  const parsed = {};
+  const lines = fs.readFileSync(envPath, 'utf8').split(/\r?\n/);
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith('#')) continue;
+
+    const separatorIndex = line.indexOf('=');
+    if (separatorIndex <= 0) continue;
+
+    const key = line.slice(0, separatorIndex).trim();
+    let value = line.slice(separatorIndex + 1).trim();
+
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+
+    parsed[key] = value;
+  }
+
+  return parsed;
+}
+
 function startBackend() {
   const jarPath = path.resolve(__dirname, '../../backend/target/lumina-backend-1.0-SNAPSHOT.jar');
+  const fileEnv = loadEnvFromFile();
+  const resolveEnvValue = (key) => {
+    const fromProcess = process.env[key];
+    if (typeof fromProcess === 'string' && fromProcess.trim().length > 0) {
+      return fromProcess;
+    }
+    const fromFile = fileEnv[key];
+    if (typeof fromFile === 'string' && fromFile.trim().length > 0) {
+      return fromFile;
+    }
+    return '';
+  };
 
   backendProcess = spawn('java', ['-jar', jarPath], {
     cwd: path.resolve(__dirname, '../..'),
@@ -13,9 +58,13 @@ function startBackend() {
     windowsHide: true,
     env: {
       ...process.env,
-      SPOTIFY_CLIENT_SECRET: "54ac515fed40427facf841f22461b7e7",
-      GROQ_API_KEY: "value2"
+      SPOTIFY_CLIENT_SECRET: resolveEnvValue('SPOTIFY_CLIENT_SECRET'),
+      GROQ_API_KEY: resolveEnvValue('GROQ_API_KEY'),
     }
+  });
+
+  backendProcess.on('error', (error) => {
+    console.error('Backend-Prozess konnte nicht gestartet werden:', error);
   });
 
   backendProcess.on('exit', () => {
@@ -36,6 +85,7 @@ function createWindow() {
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
+      preload: path.resolve(__dirname, 'preload.js'),
     },
   });
 
@@ -54,7 +104,14 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
-  if (!process.env.ELECTRON_START_URL) {
+  ipcMain.handle('open-external-url', async (_event, url) => {
+    if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) {
+      throw new Error('Ungültige URL');
+    }
+    await shell.openExternal(url);
+  });
+
+  if (process.env.LUMINA_SKIP_BACKEND !== 'true') {
     startBackend();
   }
 

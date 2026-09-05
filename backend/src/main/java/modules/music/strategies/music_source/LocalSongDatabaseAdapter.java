@@ -126,6 +126,8 @@ public class LocalSongDatabaseAdapter implements MusicSourceAdapter {
         );
 
         int cooldown = contextStrategy.getUserContext().songCooldownMinutes();
+        Map<String, Double> targetGenreWeights = target.genreWeights() == null ? Map.of() : target.genreWeights();
+        boolean useStrictGenreFilter = targetGenreWeights.values().stream().anyMatch(weight -> weight > 0.0);
 
         for (Track candidate : database) {
             if (candidate.id().equals(currentSong.id())) continue;
@@ -134,11 +136,15 @@ public class LocalSongDatabaseAdapter implements MusicSourceAdapter {
                 continue;
             }
 
+            double targetWeight = targetGenreWeights.getOrDefault(candidate.genre(), 0.0);
+            if (useStrictGenreFilter && targetWeight <= 0.0) {
+                continue;
+            }
+
             double distance = calculateNormalizedDistance(target, candidate);
             double penalty = 0.0;
 
-            if (target.genreWeights() != null && !target.genreWeights().isEmpty()) {
-                double targetWeight = target.genreWeights().getOrDefault(candidate.genre(), 0.0);
+            if (useStrictGenreFilter) {
                 penalty = WRONG_GENRE_PENALITY * (1.0 - targetWeight);
             } else {
                 if (currentSong.genre() != null && !currentSong.genre().equalsIgnoreCase(candidate.genre())) {

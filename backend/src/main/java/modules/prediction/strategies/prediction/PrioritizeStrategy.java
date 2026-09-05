@@ -19,7 +19,7 @@ public class PrioritizeStrategy implements PredictionStrategy {
 
     @Override
     public double getWeight() {
-        return 0.7; // Hohes Gewicht, damit sich die Features deutlich spürbar anpassen
+        return 3.0;
     }
 
     @Override

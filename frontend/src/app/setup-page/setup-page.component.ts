@@ -10,6 +10,14 @@ import { NotificationService } from '../services/notification.service';
 import { ButtonComponent } from '../shared/button/button.component';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 
+declare global {
+  interface Window {
+    electronAPI?: {
+      openExternalUrl: (url: string) => Promise<void>;
+    };
+  }
+}
+
 @Component({
   selector: 'app-setup-page',
   standalone: true,
@@ -29,6 +37,7 @@ export class SetupPageComponent implements OnInit, OnDestroy {
   manualIp = '';
 
   private spotifyPollTimer: any;
+  private spotifyInitRetryTimer: any;
 
   constructor(
     private readonly apiService: ContextApiService,
@@ -37,19 +46,31 @@ export class SetupPageComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit() {
-    // Beim Laden nur prüfen, ob wir evtl. schon eingeloggt sind
+    this.checkSpotifyConnectionWithRetry();
+  }
+
+  ngOnDestroy() {
+    if (this.spotifyPollTimer) clearInterval(this.spotifyPollTimer);
+    if (this.spotifyInitRetryTimer) clearTimeout(this.spotifyInitRetryTimer);
+  }
+
+  private checkSpotifyConnectionWithRetry(remainingAttempts: number = 10): void {
     this.apiService.checkSpotifyConnection().subscribe({
       next: (res) => {
         if (res.connected) {
           this.isSpotifyConnected = true;
         }
       },
-      error: (err) => console.error('Fehler beim Check der Spotify Verbindung:', err)
+      error: (err) => {
+        if (remainingAttempts > 1) {
+          this.spotifyInitRetryTimer = setTimeout(() => {
+            this.checkSpotifyConnectionWithRetry(remainingAttempts - 1);
+          }, 1000);
+          return;
+        }
+        console.error('Fehler beim Check der Spotify Verbindung:', err);
+      }
     });
-  }
-
-  ngOnDestroy() {
-    if (this.spotifyPollTimer) clearInterval(this.spotifyPollTimer);
   }
 
   submitSetup(): void {
@@ -94,20 +115,15 @@ export class SetupPageComponent implements OnInit, OnDestroy {
   }
 
   private openInExternalBrowser(url: string) {
-    // Versuch 1: Wir prüfen, ob wir in Electron sind (mit Node-Integration)
-    if (typeof window !== 'undefined' && (window as any).require) {
-      try {
-        const electron = (window as any).require('electron');
-        if (electron && electron.shell) {
-          electron.shell.openExternal(url);
-          return;
-        }
-      } catch (e) {
-        console.warn('Electron require fehlgeschlagen, nutze Fallback.', e);
-      }
+    if (window.electronAPI?.openExternalUrl) {
+      window.electronAPI.openExternalUrl(url).catch((err) => {
+        console.warn('Externes Öffnen über Electron fehlgeschlagen, nutze Browser-Fallback.', err);
+        window.open(url, '_blank', 'noopener,noreferrer');
+      });
+      return;
     }
-    // Versuch 2: Standard-Browser Fallback (falls Node-Integration in Electron deaktiviert ist)
-    window.open(url, '_blank');
+
+    window.open(url, '_blank', 'noopener,noreferrer');
   }
 
   connectCamera() {

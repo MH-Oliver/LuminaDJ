@@ -98,9 +98,12 @@ Erwartet:
 - Installation läuft ohne Fehler durch.
 - `frontend/node_modules` ist vorhanden.
 
-### 2) Frontend-Abhängigkeiten installieren
-In frontend/electron/main.js in startBackend() Funktion die Variablen SPOTIFY_CLIENT_SECRET und GROQ_API_KEY richtig setzen.
-(GROQ_API_KEY ist irrelevant wenn Smartphone nicht verbunden)
+### 2) API-Keys hinterlegen
+`/.env.template` nach `/.env` kopieren und Werte eintragen:
+- `SPOTIFY_CLIENT_SECRET=...`
+- `GROQ_API_KEY=...` (irrelevant, wenn Smartphone nicht verbunden)
+
+Beim Start lädt Electron diese Werte automatisch und gibt sie an das Backend weiter.
 
 ### 2.2) Song auf Spotify kurz starten
 Es muss Spotify geöffnet werden, und ein beliebiger Song kurz gestartet werden, kann auch direkt wieder gestoppt werden.
