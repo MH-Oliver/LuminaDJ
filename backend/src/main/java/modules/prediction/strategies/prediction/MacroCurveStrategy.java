@@ -47,7 +47,7 @@ public class MacroCurveStrategy implements PredictionStrategy {
 
         // 2. Ziel-Features (Centroids) interpolieren
         for (Map.Entry<Genre, Double> entry : currentWeights.entrySet()) {
-            String genreName = entry.getKey().name().toLowerCase();
+            String genreName = entry.getKey().name().toLowerCase().replace('_', '-');
             double weight = entry.getValue();
 
             stringWeights.put(genreName, weight);

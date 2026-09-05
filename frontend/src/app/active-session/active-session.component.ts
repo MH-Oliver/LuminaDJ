@@ -106,9 +106,9 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
       }
     }, 1000);
 
-    this.cameraPollTimer = setInterval(() => {
+    if (!this.isCameraSkipped) {
       this.fetchCameraData();
-    }, 100);
+    }
   }
 
   ngOnDestroy(): void {
@@ -215,10 +215,12 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
               count: currentGestures[key]
             }));
           }
+          this.cameraPollTimer = setTimeout(() => this.fetchCameraData(), 33);
         },
         error: (err) => {
           this.cameraImage = null;
           this.isCameraReachable = false;
+          this.cameraPollTimer = setTimeout(() => this.fetchCameraData(), 1000);
         }
       });
     }
