@@ -66,7 +66,7 @@ public class PlayedSongRepository {
      */
     private void loadHistory() {
         if (!historyFile.exists()) {
-            return; // Nichts zu laden, starte mit leerer Map
+            return;
         }
 
         try (BufferedReader br = new BufferedReader(new FileReader(historyFile))) {
@@ -74,7 +74,6 @@ public class PlayedSongRepository {
             boolean isHeader = true;
 
             while ((line = br.readLine()) != null) {
-                // Überspringe den CSV-Header
                 if (isHeader) {
                     isHeader = false;
                     continue;
@@ -101,10 +100,7 @@ public class PlayedSongRepository {
      */
     private synchronized void saveHistory() {
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(historyFile))) {
-            // Schreibe den CSV-Header
             bw.write("track_id,last_played_at\n");
-
-            // Schreibe alle Einträge
             for (Map.Entry<String, LocalDateTime> entry : playedHistory.entrySet()) {
                 bw.write(entry.getKey() + "," + entry.getValue().toString() + "\n");
             }

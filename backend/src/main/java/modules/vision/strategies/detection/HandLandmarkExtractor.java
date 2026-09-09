@@ -26,17 +26,8 @@ import java.util.List;
  * (für die Gesten-Klassifikation) hergestellt.
  */
 public class HandLandmarkExtractor {
-
-    // Modell erwartet exakt 256x256 als Eingabegröße (siehe mp_handpose.py, self.input_size).
     private static final int INPUT_SIZE = 256;
     private static final int NUM_LANDMARKS = 21;
-
-    // WICHTIG: Der alte Wert 1.3 war für die frühere YOLO-Hand-Box kalibriert, die schon
-    // einen Großteil der Finger mit abdeckte. Der neue PalmDetector liefert dagegen bewusst
-    // NUR die Handfläche (ohne Finger) - die frühere Erkenntnis "höherer Margin macht es
-    // schlechter" bezog sich auf einen strukturell anderen Box-Typ und gilt hier nicht mehr.
-    // 2.6 entspricht dem offiziellen MediaPipe-Vergrößerungsfaktor für genau diesen Schritt
-    // (Palm-Box -> Hand-Crop).
     private static final double BBOX_MARGIN_FACTOR = 2.6;
 
     private final Net landmarkNet;
@@ -118,46 +109,21 @@ public class HandLandmarkExtractor {
         List<Mat> rawOutputs = new ArrayList<>();
 
         try {
-            // 1. Bounding Box vergrößern, quadratisch machen und aus dem Frame ausschneiden
-            //    (mit schwarzem Padding, falls der vergrößerte Bereich über den Frame-Rand hinausragt).
             SquareCropInfo cropInfo = squarifyAndCrop(frame, handBbox, marginFactor);
             squareCrop = cropInfo.crop;
-
-            // 2. BGR -> RGB, denn das Modell wurde auf RGB-Bildern trainiert (siehe mp_handpose.py).
             rgbCrop = new Mat();
             Imgproc.cvtColor(squareCrop, rgbCrop, Imgproc.COLOR_BGR2RGB);
-
-            // 3. Auf 256x256 skalieren. INTER_LINEAR statt INTER_AREA, da der Crop meist KLEINER
-            //    als 256x256 ist und wir also vergrößern (INTER_AREA ist für Verkleinerung gedacht).
             resizedCrop = new Mat();
             Imgproc.resize(rgbCrop, resizedCrop, new Size(INPUT_SIZE, INPUT_SIZE), 0, 0, Imgproc.INTER_LINEAR);
-
-            // 4. Auf float32 im Bereich [0,1] normalisieren.
             floatCrop = new Mat();
             resizedCrop.convertTo(floatCrop, CvType.CV_32FC3, 1.0 / 255.0);
-
-            // 5. Manuell einen NHWC-Blob (1,256,256,3) bauen. WICHTIG: Dnn.blobFromImage() würde
-            //    standardmäßig NCHW (1,3,256,256) erzeugen, das dieses Modell NICHT erwartet.
-            //    Eine CV_32FC3-Mat speichert Pixel bereits interleaved als H x W x 3 (HWC) im Speicher,
-            //    das entspricht exakt NHWC mit N=1 - wir müssen die Daten nur "umdeklarieren", nicht umsortieren.
             float[] hwcData = new float[INPUT_SIZE * INPUT_SIZE * 3];
             floatCrop.get(0, 0, hwcData);
 
             blob = new Mat(new int[]{1, INPUT_SIZE, INPUT_SIZE, 3}, CvType.CV_32F);
             blob.put(new int[]{0, 0, 0, 0}, hwcData);
-
-            // 6. Inferenz
             landmarkNet.setInput(blob);
             landmarkNet.forward(rawOutputs, outBlobNames);
-
-            // 7. Dieses Modell hat 4 Outputs (nicht 2, wie in älteren Doku-Versionen beschrieben):
-            //    - ein 63-Werte-Output mit Bild-Pixel-Koordinaten (0..256) -> das wollen wir
-            //    - ein 63-Werte-Output mit "World Landmarks" (metrische 3D-Koordinaten, sehr kleine
-            //      Werte um die reale Handgröße in Metern) -> nicht das, was wir brauchen
-            //    - zwei 1-Werte-Outputs (u.a. Konfidenz)
-            //    Wir unterscheiden die zwei 63er-Outputs NICHT über die Reihenfolge (die könnte sich
-            //    zwischen Modellversionen ändern), sondern über den Wertebereich: Bild-Koordinaten
-            //    liegen im Bereich 0..256, World-Landmarks liegen im Bereich von wenigen Zentimetern.
             float[] landmarkData = null;
             float confidence = 0f;
 
@@ -172,8 +138,6 @@ public class HandLandmarkExtractor {
                 if (total == NUM_LANDMARKS * 3) {
                     float maxAbs = 0f;
                     for (float v : values) maxAbs = Math.max(maxAbs, Math.abs(v));
-
-                    // Bild-Koordinaten-Output hat Werte bis ~256, World-Landmarks bleiben unter ~1.
                     if (maxAbs > 5f) {
                         landmarkData = values;
                     }
@@ -186,20 +150,11 @@ public class HandLandmarkExtractor {
                 System.err.println("[LANDMARK FEHLER] Unerwartetes Output-Format vom Modell.");
                 return null;
             }
-
-            // Debug: Landmarks direkt auf dem Modell-Input zeichnen, OHNE jede Rückrechnung -
-            // zeigt, ob das Modell selbst schon daneben liegt oder ob der Fehler erst später
-            // (beim Zurückrechnen auf den Original-Frame) entsteht. Wird unabhängig von der
-            // Konfidenz gespeichert, um auch knapp-unter-Schwelle-Fälle einsehen zu können.
             if (debugCropOutputFile != null) {
                 saveCropDebugVisualization(resizedCrop, landmarkData, debugCropOutputFile);
             }
 
             System.out.println("DEBUG: Landmark-Konfidenz = " + confidence);
-
-
-            // 8. Landmark-Koordinaten (0..256 im Crop) zurück auf Original-Frame-Pixelkoordinaten
-            //    umrechnen, analog zur Letterboxing-Rückrechnung in HandDetector.
             Point[] points = new Point[NUM_LANDMARKS];
             float[] zValues = new float[NUM_LANDMARKS];
 
@@ -215,7 +170,7 @@ public class HandLandmarkExtractor {
                 double yOrig = cropInfo.offsetY + yNorm * cropInfo.size;
 
                 points[i] = new Point(xOrig, yOrig);
-                zValues[i] = (float) (zModel / INPUT_SIZE); // grob skalierte relative Tiefe
+                zValues[i] = (float) (zModel / INPUT_SIZE);
             }
 
             return new HandLandmarks(points, zValues, confidence);
@@ -235,16 +190,13 @@ public class HandLandmarkExtractor {
             }
         }
     }
-
-    // Standard-MediaPipe-Hand-Skelett-Verbindungen (welche Landmark-Indizes durch eine Linie
-    // verbunden werden), für die Debug-Visualisierung.
     private static final int[][] HAND_CONNECTIONS = {
-            {0, 1}, {1, 2}, {2, 3}, {3, 4},         // Daumen
-            {0, 5}, {5, 6}, {6, 7}, {7, 8},         // Zeigefinger
-            {0, 9}, {9, 10}, {10, 11}, {11, 12},    // Mittelfinger
-            {0, 13}, {13, 14}, {14, 15}, {15, 16},  // Ringfinger
-            {0, 17}, {17, 18}, {18, 19}, {19, 20},  // Kleiner Finger
-            {5, 9}, {9, 13}, {13, 17}               // Handfläche quer
+            {0, 1}, {1, 2}, {2, 3}, {3, 4},
+            {0, 5}, {5, 6}, {6, 7}, {7, 8},
+            {0, 9}, {9, 10}, {10, 11}, {11, 12},
+            {0, 13}, {13, 14}, {14, 15}, {15, 16},
+            {0, 17}, {17, 18}, {18, 19}, {19, 20},
+            {5, 9}, {9, 13}, {13, 17}
     };
 
     /**
@@ -255,8 +207,6 @@ public class HandLandmarkExtractor {
     private static void saveCropDebugVisualization(Mat resizedCropRgb, float[] landmarkData, File outputFile) {
         Mat bgr = new Mat();
         try {
-            // resizedCropRgb ist RGB (wir haben vorher extra dorthin konvertiert) - für die
-            // Anzeige/Speicherung als normales Bild zurück zu BGR konvertieren.
             Imgproc.cvtColor(resizedCropRgb, bgr, Imgproc.COLOR_RGB2BGR);
 
             Point[] rawPoints = new Point[NUM_LANDMARKS];
@@ -296,7 +246,6 @@ public class HandLandmarkExtractor {
 
         for (int i = 0; i < points.length; i++) {
             Imgproc.circle(target, points[i], 4, new Scalar(0, 0, 255), -1);
-            // Wrist (0), Daumen-Spitze (4) und Zeigefinger-Spitze (8) zur Orientierung beschriften.
             if (i == 0 || i == 4 || i == 8) {
                 Imgproc.putText(target, String.valueOf(i), points[i],
                         Imgproc.FONT_HERSHEY_SIMPLEX, 0.5, new Scalar(255, 255, 0), 1);
@@ -335,14 +284,10 @@ public class HandLandmarkExtractor {
         int squareSize = (int) (Math.max(bbox.width, bbox.height) * marginFactor);
         int offsetX = (int) (centerX - squareSize / 2.0);
         int offsetY = (int) (centerY - squareSize / 2.0);
-
-        // Wie weit ragt der gewünschte Ausschnitt über den Frame-Rand hinaus?
         int padLeft = Math.max(0, -offsetX);
         int padTop = Math.max(0, -offsetY);
         int padRight = Math.max(0, (offsetX + squareSize) - frame.cols());
         int padBottom = Math.max(0, (offsetY + squareSize) - frame.rows());
-
-        // Den tatsächlich im Frame liegenden Teil des gewünschten Bereichs bestimmen.
         int validX = Math.max(0, offsetX);
         int validY = Math.max(0, offsetY);
         int validWidth = squareSize - padLeft - padRight;

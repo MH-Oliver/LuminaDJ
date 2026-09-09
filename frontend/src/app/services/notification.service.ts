@@ -8,7 +8,6 @@ export class NotificationService {
   constructor(private snackBar: MatSnackBar) {}
 
   showError(message: string): void {
-    // Leerer String '' blendet den Button aus
     this.snackBar.open(message, '', {
       duration: 3000,
       panelClass: ['custom-snackbar', 'error-snackbar'],

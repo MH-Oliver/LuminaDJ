@@ -1,0 +1,110 @@
+@startuml
+skinparam style strictuml
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam defaultTextAlignment center
+
+' --- FRONTEND ---
+package "Frontend (Angular)" #FDEDEC {
+    class ContextApiService <<Service>> {
+        + sendContext(...)
+        + updateSession(...)
+        + fetchCameraData(...)
+    }
+    note bottom of ContextApiService
+      Zentraler HTTP-Client,
+      kommuniziert mit den REST-Controllern
+    end note
+}
+
+' --- BACKEND API ---
+package "modules.api (REST Controller)" #FEF9E7 {
+    class SessionController <<REST>>
+    class ContextController <<REST>>
+    class VisionController <<REST>>
+
+    class ActiveSessionService {
+        + getActiveSession(): DjSessionController
+    }
+
+    ContextController --> ActiveSessionService : erstellt & startet Session
+    SessionController --> ActiveSessionService : steuert Session
+}
+
+' --- API SCHNITTSTELLE ---
+ContextApiService ..> SessionController : HTTP GET / POST
+ContextApiService ..> ContextController : HTTP GET / POST
+ContextApiService ..> VisionController : HTTP GET / POST
+
+' --- MODULE: CORE ---
+package "modules.core" #F9EBEA {
+    class DjSessionController {
+        - sessionActive: boolean
+        + startSession(entrySong: Track)
+    }
+    ActiveSessionService *-- "1" DjSessionController : verwaltet
+}
+
+' --- MODULE: VISION ---
+package "modules.vision" #EAECEE {
+    class GestureRecognitionService {
+        + getSnapshot(): Snapshot
+        + connect(ipAddress: String)
+    }
+    VisionController --> GestureRecognitionService : ruft Kamerabild & Status ab
+}
+
+' --- MODULE: USER CONTEXT ---
+package "modules.userContext" #F4ECF7 {
+    interface UserContextStrategy <<Strategy>> {
+        + getUserContext(): UserContextDTO
+    }
+}
+
+' --- MODULE: PREDICTION ---
+package "modules.prediction" #E8F8F5 {
+    class PredictionAggregator {
+        + calculateNextAttributes(currentSong: Track): PredictedAttributes
+    }
+
+    interface PredictionStrategy <<Strategy>> {
+        + getWeight(): double
+        + calculate(currentTrack: Track): PredictionFactor
+    }
+
+    class HistoryStrategy implements PredictionStrategy
+    class MacroCurveStrategy implements PredictionStrategy
+    class PrioritizeStrategy implements PredictionStrategy
+
+    MacroCurveStrategy --> UserContextStrategy : liest Ziel-Genres
+    PredictionAggregator *-- "*" PredictionStrategy : aggregiert
+}
+
+' --- MODULE: MUSIC ---
+package "modules.music" #EBF5FB {
+    interface MusicPlayerAdapter <<Strategy>> {
+        + play(track: Track)
+        + seek(positionMs: long)
+    }
+
+    interface MusicSourceAdapter <<Strategy>> {
+        + getNextSong(target: PredictedAttributes, current: Track): Track
+    }
+
+    class LocalSongDatabaseAdapter implements MusicSourceAdapter
+    class SpotifySourceAdapter implements MusicSourceAdapter
+    class HybridSourceAdapter implements MusicSourceAdapter
+
+    HybridSourceAdapter o-- LocalSongDatabaseAdapter : Fallback 1
+    HybridSourceAdapter o-- SpotifySourceAdapter : Fallback 2
+
+    class SpotifyAdapter implements MusicPlayerAdapter
+}
+
+' --- ABHÄNGIGKEITEN DES CONTROLLERS (Dependency Injection) ---
+DjSessionController --> MusicPlayerAdapter : nutzt
+DjSessionController --> PredictionAggregator : nutzt
+DjSessionController --> MusicSourceAdapter : nutzt
+DjSessionController --> UserContextStrategy : nutzt
+
+@enduml

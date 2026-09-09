@@ -1,4 +1,3 @@
-// modules/api/SpotifyCallbackController.java
 package modules.api;
 
 import modules.music.strategies.music_player.spotify.SpotifyAuthenticator;

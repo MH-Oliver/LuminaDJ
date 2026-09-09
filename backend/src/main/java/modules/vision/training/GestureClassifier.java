@@ -50,10 +50,6 @@ public class GestureClassifier {
         }
 
         int effectiveK = Math.min(k, trainingFeatures.size());
-
-        // Alle Distanzen berechnen und die k kleinsten auswählen. Bei den erwarteten
-        // Datenmengen (einige hundert bis wenige tausend Beispiele) ist eine simple
-        // lineare Suche schnell genug - keine kd-Tree-Optimierung nötig.
         List<Neighbor> neighbors = new ArrayList<>(trainingFeatures.size());
         for (int i = 0; i < trainingFeatures.size(); i++) {
             double dist = euclideanDistance(queryFeatures, trainingFeatures.get(i));

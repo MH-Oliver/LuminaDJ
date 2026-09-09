@@ -13,8 +13,6 @@ import java.util.Map;
 public class HistoryStrategy implements PredictionStrategy {
 
     private final SessionHistoryRepository repository;
-
-    // Bandbreite (Sigma) des Gauss-Kernels
     private static final double SIGMA = 0.5;
 
     public HistoryStrategy(SessionHistoryRepository repository) {
@@ -57,16 +55,9 @@ public class HistoryStrategy implements PredictionStrategy {
 
         for (HistoryEntry entry : history) {
             Track xi = entry.track();
-
-            // 1. d(x, xi) - Normalisierte Euklidische Distanz
             double distance = calculateDistance(x, xi);
-            // 2. K(x, xi) - Gauss-Kernel (Radial Basis Function)
             double gaussianKernel = Math.exp(-(distance * distance) / (2 * SIGMA * SIGMA));
-
-            // NEU: Konstantes Feedback (früher aus FeedbackResult)
             double feedbackReward = 1.0;
-
-            // 4. wi - Gesamtgewichtung für diesen historischen Beitrag
             double wi = gaussianKernel * feedbackReward;
 
             weightedSum += wi * xi.features().getOrDefault(featureKey, 0.0);

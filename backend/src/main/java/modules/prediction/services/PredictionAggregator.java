@@ -11,8 +11,6 @@ import java.util.*;
 @Service
 public class PredictionAggregator {
     private final List<PredictionStrategy> strategies;
-
-    // Dependency Injection: Die Strategien werden von außen übergeben
     public PredictionAggregator(List<PredictionStrategy> strategies) {
         this.strategies = strategies;
     }

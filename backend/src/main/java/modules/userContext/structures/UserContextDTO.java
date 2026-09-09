@@ -9,5 +9,5 @@ public record UserContextDTO (
         LocalTime startTime,
         GenreTimeline timeline,
         int songCooldownMinutes,
-        int totalMinutes // NEU: Nimmt die Länge vom Frontend entgegen
+        int totalMinutes
 ) {}

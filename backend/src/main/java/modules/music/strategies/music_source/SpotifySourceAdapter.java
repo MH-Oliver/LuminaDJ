@@ -34,7 +34,7 @@ public class SpotifySourceAdapter implements MusicSourceAdapter {
                         localCandidate.features()
                 );
             } else {
-                return null; // Song existiert nicht mehr bei Spotify
+                return null;
             }
 
         } catch (Exception e) {

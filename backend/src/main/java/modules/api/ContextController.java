@@ -1,4 +1,3 @@
-// modules/api/ContextController.java
 package modules.api;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -54,17 +53,13 @@ public class ContextController {
         System.out.println("Endpoint /api/context wurde aufgerufen!");
         try {
             UserContextDTO context = mapUserContext(payload);
-
-            // FIX: Ein Array als Referenz speichert genau DEN Controller, den wir hier
-            // gleich instanziieren werden. Somit verhindern wir, dass sich die Anwendung
-            // versehentlich den Context der veralteten, gestoppten Session greift.
             DjSessionController[] controllerRef = new DjSessionController[1];
             UserContextStrategy userContextStrategy = () -> {
                 return controllerRef[0] != null ? controllerRef[0].getContext() : context;
             };
 
             DjSessionController controller = buildDjSessionWithMocks(userContextStrategy);
-            controllerRef[0] = controller; // Ab jetzt liefert die Strategy dynamisch Updates (vom neuen Controller)
+            controllerRef[0] = controller;
 
             sessionService.setActiveSession(controller);
 
@@ -149,7 +144,6 @@ public class ContextController {
     @GetMapping("/context/current")
     public ResponseEntity<UserContextDTO> getCurrentContext() {
         DjSessionController sessionController = sessionService.getActiveSession();
-        // Hier greift das Frontend die gestoppte Session ab, um die UI im Setup vorauszufüllen
         if (sessionController != null && sessionController.getContext() != null) {
             return ResponseEntity.ok(sessionController.getContext());
         }

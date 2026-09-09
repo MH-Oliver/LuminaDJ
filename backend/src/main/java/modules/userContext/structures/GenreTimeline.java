@@ -10,9 +10,6 @@ public class GenreTimeline {
     public GenreTimeline(List<TimelinePhase> phases) {
         this.phases = phases;
     }
-
-    // NEU: Diese Methode ist ZWINGEND ERFORDERLICH, damit Spring Boot
-    // das Array "phases" als JSON an das Frontend senden kann!
     public List<TimelinePhase> getPhases() {
         return phases;
     }
@@ -29,10 +26,8 @@ public class GenreTimeline {
 
             if (elapsedMinutes < phaseEndTime) {
                 if (elapsedMinutes < transitionStartTime || i == phases.size() - 1) {
-                    // Vollständig im aktuellen Genre
                     return Map.of(phase.genre(), 1.0);
                 } else {
-                    // Linearer Übergang (Crossfade) zum nächsten Genre
                     double progress = (elapsedMinutes - transitionStartTime) / phase.transitionOutMinutes();
                     TimelinePhase nextPhase = phases.get(i + 1);
                     return Map.of(
@@ -43,7 +38,6 @@ public class GenreTimeline {
             }
             currentStartTime = phaseEndTime;
         }
-        // Falls die Zeit die geplante Timeline überschreitet, bleibe beim letzten Genre
         return Map.of(phases.getLast().genre(), 1.0);
     }
 }

@@ -11,7 +11,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    flex-shrink: 0; /* Verhindert, dass der Header beim flex-Zentrieren schrumpft */
+    flex-shrink: 0; 
 
     .logo {
       font-size: 2rem;
@@ -34,8 +34,7 @@
   }
 
   .timeline-section {
-    /* ÄNDERUNG: margin-top: auto drückt die Box nach unten,
-       bis sie mit margin-bottom: auto des Footers im Gleichgewicht (zentriert) ist */
+    
     margin-top: auto;
     width: 100%;
 
@@ -354,13 +353,13 @@
   .footer {
     display: flex;
     justify-content: center;
-    /* ÄNDERUNG: Fester Abstand nach oben zur Timeline, und drückt sich nach unten von selbst weg, um mittig zu balancieren */
+    
     margin-top: 3.5rem;
     margin-bottom: auto;
   }
 }
 
-/* --- Modals & Buttons --- */
+
 .modal-overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
@@ -440,7 +439,7 @@
   }
 }
 
-/* Button Defaults für diese Komponente */
+
 .btn-primary {
   background-color: var(--color-text-primary);
   color: var(--color-bg-base);

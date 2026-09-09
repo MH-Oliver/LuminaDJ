@@ -29,8 +29,6 @@ public class PrioritizeStrategy implements PredictionStrategy {
         }
 
         Map<String, Double> avgFeatures = new HashMap<>();
-
-        // Features summieren (Wir ignorieren das Genre der priorisierten Songs absichtlich!)
         for (Track t : prioritizedTracks) {
             for (Map.Entry<String, Double> f : t.features().entrySet()) {
                 avgFeatures.merge(f.getKey(), f.getValue(), Double::sum);
@@ -38,8 +36,6 @@ public class PrioritizeStrategy implements PredictionStrategy {
         }
 
         int count = prioritizedTracks.size();
-
-        // Durchschnitt der Features berechnen
         for (String key : avgFeatures.keySet()) {
             avgFeatures.put(key, avgFeatures.get(key) / count);
         }

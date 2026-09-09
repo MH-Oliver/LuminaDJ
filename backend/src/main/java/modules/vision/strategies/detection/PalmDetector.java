@@ -24,9 +24,9 @@ import java.util.List;
 public class PalmDetector {
 
     private static final int INPUT_SIZE = 192;
-    private static final int NUM_GRID_CELLS = 24; // 192 / 8 (Stride)
+    private static final int NUM_GRID_CELLS = 24;
     private static final int ANCHORS_PER_CELL = 2;
-    private static final int BOX_COLUMNS = 18; // 4 (Box) + 7*2 (Palm-Landmarks)
+    private static final int BOX_COLUMNS = 18;
     private static final int NUM_PALM_LANDMARKS = 7;
 
     private final Net net;
@@ -110,9 +110,6 @@ public class PalmDetector {
         List<Mat> rawOutputs = new ArrayList<>();
 
         try {
-            // 1. Proportional so skalieren, dass die LÄNGERE Seite auf INPUT_SIZE passt
-            //    (nicht erst quadratisch auffüllen wie beim alten YOLO-Ansatz - das nutzt die
-            //    verfügbare Auflösung deutlich effizienter aus).
             float ratio = Math.min((float) INPUT_SIZE / frame.cols(), (float) INPUT_SIZE / frame.rows());
             int resizedW = Math.round(frame.cols() * ratio);
             int resizedH = Math.round(frame.rows() * ratio);
@@ -128,33 +125,20 @@ public class PalmDetector {
             padded = new Mat();
             Core.copyMakeBorder(resized, padded, padTop, padH - padTop, padLeft, padW - padLeft,
                     Core.BORDER_CONSTANT, new Scalar(0, 0, 0));
-
-            // Padding zurück in Original-Bild-Pixelmaßstab umrechnen (für die spätere Rückrechnung)
             float padBiasX = padLeft / ratio;
             float padBiasY = padTop / ratio;
-
-            // 2. BGR -> RGB, auf float32 [0,1] normalisieren
             rgb = new Mat();
             Imgproc.cvtColor(padded, rgb, Imgproc.COLOR_BGR2RGB);
 
             floatImg = new Mat();
             rgb.convertTo(floatImg, CvType.CV_32FC3, 1.0 / 255.0);
-
-            // 3. Manuell NHWC-Blob bauen (wie bei HandLandmarkExtractor - dieses Modell
-            //    erwartet ebenfalls Channels-Last, nicht das OpenCV-Standard-NCHW).
             float[] hwcData = new float[INPUT_SIZE * INPUT_SIZE * 3];
             floatImg.get(0, 0, hwcData);
 
             blob = new Mat(new int[]{1, INPUT_SIZE, INPUT_SIZE, 3}, CvType.CV_32F);
             blob.put(new int[]{0, 0, 0, 0}, hwcData);
-
-            // 4. Inferenz
             net.setInput(blob);
             net.forward(rawOutputs, outBlobNames);
-
-            // 5. Boxen- und Scores-Output unterscheiden: der Boxen-Output hat 18x so viele
-            //    Werte wie Anker vorhanden sind, der Scores-Output nur 1x - wir unterscheiden
-            //    über die Gesamtgröße statt über eine angenommene feste Reihenfolge.
             float[] boxesFlat = null;
             float[] scoresFlat = null;
 
@@ -166,7 +150,6 @@ public class PalmDetector {
                 flat.get(0, 0, values);
 
                 if (boxesFlat == null && scoresFlat == null) {
-                    // Erste Zuweisung provisorisch, wird ggf. unten getauscht
                     boxesFlat = values;
                 } else {
                     scoresFlat = values;
@@ -194,7 +177,7 @@ public class PalmDetector {
 
             for (int i = 0; i < numAnchorsFound && i < anchors.size(); i++) {
                 float rawScore = scoresFlat[i];
-                float score = (float) (1.0 / (1.0 + Math.exp(-rawScore))); // Sigmoid
+                float score = (float) (1.0 / (1.0 + Math.exp(-rawScore)));
                 maxScoreOverall = Math.max(maxScoreOverall, score);
 
                 if (score <= scoreThreshold) continue;
@@ -231,8 +214,6 @@ public class PalmDetector {
             if (candidateBoxes.isEmpty()) {
                 return new ArrayList<>();
             }
-
-            // 6. Non-Max-Suppression, um überlappende Mehrfach-Erkennungen zu reduzieren
             Rect2d[] boxesForNms = new Rect2d[candidateBoxes.size()];
             for (int i = 0; i < candidateBoxes.size(); i++) {
                 Rect r = candidateBoxes.get(i);
@@ -253,8 +234,6 @@ public class PalmDetector {
                 Rect box = restrictToFrame(candidateBoxes.get(idx), frame.cols(), frame.rows());
                 results.add(new PalmDetection(box, candidateLandmarks.get(idx), candidateScores.get(idx)));
             }
-            // Nach Konfidenz absteigend sortieren, damit "beste zuerst" für detectPalm()/
-            // detectHand() und für eine sinnvolle Anzeige-Reihenfolge in der Live-Auswertung gilt.
             results.sort((a, b) -> Float.compare(b.score(), a.score()));
             return results;
 

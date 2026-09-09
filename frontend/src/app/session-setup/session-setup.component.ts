@@ -1,4 +1,3 @@
-// session-setup/session-setup.component.ts
 import {Component, computed, HostListener, OnInit, signal} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
@@ -58,17 +57,14 @@ export class SessionSetupComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    // 1. Alle verfügbaren Presets laden
     this.apiService.loadPresets().subscribe({
       next: (presets) => this.availablePresets = presets,
       error: (err) => console.error('Fehler beim Laden der Presets:', err)
     });
-
-    // 2. Verfügbare Genres laden
     this.apiService.loadGenre('').subscribe({
       next: (genres) => {
         if (genres && genres.length > 0) {
-          this.availableGenres.set(genres); // 3. Signal füllen
+          this.availableGenres.set(genres);
         }
       },
       error: (err) => console.error('Fehler beim Laden der Genres:', err)
@@ -100,10 +96,6 @@ export class SessionSetupComponent implements OnInit {
       });
     }
   }
-
-  // ==========================================
-  // JSON -> UI: Preset vom Backend laden
-  // ==========================================
   onPresetChange(event: any): void {
     const presetName = event.value || event.target?.value;
     if (!presetName) return;
@@ -137,13 +129,9 @@ export class SessionSetupComponent implements OnInit {
       const phaseDuration = Number(phase.durationMinutes ?? phase.duration ?? 30);
       const transitionOut = Number(phase.transitionOutMinutes ?? 5);
       const phaseGenre = typeof phase.genre === 'object' ? phase.genre.name : phase.genre;
-
-      // Berechne die optische UI-Startzeit und UI-Dauer aus der Backend-Übergangslogik
       const uiStart = nextUiStart;
       const uiEnd = currentBackendTime + phaseDuration;
       let uiDuration = uiEnd - uiStart;
-
-      // Fallback, falls die Dauer rechnerisch unter 5 Minuten fällt
       if (uiDuration < 5) uiDuration = 5;
 
       this.blocks.push({
@@ -153,50 +141,33 @@ export class SessionSetupComponent implements OnInit {
         duration: uiDuration,
         row: currentRow
       });
-
-      // Bereite die Zeiten für den nächsten Block vor
       currentBackendTime += phaseDuration;
       nextUiStart = currentBackendTime - transitionOut;
       if (nextUiStart < 0) nextUiStart = 0;
 
       currentRow = currentRow === 0 ? 1 : 0;
     });
-
-    // Passe die Timeline-Gesamtlänge im UI an (auf die nächsten 5 Minuten gerundet)
     this.totalMinutes = Math.max(120, Math.ceil(currentBackendTime / 5) * 5);
   }
-
-  // ==========================================
-  // UI -> JSON: Timeline an Backend senden
-  // ==========================================
   onReady(): void {
     if (this.blocks.length === 0) {
       this.errorMessage = 'Bitte füge mindestens ein Genre zur Timeline hinzu.';
       return;
     }
-
-    // 1. Sortiere die Blöcke streng nach Startzeit (chronologisch)
     const sortedBlocks = [...this.blocks].sort((a, b) => a.start - b.start);
 
     let currentBackendTime = 0;
-
-    // 2. Wandle die grafischen Blöcke inkl. Überschneidungen (Transitions) in Backend-Phasen um
     const phases: TimelinePhaseDto[] = sortedBlocks.map((block, i) => {
       const safeGenre = block.title.toUpperCase().replace(/\s+/g, '_');
       const nextBlock = sortedBlocks[i + 1];
       const blockEnd = block.start + block.duration;
-
-      // Die Backend-Duration ist die Zeit bis zum absoluten Ende des Blocks (abzüglich vorheriger Blöcke)
       let phaseDuration = blockEnd - currentBackendTime;
       if (phaseDuration < 0) phaseDuration = 0;
 
       let transitionOut = 0;
       if (nextBlock) {
         transitionOut = blockEnd - nextBlock.start;
-        // Wenn negativ, gibt es eine Lücke (also keine Überlappung)
         if (transitionOut < 0) transitionOut = 0;
-
-        // Limitiert den Übergang auf die Dauer der Phase (verhindert Backend-Bugs bei 3 überlappenden Blöcken)
         if (transitionOut > phaseDuration) transitionOut = phaseDuration;
       }
 
@@ -215,13 +186,11 @@ export class SessionSetupComponent implements OnInit {
     const payload: UserContextDto = {
       tempo: 120,
       location: "Bar",
-      startTime: startTimeString, // <-- HIER ÄNDERN
+      startTime: startTimeString,
       timeline: { phases: phases },
       songCooldownMinutes: 100000,
       totalMinutes: this.totalMinutes
     };
-
-    // 4. Abschicken und Weiterleiten
     this.apiService.sendContext(payload).subscribe({
       next: () => {
         this.router.navigate(['/active-session']);
@@ -232,10 +201,6 @@ export class SessionSetupComponent implements OnInit {
       }
     });
   }
-
-  // ==========================================
-  // BESTEHENDE DRAG & DROP UI LOGIK
-  // ==========================================
   get ticks(): number[] {
     const tickArray = [];
     for (let i = 0; i <= this.totalMinutes; i += 10) {
@@ -295,8 +260,6 @@ export class SessionSetupComponent implements OnInit {
     const deltaMinutes = (event.clientX - this.startX) / pixelsPerMinute;
 
     const activeBlock = this.draggingBlock || this.resizingBlock;
-
-    // NEU: Mögliche Einrast-Punkte und die Toleranz (z.B. schnappt er ab 1.5 Minuten Entfernung ein)
     const snapPoints = this.getSnapPoints(activeBlock!.id);
     const SNAP_THRESHOLD = 1.5;
 
@@ -309,23 +272,17 @@ export class SessionSetupComponent implements OnInit {
         const midPoint = rect.top + (rect.height / 2);
         this.draggingBlock.row = event.clientY < midPoint ? 0 : 1;
       }
-
-      // Rohe, nicht gerundete Positionen
       const rawStart = this.startValue + deltaMinutes;
       const rawEnd = rawStart + this.draggingBlock.duration;
 
-      let snappedStart = Math.round(rawStart / 5) * 5; // Standard: 5-Minuten-Raster
+      let snappedStart = Math.round(rawStart / 5) * 5;
       let minDiff = SNAP_THRESHOLD;
-
-      // NEU: Magnetisches Snapping (Prüfe alle Ränder der anderen Blöcke)
       for (const p of snapPoints) {
-        // Snappt der linke Rand unseres Blocks an einen anderen?
         const diffStart = Math.abs(rawStart - p);
         if (diffStart < minDiff) {
           minDiff = diffStart;
           snappedStart = p;
         }
-        // Snappt der rechte Rand unseres Blocks an einen anderen?
         const diffEnd = Math.abs(rawEnd - p);
         if (diffEnd < minDiff) {
           minDiff = diffEnd;
@@ -342,13 +299,10 @@ export class SessionSetupComponent implements OnInit {
     }
 
     if (this.resizingBlock) {
-      // Rohes, nicht gerundetes Ende beim Resizen
       const rawEnd = this.resizingBlock.start + this.startValue + deltaMinutes;
 
-      let snappedEnd = Math.round(rawEnd / 5) * 5; // Standard: 5-Minuten-Raster
+      let snappedEnd = Math.round(rawEnd / 5) * 5;
       let minDiff = SNAP_THRESHOLD;
-
-      // NEU: Magnetisches Snapping für das Ende beim Langziehen
       for (const p of snapPoints) {
         const diffEnd = Math.abs(rawEnd - p);
         if (diffEnd < minDiff) {
@@ -358,8 +312,6 @@ export class SessionSetupComponent implements OnInit {
       }
 
       let newDuration = snappedEnd - this.resizingBlock.start;
-
-      // NEU: Damit man sehr kurze Blöcke bauen kann (z.B. Snapping an 1-Minuten Lücke)
       if (newDuration < 1) newDuration = 1;
 
       if (this.resizingBlock.start + newDuration > this.totalMinutes) {
@@ -486,8 +438,8 @@ export class SessionSetupComponent implements OnInit {
 
   private getSnapPoints(excludeId: number): number[] {
     const points = new Set<number>();
-    points.add(0); // Immer am Anfang einrasten
-    points.add(this.totalMinutes); // Immer am Ende einrasten
+    points.add(0);
+    points.add(this.totalMinutes);
 
     for (const b of this.blocks) {
       if (b.id !== excludeId) {

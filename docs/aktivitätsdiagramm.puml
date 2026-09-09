@@ -1,0 +1,71 @@
+@startuml
+skinparam style strictuml
+skinparam defaultTextAlignment center
+skinparam ActivityBackgroundColor #EBF5FB
+skinparam ActivityBorderColor #2980B9
+skinparam NoteBackgroundColor #FDFEFE
+skinparam NoteBorderColor #BDC3C7
+
+start
+
+partition "Frontend (Benutzeroberfläche)" {
+  :Nutzer wählt Preset & Timeline-Länge;
+  :Sende Konfiguration an Backend;
+}
+
+partition "Backend (Initialisierung)" {
+  :<b>SessionBootstrapper</b> berechnet den perfekten
+  Start-Song anhand der Start-Genres;
+}
+
+repeat
+  ' --- ZUSTAND: ABSPIELEN & BEOBACHTEN ---
+  fork
+    :<b>MusicPlayerAdapter</b>
+    Zustand: Spielt Song ab (z.B. über Spotify);
+  fork again
+    :<b>GestureRecognitionService</b>
+    Zustand: Überwacht Kamera auf Gesten
+    (Wartet auf "offene Hand" zur Aktivierung);
+
+    if (Aktion ausgeführt?) then (ja)
+       :Z.B. Song priorisieren (<b>PrioritizeStrategy</b>),
+       überspringen oder pausieren;
+    else (nein)
+    endif
+  end fork
+
+  ' --- TRIGGER: ENDE ---
+  :<i>Trigger: Song ist fast beendet</i>
+  <i>oder "Skip"-Geste wurde ausgeführt</i>;
+
+  ' --- AUSWERTUNG ---
+  :Bisheriger Song geht in die Historie;
+
+  partition "Auswertung & Vorhersage (PredictionAggregator)" {
+    :Kombiniere die Strategien:
+    - <b>MacroCurveStrategy</b> (Timeline-Ziele)
+    - <b>HistoryStrategy</b> (Bisheriger Vibe)
+    - <b>PrioritizeStrategy</b> (Favorisierte Songs);
+
+    :Berechne die optimalen Ziel-Features
+    für den nächsten Song;
+  }
+
+  ' --- NÄCHSTER SONG FINDEN ---
+  partition "Song-Auswahl (HybridSourceAdapter)" {
+      :<b>LocalSongDatabaseAdapter</b> sucht lokale Top-Kandidaten
+      (Filtert falsche Genres & beachtet Cooldown);
+
+      :<b>SpotifySourceAdapter</b> prüft als Fallback,
+      ob der gewählte Song online verfügbar ist;
+  }
+
+  :Neuer Song gefunden;
+  :<b>PlayedSongRepository</b> sperrt
+  den Song für die nächste Zeit;
+
+repeat while (Session aktiv?)
+
+stop
+@enduml

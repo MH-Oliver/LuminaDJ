@@ -25,7 +25,7 @@ public class GestureFeatureExtractor {
 
         double refDistance = distance(wrist, middleFingerBase);
         if (refDistance < 1e-6) {
-            refDistance = 1.0; // Sicherheitsnetz gegen Division durch (fast) 0
+            refDistance = 1.0;
         }
 
         double[] features = new double[pts.length * 2];

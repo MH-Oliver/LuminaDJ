@@ -1,4 +1,3 @@
-// setup-page/setup-page.component.scss
 @use '../../mixins' as *;
 
 .page-container {
@@ -82,7 +81,7 @@ h1 {
   }
 }
 
-/* --- NEU: Camera Modal Styles --- */
+
 .modal-overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;

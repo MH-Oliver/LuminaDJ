@@ -20,8 +20,6 @@ public class LocalSongDatabaseAdapter implements MusicSourceAdapter {
     private final List<Track> database = new ArrayList<>();
     private final PlayedSongRepository playedRepo;
     private final UserContextStrategy contextStrategy;
-
-    // GEFIXT: Drastisch erhöht, um unerwünschte Genres strikt zu blockieren
     private final double WRONG_GENRE_PENALITY = 100.0;
 
     private final Map<String, PredictedAttributes> genreCentroids = new HashMap<>();

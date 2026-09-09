@@ -18,23 +18,6 @@ public class CameraDiscoverer {
      */
     public static String resolveCameraIp() {
         return autoDetectCameraIp();
-
-//        String ip = autoDetectCameraIp();
-//
-//        if (ip == null) {
-//            ip = JOptionPane.showInputDialog(
-//                    null,
-//                    "Keine Kamera im WLAN gefunden.\nBitte IP der Webcam-modules.App manuell eintragen:",
-//                    "Kamera verbinden",
-//                    JOptionPane.QUESTION_MESSAGE
-//            );
-//
-//            if (ip == null || ip.trim().isEmpty()) {
-//                System.err.println("Abbruch durch Nutzer.");
-//                throw new IllegalStateException("Keine Kamera-IP angegeben.");
-//            }
-//        }
-//        return ip.replace("http://", "").replace("/shot.jpg", "");
     }
 
     /**
@@ -50,8 +33,6 @@ public class CameraDiscoverer {
         try {
             String localIp = InetAddress.getLocalHost().getHostAddress();
             String subnet = localIp.substring(0, localIp.lastIndexOf('.') + 1);
-
-            // Try-With-Resources: Threads werden im Anschluss alle automatisch wieder geschlossen.
             try (ExecutorService executor = Executors.newFixedThreadPool(50)) {
                 CompletionService<String> completionService = new ExecutorCompletionService<>(executor);
                 int submittedTasks = 0;
@@ -76,12 +57,10 @@ public class CameraDiscoverer {
                     });
                     submittedTasks++;
                 }
-
-                // Ergebnisse auswerten
                 for (int i = 0; i < submittedTasks; i++) {
                     String result = completionService.take().get();
                     if (result != null) {
-                        executor.shutdownNow(); // Bricht alle noch laufenden Suchanfragen sofort ab
+                        executor.shutdownNow();
                         System.out.println("✅ Kamera automatisch gefunden unter: " + result);
                         return result;
                     }

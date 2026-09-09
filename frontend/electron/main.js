@@ -58,8 +58,7 @@ function startBackend() {
     windowsHide: true,
     env: {
       ...process.env,
-      SPOTIFY_CLIENT_SECRET: resolveEnvValue('SPOTIFY_CLIENT_SECRET'),
-      GROQ_API_KEY: resolveEnvValue('GROQ_API_KEY'),
+      SPOTIFY_CLIENT_SECRET: resolveEnvValue('SPOTIFY_CLIENT_SECRET')
     }
   });
 
