@@ -20,7 +20,7 @@ Das absolute Highlight: Du kannst die Musik komplett freihändig über deine Web
 LuminaDJ wartet im Hintergrund intelligent auf deine Eingaben, ohne versehentliche Bewegungen auszuwerten.
 
 <p align="center">
-  <img src="docs/assets/gesture-demo.gif" alt="Gestensteuerung in Aktion" width="650" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);"/>
+  <img src="docs/assets/luminadj-demo.gif" alt="Gestensteuerung in Aktion" width="650" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);"/>
 </p>
 
 **So funktioniert's:**
