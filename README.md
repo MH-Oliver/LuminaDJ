@@ -1,127 +1,79 @@
-# LuminaDJ
+# 🎧 LuminaDJ
 
-LuminaDJ ist eine intelligente Java-Anwendung, die visuelle Eindrücke (wie das Kamerabild eines Raumes) analysiert und basierend auf der erkannten Stimmung und dem Kontext (z. B. Bar, Party, Büro) automatisch passende Musik auswählt und abspielt.
+<p align="center">
+  <img src="https://img.shields.io/badge/Angular-DD0031?style=for-the-badge&logo=angular&logoColor=white" />
+  <img src="https://img.shields.io/badge/Electron-47848F?style=for-the-badge&logo=electron&logoColor=white" />
+  <img src="https://img.shields.io/badge/Java_21-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white" />
+  <img src="https://img.shields.io/badge/Spring_Boot-6DB33F?style=for-the-badge&logo=spring&logoColor=white" />
+  <img src="https://img.shields.io/badge/OpenCV-5C3EE8?style=for-the-badge&logo=opencv&logoColor=white" />
+</p>
 
-## Inhaltsverzeichnis
-1. [Voraussetzungen](#voraussetzungen)
-2. [Groq API-Key einrichten](#groq-api-key-einrichten)
-3. [Live-Kamera-Feedback über Smartphone](#live-kamera-feedback-über-smartphone)
-4. [Mathematische Methodik: HistoryStrategy](#mathematische-methodik-historystrategy)
-5. [Projekt starten](#projekt-starten)
-6. [Weitere Konfigurationen](#weitere-konfigurationen)
+**LuminaDJ** ist dein intelligenter, interaktiver Musik-Player, der sich nahtlos an deine Stimmung anpasst. Anstatt statische Playlists abzuspielen, generiert die Software eine dynamische Reise durch verschiedene Genres und Audio-Features (Macro-Curves).
 
----
-
-## Voraussetzungen
-* Java 21
-* Maven
-* Node.js 20+ und npm
+Das absolute Highlight: Du kannst die Musik komplett freihändig über deine Webcam steuern. Eine fortschrittliche Computer-Vision-Engine im Hintergrund wertet deine Handgesten in Echtzeit aus und ermöglicht es dir, Songs zu pausieren, Genres zu überspringen oder deine Lieblings-Vibes für die KI zu priorisieren.
 
 ---
 
-## Groq API-Key einrichten
-LuminaDJ nutzt die GroqCloud und multimodale Llama-Modelle, um die Bilder performant zu analysieren. Damit das funktioniert, benötigst du einen kostenlosen API-Key von Groq.
+## 📖 Anwendungshandbuch & Demo
 
-Folge diesen Schritten, um deinen Schlüssel zu erhalten:
+### ✨ Freihändige Gestensteuerung
+LuminaDJ wartet im Hintergrund intelligent auf deine Eingaben, ohne versehentliche Bewegungen auszuwerten.
 
-1. **Account erstellen:** Besuche die [GroqCloud Console](https://console.groq.com/) und logge dich ein (oder erstelle dir einen neuen, kostenlosen Account).
-2. **API Keys öffnen:** Klicke in der linken Seitenleiste auf den Menüpunkt **"API Keys"**.
-3. **Key generieren:** Klicke auf den Button **"Create API Key"**.
-4. **Benennen & Speichern:** Gib dem Key einen Namen (z. B. `LuminaDJ-Key`). Sobald der Schlüssel generiert wurde, kopiere ihn sofort. **Wichtig:** Aus Sicherheitsgründen wird der Schlüssel danach nie wieder vollständig angezeigt!
-5. **In LuminaDJ einfügen:** Setze die Umgebungsvariable `GROQ_API_KEY` in der Run-Config, bevor du die App startest
+<p align="center">
+  <img src="docs/assets/gesture-demo.gif" alt="Gestensteuerung in Aktion" width="650" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);"/>
+</p>
 
----
+**So funktioniert's:**
+1. **Aktivieren:** Halte die **offene Hand** ✋ für 2 Sekunden still vor die Kamera. Das System meldet sich mit "READY".
+2. **Aktion wählen:** Du hast nun 7 Sekunden Zeit für eine Aktion. Forme eine der folgenden Gesten und halte sie kurz (2 Sekunden), um sie einzuloggen:
+   * 👆 **Zeigefinger:** Play / Pause
+   * ✌️ **Peace:** Aktuelles Genre überspringen (Skip Genre)
+   * 👍 **Daumen hoch:** Song liken & Vibe für zukünftige Empfehlungen priorisieren
 
-## Live-Kamera-Feedback über Smartphone
-Als `LiveFeedbackStrategy` steht die Klasse `SmartphoneKameraStrategy` zur Verfügung.
-Hier wird eine Live-Verbindung zu der Kamera von einem Smartphone über eine HTTP Schnittstelle realisiert.
+### 🖥️ Die Benutzeroberfläche
 
-**Einrichtung:**
-1. Für Android-Geräte kann über den Google-Play-Store die App `IP Webcam` installiert werden.
-2. Sicherstellen, dass PC und Smartphone im gleichen Netzwerk.
-3. In der App ganz nach unten scrollen, dort den Button `Server starten` klicken.
-4. Ist der Server gestartet, kann nun auch der Code ausgeführt werden.
-   - Die Verbindung zum Smartphone sollte innerhalb weniger Sekunden automatisch hergestellt werden.
-   - Falls automatische Verbindung fehlgeschlagen, 
-   muss die IP-Adresse (in der Smartphone App ganz unten zu finden) manuell im Dialog eingegeben werden.
+Die App ist übersichtlich aufgebaut und führt dich in zwei simplen Schritten zu deiner perfekten Session:
 
----
-
-## Mathematische Methodik: HistoryStrategy
-
-Die `HistoryStrategy` nutzt ein Verfahren aus dem Bereich des maschinellen Lernens namens **Locally Weighted Learning (LWL)** in Kombination mit einer **Radial Basis Function (Gauß-Kernel)**.
-
-Anstatt einen simplen Durchschnitt aller vergangenen Songs zu bilden, berechnet der Algorithmus für den aktuellen Song ($x$) die musikalische Ähnlichkeit zu jedem historischen Song ($x_i$). Diese Ähnlichkeit wird mit dem damaligen Live-Feedback der Crowd gewichtet, um den optimalen Zielwert für das nächste Lied vorherzusagen.
-
-Die Berechnung für eine Menge an musikalischen Attributen $\mathcal{A}$ (Energy, BPM, Danceability, etc.) erfolgt in 6 Schritten:
-
-### 1. Distanzmessung (Normalisierte Euklidische Distanz)
-Zuerst wird die musikalische Distanz $d$ zwischen dem aktuellen Track $x$ und einem historischen Track $x_i$ im 6-dimensionalen Raum berechnet. Um zu verhindern, dass große Werte (wie BPM) kleine Werte (wie Energy) dominieren, wird die BPM-Differenz durch 200 normalisiert.
-
-$$d(x, x_i) = \sqrt{ \sum_{a \in \mathcal{A}} \Delta_a(x, x_i)^2 }$$
-
-*(Wobei $\Delta_a = \frac{x.\text{bpm} - x_i.\text{bpm}}{200}$ für BPM gilt, und $\Delta_a = x.a - x_i.a$ für alle anderen Attribute).*
-
-### 2. Gauß-Kernel (Ähnlichkeitsfunktion)
-Die berechnete Distanz wird durch eine Gaußsche Glockenkurve in einen Ähnlichkeitswert $K$ transformiert. $\sigma$ (im Code `0.5`) bestimmt die Bandbreite. Songs, die sehr ähnlich klingen, erhalten einen Wert nahe `1.0`, völlig andere Songs fallen exponentiell gegen `0.0`.
-
-$$K(x, x_i) = \exp\left( -\frac{d(x, x_i)^2}{2\sigma^2} \right)$$
-
-### 3. Feedback Reward (Erfolgsgewichtung)
-Ein historischer Song ist nur wertvoll, wenn er auch gut bei der Crowd ankam. Sei $f_i$ die gemessene Intensität der Kamera und $T_i$ der Zustand des Trends (positiv/negativ). Bei einem negativen Trend wird das Gewicht stark bestraft (Penalty), um Fehler nicht zu wiederholen.
-
-$$R(f_i) = \begin{cases} f_i & \text{falls } T_i = \text{positiv} \\ (1.0 - f_i) \cdot 0.2 & \text{falls } T_i = \text{negativ} \end{cases}$$
-
-### 4. Lokales Gesamtgewicht
-Das Stimmrecht (Gesamtgewicht $w_i$) eines historischen Songs für die Vorhersage ergibt sich aus seiner musikalischen Nähe zum aktuellen Song und seinem damaligen Erfolg.
-
-$$w_i = K(x, x_i) \cdot R(f_i)$$
-
-### 5. Zielwert-Vorhersage (Lokal gewichteter Mittelwert)
-Der geschätzte optimale Zielwert $\hat{y}_a$ für ein spezifisches Attribut $a$ (z.B. Energy) berechnet sich nun aus der Summe aller historischen Werte dieses Attributs, gewichtet mit ihrem jeweiligen Stimmrecht $w_i$, geteilt durch die Summe aller abgegebenen Stimmen.
-
-$$\hat{y}_a = \frac{\sum_{i=1}^{n} w_i \cdot x_i.a}{\sum_{i=1}^{n} w_i}$$
-
-### 6. Anpassungsfaktor (Für den Aggregator)
-Da der `PredictionAggregator` Multiplikatoren erwartet, wird der errechnete Zielwert durch den Ist-Wert des aktuellen Tracks geteilt.
-
-$$\text{Faktor}_a = \frac{\hat{y}_a}{x.a}$$
+<table style="width:100%; border: none;">
+  <tr>
+    <td width="50%" align="center" style="border: none;">
+      <img src="docs/assets/screenshot-session-setup.png" alt="Session Setup" width="100%" style="border-radius: 8px;"/>
+      <br><br>
+      <b>1. Session Setup</b><br>
+      Hier definierst du die Parameter deiner Reise. Lege die Gesamtdauer fest und wähle die gewünschten Genres (z.B. ein fließender Übergang von Acoustic zu Deep-House).
+    </td>
+    <td width="50%" align="center" style="border: none;">
+      <img src="docs/assets/screenshot-active-session.png" alt="Active Session" width="100%" style="border-radius: 8px;"/>
+      <br><br>
+      <b>2. Active Session</b><br>
+      Das Herzstück der App. Oben siehst du das Live-Bild der Kamera-Auswertung. Darunter visualisiert die interaktive Timeline, wo du dich gerade in deinem musikalischen Übergang befindest.
+    </td>
+  </tr>
+</table>
 
 ---
 
-## Ganzes Projekt starten
-### 1) Frontend-Abhängigkeiten installieren
-```bash
-npm --prefix frontend ci
-```
-Erwartet:
-- Installation läuft ohne Fehler durch.
-- `frontend/node_modules` ist vorhanden.
+## 🏗️ Architektur
 
-### 2) API-Keys hinterlegen
-`/.env.template` nach `/.env` kopieren und Werte eintragen:
-- `SPOTIFY_CLIENT_SECRET=...`
-- `GROQ_API_KEY=...` (irrelevant, wenn Smartphone nicht verbunden)
+LuminaDJ besteht aus einem modernen **Electron/Angular Frontend** und einem leistungsstarken **Spring Boot Java Backend**. Die Kommunikation läuft komplett über REST-APIs.
 
-Beim Start lädt Electron diese Werte automatisch und gibt sie an das Backend weiter.
+Ein intelligenter `HybridSourceAdapter` kombiniert eine lokale Vektor-Datenbank (für saubere musikalische Übergänge) mit der Spotify-API (als Fallback).
 
-### 2.2) Song auf Spotify kurz starten
-Es muss Spotify geöffnet werden, und ein beliebiger Song kurz gestartet werden, kann auch direkt wieder gestoppt werden.
+### 🧩 Klassendiagramm
+Das Klassendiagramm zeigt die Entkopplung der Module und den Fokus auf saubere Interfaces (Strategies & Adapters).
 
+<p align="center">
+  <img src="docs/assets/klassendiagramm.png" alt="Klassendiagramm" width="800" />
+</p>
 
-### 3) Skript starten
-Unter den Run-Configs findet sich "Start LuminaDJ (Full Build)".
-Diese normal über Intellij starten.
+* **Frontend:** Das Angular-UI greift nur auf REST-Controller zu.
+* **Prediction:** Verschiedene Strategien (Timeline, Priorisierung) streiten im `PredictionAggregator` um den perfekten Vibe des nächsten Songs.
+* **Music:** Ein hybrider Ansatz garantiert, dass auch bei ausgefallener lokaler Datenbank immer ein Song via Spotify gefunden wird.
 
-Erwartet:
-- Electron-Fenster öffnet sich.
-- Im Terminal erscheint `LuminaDJ backend is running on http://localhost:8081`.
-- Beim Klick auf den Button in der UI erscheint ein Erfolgsstatus (`Dummy-Context erfolgreich an das Backend gesendet.`).
-- Es wird Musik abgespielt
+### ⚙️ Ablauf der Musik-Session
+Das Aktivitätsdiagramm veranschaulicht den Lebenszyklus einer DJ-Session, von der Nutzer-Konfiguration bis zur Berechnung des nächsten Songs.<br/>
+Der Prozess läuft in einer Endlosschleife, bis die Session beendet wird. Parallel zur reinen Musikwiedergabe läuft der `GestureRecognitionService` asynchron mit und überwacht die Umgebung auf Nutzereingaben.
 
-## Nur das Frontend starten
-### 1) Ganzes Projekt einmal starten
-### 2) Frontend-Start (mit Live-Update bei File-Changes)
-```bash
-npm run start:live
-```
+<p align="center">
+  <img src="docs/assets/aktivitaetsdiagramm.png" alt="Aktivitätsdiagramm" width="600" />
+</p>
