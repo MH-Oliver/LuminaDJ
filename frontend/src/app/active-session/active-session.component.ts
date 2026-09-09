@@ -214,8 +214,8 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
             const prioritizeCount = currentGestures[prioritizeGesture] || 0;
             const prevPrioritizeCount = this.previousGestures[prioritizeGesture] || 0;
             if (prioritizeCount > prevPrioritizeCount) {
-              this.notificationService.showSuccess(`Geste '${prioritizeGesture}' erkannt: Genre & Vibe priorisiert!`);
-              this.prioritizeCurrent();
+              // Das erledigt UI-Update (Herz), Spotify-Speicherung, Backend-Prio und Snackbar in einem!
+              this.toggleFavorite();
             }
 
             this.previousGestures = { ...currentGestures };
