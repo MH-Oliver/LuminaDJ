@@ -1,4 +1,3 @@
-// modules/music/strategies/music_player/spotify/SpotifyAdapter.java
 package modules.music.strategies.music_player.spotify;
 
 import modules.music.strategies.core.MusicPlayerAdapter;
@@ -17,8 +16,6 @@ public class SpotifyAdapter implements MusicPlayerAdapter {
     private volatile boolean isRunning = false;
     private Thread playbackThread;
     private final int POLL_INTERVAL_MS = 3000;
-
-    // NEU: Hält fest, welcher Song eigentlich laufen soll
     private String expectedTrackId = null;
 
     private volatile boolean isCurrentlyPlaying = false;
@@ -42,8 +39,6 @@ public class SpotifyAdapter implements MusicPlayerAdapter {
             synchronized (spotifyApi) {
                 devices = spotifyApi.getUsersAvailableDevices().build().execute();
             }
-
-            // 1. Suche nach einem bereits aktiven oder verfügbaren Gerät
             if (devices.length > 0) {
                 for (Device d : devices) {
                     if (d.getIs_active()) {
@@ -53,16 +48,11 @@ public class SpotifyAdapter implements MusicPlayerAdapter {
                 }
                 if (targetDeviceId == null) targetDeviceId = devices[0].getId();
             }
-
-            // 2. Gerät wecken, falls Spotify geschlossen war
             if (targetDeviceId == null) {
                 System.out.println("Spotify: Kein Gerät gefunden. Starte Spotify im Hintergrund...");
-
-                // NEU: Eigener Try-Catch-Block nur für den OS-Aufruf, damit die Schleife danach auf jeden Fall läuft
                 try {
                     String os = System.getProperty("os.name").toLowerCase();
                     if (os.contains("win")) {
-                        // Robusterer Windows-Aufruf für Protokolle wie spotify:
                         Runtime.getRuntime().exec(new String[]{"cmd", "/c", "start", trackUri});
                     } else if (os.contains("mac")) {
                         Runtime.getRuntime().exec(new String[]{"open", trackUri});
@@ -72,8 +62,6 @@ public class SpotifyAdapter implements MusicPlayerAdapter {
                 } catch (Exception e) {
                     System.out.println("Automatischer OS-Start fehlgeschlagen: " + e.getMessage());
                 }
-
-                // Polling: Wir fragen bis zu 15 Sekunden lang
                 for (int i = 0; i < 15; i++) {
                     Thread.sleep(1000);
                     synchronized (spotifyApi) {
@@ -96,8 +84,6 @@ public class SpotifyAdapter implements MusicPlayerAdapter {
                     }
                 }
             }
-
-            // 3. Play-Befehl über die API senden
             if (targetDeviceId != null) {
                 com.google.gson.JsonArray uris = new com.google.gson.JsonArray();
                 uris.add(trackUri);
@@ -106,7 +92,6 @@ public class SpotifyAdapter implements MusicPlayerAdapter {
                 }
             } else {
                 System.err.println("Konnte Spotify nicht automatisch starten. Bitte öffne die App manuell!");
-                // WICHTIG: Das wirft den Fehler, den der DjSessionController fängt, um die Endlosschleife zu verhindern!
                 throw new IllegalArgumentException("Kein aktives Spotify-Gerät gefunden.");
             }
 
@@ -145,19 +130,14 @@ public class SpotifyAdapter implements MusicPlayerAdapter {
                                 if (currentPlayingId.equals(track.id())) {
                                     hasStartedPlayingCorrectSong = true;
                                     syncAttempts = 0;
-
-                                    // Alten Wert merken, bevor wir ihn überschreiben
                                     long oldProgress = currentProgressMs;
 
                                     isCurrentlyPlaying = context.getIs_playing() != null ? context.getIs_playing() : false;
                                     currentProgressMs = progressMs != null ? progressMs : 0;
                                     lastUpdateTimestamp = System.currentTimeMillis();
-
-                                    // NEU: Erkennen, wenn Spotify bei leerer Queue abbricht oder "Next" gedrückt wird (Reset auf 0)
-                                    // Wir triggern den Skip nur, wenn wir nicht gerade selbst über die UI auf 0 gespult haben!
                                     if (currentProgressMs < 1000 && oldProgress > 3000 && (System.currentTimeMillis() - lastSeekTimestamp > 3000)) {
                                         System.out.println("Externer Skip (Spotify-Reset auf 0) erkannt! Lade nächsten Song...");
-                                        isRunning = false; // Löst das Laden des neuen Songs im Controller aus!
+                                        isRunning = false;
                                     }
 
                                     if (isCurrentlyPlaying && durationMs != null && progressMs != null) {
@@ -174,8 +154,6 @@ public class SpotifyAdapter implements MusicPlayerAdapter {
                                 }
                             }
                         } else if (hasStartedPlayingCorrectSong) {
-                            // NEU: Wenn der Song lief, aber jetzt kein Context mehr kommt,
-                            // wurde er wahrscheinlich manuell pausiert (oder Gerät ist im Standby)
                             isCurrentlyPlaying = false;
                             lastUpdateTimestamp = System.currentTimeMillis();
                         } else {
@@ -213,7 +191,6 @@ public class SpotifyAdapter implements MusicPlayerAdapter {
 
     @Override
     public long getPlaybackPosition() {
-        // Rechnet die Zeit zwischen den 3-Sekunden-API-Checks künstlich hoch, für eine butterweiche UI!
         if (isCurrentlyPlaying) {
             return currentProgressMs + (System.currentTimeMillis() - lastUpdateTimestamp);
         }
@@ -226,7 +203,7 @@ public class SpotifyAdapter implements MusicPlayerAdapter {
             synchronized (spotifyApi) {
                 spotifyApi.pauseUsersPlayback().build().execute();
             }
-            isCurrentlyPlaying = false; // Sofortiges UI-Feedback
+            isCurrentlyPlaying = false;
         } catch (Exception e) {}
     }
 
@@ -236,7 +213,7 @@ public class SpotifyAdapter implements MusicPlayerAdapter {
             synchronized (spotifyApi) {
                 spotifyApi.startResumeUsersPlayback().build().execute();
             }
-            isCurrentlyPlaying = true; // Sofortiges UI-Feedback
+            isCurrentlyPlaying = true;
             lastUpdateTimestamp = System.currentTimeMillis();
         } catch (Exception e) {}
     }
@@ -249,7 +226,7 @@ public class SpotifyAdapter implements MusicPlayerAdapter {
             }
             currentProgressMs = positionMs;
             lastUpdateTimestamp = System.currentTimeMillis();
-            lastSeekTimestamp = System.currentTimeMillis(); // <-- HIER SETZEN
+            lastSeekTimestamp = System.currentTimeMillis();
         } catch (Exception e) {}
     }
 

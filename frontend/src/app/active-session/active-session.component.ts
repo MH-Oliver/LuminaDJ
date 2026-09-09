@@ -61,8 +61,6 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
   private totalSessionDurationMs = 0;
   private sessionStartTime?: Date;
   private lastStartTimeRaw: string | null = null;
-
-  // TIMELINE DRAGGING LOGIK
   phases: any[] = [];
   totalMinutes = 120;
   elapsedMinutes = 0;
@@ -78,7 +76,7 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
   constructor(
     private readonly apiService: ContextApiService,
     private readonly router: Router,
-    private readonly notificationService: NotificationService // NEU injiziert
+    private readonly notificationService: NotificationService
   ) {}
 
   ngOnInit(): void {
@@ -190,8 +188,6 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
 
           if (data.gestures) {
             const currentGestures = data.gestures;
-
-            // 1. DYNAMISCH: PLAY / PAUSE
             const playPauseGesture = this.gestureMapping['playPause'];
             const playPauseCount = currentGestures[playPauseGesture] || 0;
             const prevPlayPauseCount = this.previousGestures[playPauseGesture] || 0;
@@ -199,8 +195,6 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
               this.notificationService.showSuccess(`Geste '${playPauseGesture}' erkannt: Play/Pause`);
               this.togglePlayPause();
             }
-
-            // 2. DYNAMISCH: PEACE -> GENRE SKIPPEN
             const skipGenreGesture = this.gestureMapping['skipGenre'];
             const skipGenreCount = currentGestures[skipGenreGesture] || 0;
             const prevSkipGenreCount = this.previousGestures[skipGenreGesture] || 0;
@@ -208,13 +202,10 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
               this.notificationService.showSuccess(`Geste '${skipGenreGesture}' erkannt: Überspringe Genre...`);
               this.skipGenre();
             }
-
-            // 3. DYNAMISCH: PRIORITIZE
             const prioritizeGesture = this.gestureMapping['prioritize'];
             const prioritizeCount = currentGestures[prioritizeGesture] || 0;
             const prevPrioritizeCount = this.previousGestures[prioritizeGesture] || 0;
             if (prioritizeCount > prevPrioritizeCount) {
-              // Das erledigt UI-Update (Herz), Spotify-Speicherung, Backend-Prio und Snackbar in einem!
               this.toggleFavorite();
             }
 
@@ -245,12 +236,8 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
   skipGenre(): void {
     let accumulatedTime = 0;
     let targetTime = this.totalMinutes;
-
-    // Wir summieren die Längen der Blöcke auf, bis wir den Block finden,
-    // der in der Zukunft liegt. Genau dort beginnt das neue Genre!
     for (const phase of this.phases) {
       accumulatedTime += phase.durationMinutes;
-      // + 0.1 als winziger Puffer, falls wir genau auf der Grenze stehen
       if (accumulatedTime > this.elapsedMinutes + 0.1) {
         targetTime = accumulatedTime;
         break;
@@ -263,8 +250,6 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
     }
 
     this.isWaitingForPlayback = true;
-
-    // Wir runden den Wert, da das Backend einen Integer erwartet
     this.apiService.jumpSession(Math.round(targetTime)).subscribe({
       next: () => {
         this.elapsedMinutes = targetTime;
@@ -361,28 +346,22 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
 
           const hasNoCover = this.currentSong.coverUrl.includes('Kein+Cover');
           const isDummy = this.currentSong.title === 'Wird gestartet...';
-
-          // Status aktualisieren, falls wir vorher noch gewartet haben
           if (this.isPlaying && this.durationMs > 0 && !isDummy && !hasNoCover) {
             this.isWaitingForPlayback = false;
           }
 
-        } // Ende von: if (data && data.currentSong)
-
-        // NEU: IMMER weiter pollen! Unabhängig davon, ob der Song schon läuft oder nicht.
-        // Das ist wichtig, um externe Klicks aus Spotify mitzubekommen.
+        }
         if (!this.isFetchingInit) {
           this.isFetchingInit = true;
           setTimeout(() => {
             this.isFetchingInit = false;
             this.fetchUpdate();
-          }, 3000); // 3 Sekunden reichen völlig und schonen die API
+          }, 3000);
         }
 
       },
       error: (err) => {
         console.error('Error fetching session update', err);
-        // Auch bei einem Netzwerkfehler die Schleife am Leben halten!
         setTimeout(() => this.fetchUpdate(), 5000);
       }
     });
@@ -413,16 +392,10 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
     }
 
     this.isFavorite = true;
-
-    // 1. Song in Spotify speichern
     this.apiService.toggleFavorite(this.isFavorite).subscribe({
       error: (err) => console.error('Error updating favorite state', err)
     });
-
-    // 2. Song in LuminaDJ priorisieren
     this.prioritizeCurrent();
-
-    // 3. Optisches Feedback
     this.notificationService.showSuccess('Genre & Vibe priorisiert!');
   }
 

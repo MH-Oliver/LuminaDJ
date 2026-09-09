@@ -20,7 +20,7 @@
         </mat-select>
       </mat-form-field>
 
-      <!-- NEU: Material Input für die Länge -->
+      
       <mat-form-field appearance="outline" subscriptSizing="dynamic" style="margin-left: auto; width: 180px;">
         <mat-label>Timeline Länge (min)</mat-label>
         <input matInput type="number" [value]="totalMinutes" step="5" min="10" (change)="updateTimelineLength($event)">
@@ -35,7 +35,7 @@
             <div class="timeline-tracks">
               <div class="grid-lines" [style.background-size]="gridBackgroundSize"></div>
 
-              <!-- MODERN ANGULAR @for -->
+              
               @for (block of blocks; track block.id) {
                 <div class="genre-block"
                      [class.row-top]="block.row === 0"
@@ -64,7 +64,7 @@
 
           <div class="timeline-legend">
             <div class="ticks-container">
-              <!-- MODERN ANGULAR @for -->
+              
               @for (tick of ticks; track tick) {
                 <span class="tick-label" [style.left.%]="(tick / totalMinutes) * 100">
                   {{ tick }}
@@ -90,7 +90,7 @@
     </div>
   </footer>
 
-  <!-- MODERN ANGULAR @if -->
+  
   @if (selectedBlock) {
     <div class="modal-overlay" (click)="closeDialog()">
       <div class="modal-content" (click)="$event.stopPropagation()">
@@ -99,7 +99,7 @@
         <div class="input-group">
           <mat-form-field appearance="outline" subscriptSizing="dynamic" style="width: 100%;">
             <mat-label>Genre suchen oder wählen</mat-label>
-            <!-- (input) setzt das Signal direkt -->
+            
             <input type="text"
                    matInput
                    [value]="selectedBlock.title"
@@ -130,7 +130,7 @@
           </div>
         </div>
 
-        <!-- NEU: Buttons durch app-button ersetzt -->
+        
         <div class="modal-actions" style="display: flex; gap: 1rem; margin-top: 2rem;">
           <div style="flex: 1;">
             <app-button variant="danger" [isStroked]="true" (clicked)="deleteSelectedBlock()">Delete</app-button>
@@ -143,7 +143,7 @@
     </div>
   }
 
-  <!-- MODERN ANGULAR @if -->
+  
   @if (errorMessage) {
     <div class="modal-overlay" (click)="closeError()">
       <div class="modal-content error-modal" (click)="$event.stopPropagation()">

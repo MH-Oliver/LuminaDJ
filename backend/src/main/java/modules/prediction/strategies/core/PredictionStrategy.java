@@ -7,6 +7,6 @@ import modules.prediction.structures.PredictionFactor;
  * Interface für alle Auswertungs-Module (Macro, History, Live)
  */
 public interface PredictionStrategy {
-    double getWeight(); // Definiert, wie stark diese Strategie zählt
+    double getWeight();
     PredictionFactor calculate(Track currentTrack);
 }

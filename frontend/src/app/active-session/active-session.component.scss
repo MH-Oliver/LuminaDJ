@@ -8,7 +8,7 @@
   padding: 2rem;
   box-sizing: border-box;
 
-  /* --- HEADER --- */
+  
   .header {
     display: flex;
     justify-content: space-between;
@@ -44,7 +44,7 @@
     }
   }
 
-  /* --- SESSION TIMELINE BAR --- */
+  
   .session-timeline-card {
     @include glass-card;
     border-radius: 0.75rem;
@@ -96,16 +96,16 @@
           transition: background-color 0.2s ease;
 
           &:last-child { border-right: none; }
-          &:hover { background-color: rgba(255, 255, 255, 0.08); } // Etwas weicherer Hover
+          &:hover { background-color: rgba(255, 255, 255, 0.08); }
 
-          /* Styling für den Mix / Overlap Bereich (Subtiler als vorher) */
+          
           .mix-overlay {
             position: absolute;
             top: 0;
             right: 0;
             bottom: 0;
             z-index: 1;
-            /* Sehr subtiles Schraffiertes Muster */
+            
             background: repeating-linear-gradient(
               45deg,
               transparent,
@@ -113,8 +113,8 @@
               rgba(255, 255, 255, 0.04) 4px,
               rgba(255, 255, 255, 0.04) 8px
             );
-            border-left: 1px dashed rgba(255, 255, 255, 0.1); /* Subtile Kante */
-            pointer-events: auto; /* Tooltip beim Hover ermöglichen */
+            border-left: 1px dashed rgba(255, 255, 255, 0.1); 
+            pointer-events: auto; 
 
             &:hover {
               background: repeating-linear-gradient(
@@ -179,7 +179,7 @@
     }
   }
 
-  /* --- MAIN CONTENT (Grid Layout) --- */
+  
   .main-layout {
     display: grid;
     grid-template-columns: 1.5fr 1fr;
@@ -206,7 +206,7 @@
       }
     }
 
-    /* --- LINKE SPALTE --- */
+    
     .camera-card {
       padding: 0;
       overflow: hidden;
@@ -340,7 +340,7 @@
       }
     }
 
-    /* --- RECHTE SPALTE --- */
+    
     .player-card {
       .player-layout {
         display: flex;
@@ -495,7 +495,7 @@
     }
   }
 
-  /* --- FOOTER FÜR AKTIONEN --- */
+  
   .action-footer {
     display: flex;
     justify-content: flex-end;

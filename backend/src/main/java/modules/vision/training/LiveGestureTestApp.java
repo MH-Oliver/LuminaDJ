@@ -38,34 +38,26 @@ public class LiveGestureTestApp {
         System.out.println("[INFO] Live-Test läuft. Fenster schließen oder Strg+C zum Beenden.");
 
         while (true) {
-            // Wir holen uns den aktuellsten Stand direkt aus deinem Service
             GestureRecognitionService.Snapshot snapshot = gestureService.getSnapshot();
 
             if (snapshot != null) {
-                // Das JPEG-Byte-Array aus dem Service wieder in eine OpenCV-Mat umwandeln
                 Mat displayFrame = Imgcodecs.imdecode(new MatOfByte(snapshot.jpegImage()), Imgcodecs.IMREAD_COLOR);
 
                 if (!displayFrame.empty()) {
                     HighGui.imshow(WINDOW_NAME, displayFrame);
-
-                    // WICHTIG: waitKey(1) zeichnet das Fenster neu
                     int key = HighGui.waitKey(1);
                     displayFrame.release();
-
-                    // Bei ESC (Key-Code 27) abbrechen
                     if (key == 27) {
                         break;
                     }
                 }
-
-                // Optional: Die bestätigten Gesten auf der Konsole ausgeben
                 if (!snapshot.confirmedGestureCounts().isEmpty()) {
                     System.out.println("[BESTÄTIGTE GESTEN] " + snapshot.confirmedGestureCounts());
                 }
             }
 
             try {
-                Thread.sleep(50); // Kurze Pause, um die CPU zu entlasten
+                Thread.sleep(50);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 break;

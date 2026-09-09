@@ -12,21 +12,21 @@
     </div>
   </header>
 
-  <!-- INTERAKTIVER SESSION PROGRESS BAR -->
+  
   <section class="card session-timeline-card">
     <div class="timeline-header">
       <h3 style="margin: 0; font-size: 1.1rem; color: var(--color-text-secondary);">Session Progress</h3>
       <span class="remaining-time">time left: <span class="highlight">{{ sessionTimeLeft }} min</span></span>
     </div>
     <div class="session-timeline-track" (mousedown)="onMarkerMouseDown($event)">
-      <!-- Genres visualisieren (Ohne Text-Labels) -->
+      
       <div class="genre-segments">
         @for (phase of phases; track $index) {
           <div class="segment"
                [style.width.%]="(phase.durationMinutes / totalMinutes) * 100"
                [title]="phase.genre">
 
-            <!-- Subtile Overlap / Transition Mix Visualisierung -->
+            
             @if (phase.transitionOutMinutes > 0 && $index < phases.length - 1) {
               <div class="mix-overlay"
                    [style.width.%]="(phase.transitionOutMinutes / phase.durationMinutes) * 100"
@@ -37,14 +37,14 @@
         }
       </div>
 
-      <!-- 5 Minuten Markierungen -->
+      
       <div class="ticks-container">
         @for (tick of ticks; track tick) {
           <span class="tick" [style.left.%]="(tick / totalMinutes) * 100">{{ tick }}</span>
         }
       </div>
 
-      <!-- Interaktiver Fortschrittsmarker -->
+      
       <div class="playhead-marker" [style.left.%]="(elapsedMinutes / totalMinutes) * 100">
         <div class="marker-handle"></div>
         <div class="marker-line"></div>

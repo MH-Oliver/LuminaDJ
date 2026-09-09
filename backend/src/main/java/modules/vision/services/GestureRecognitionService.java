@@ -55,8 +55,6 @@ public class GestureRecognitionService {
 
     private final Map<String, Integer> confirmedGestureCounts = new ConcurrentHashMap<>();
     private volatile byte[] latestAnnotatedJpeg = null;
-
-    // Globale Variable nur noch für die Kommunikation mit dem Frontend
     private volatile String currentGlobalState = "IDLE";
 
     private final List<HoldTracker> activeHolds = new ArrayList<>();
@@ -154,8 +152,6 @@ public class GestureRecognitionService {
         List<HoldTracker> stillActive = new ArrayList<>();
         Mat annotated = frame.clone();
         int handIndex = 0;
-
-        // Wenn gar keine Hand erkannt wurde, überspringen wir das Tracking
         if (!detections.isEmpty()) {
             for (PalmDetector.PalmDetection detection : detections) {
                 handIndex++;
@@ -170,8 +166,6 @@ public class GestureRecognitionService {
                     String label = prediction.label();
 
                     HoldTracker matched = findMatchingTracker(wrist);
-
-                    // NEU: Hand existiert noch nicht im Tracker -> Neu anlegen
                     if (matched == null) {
                         matched = new HoldTracker();
                         matched.position = wrist;
@@ -184,7 +178,6 @@ public class GestureRecognitionService {
                             statusText = "Hand " + handIndex + ": " + label + " (Waiting for open hand)";
                         }
                     }
-                    // Hand ist bereits bekannt -> Individuellen State auswerten
                     else {
                         if (matched.state.equals("IDLE")) {
                             if (label.equals("offene_hand")) {
@@ -238,8 +231,6 @@ public class GestureRecognitionService {
                             statusText = "Hand " + handIndex + ": " + label;
                         }
                     }
-
-                    // Die Hand bleibt aktiv
                     stillActive.add(matched);
                     HandLandmarkExtractor.drawLandmarksOnto(annotated, landmarks);
                 } else {
@@ -254,12 +245,10 @@ public class GestureRecognitionService {
 
         activeHolds.clear();
         activeHolds.addAll(stillActive);
-
-        // Globalen State für das Angular Frontend berechnen
         String newGlobalState = "IDLE";
         for (HoldTracker t : activeHolds) {
             if (t.state.equals("READY")) {
-                newGlobalState = "READY"; // READY hat die höchste Priorität für die UI
+                newGlobalState = "READY";
                 break;
             } else if (t.state.equals("ACTIVATING")) {
                 newGlobalState = "ACTIVATING";
@@ -333,8 +322,6 @@ public class GestureRecognitionService {
 
     private static class HoldTracker {
         Point position;
-
-        // NEU: Eigener State pro Hand
         String state = "IDLE";
 
         long firstSeenAt;

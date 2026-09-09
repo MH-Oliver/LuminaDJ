@@ -13,11 +13,7 @@ public class UserContextStrategyMock implements UserContextStrategy {
     private final UserContextDTO fixedContext;
 
     public UserContextStrategyMock() {
-        /*var customTimeline = new GenreTimeline(List.of(
-                new TimelinePhase(Genre.EDM , 6.0, 1.0),
-                new TimelinePhase(Genre.GERMAN, 6.0, 1.0),
-                new TimelinePhase(Genre.EDM, 120.0, 0.0)
-        ));*/
+        
 
         var generatedTimeline = TimelineFactory.createTimelineForVibe(SessionVibe.WORKOUT);
 
@@ -27,7 +23,7 @@ public class UserContextStrategyMock implements UserContextStrategy {
                 LocalTime.now(),
                 generatedTimeline,
                 500,
-                120 // NEU: Default Gesamtlänge für den Mock
+                120
         );
     }
 

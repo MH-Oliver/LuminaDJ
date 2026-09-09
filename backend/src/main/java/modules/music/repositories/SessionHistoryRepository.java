@@ -13,7 +13,6 @@ public class SessionHistoryRepository {
     /**
      * Fügt einen gespielten Song samt dem dazugehörigen Crowd-Feedback zur Historie hinzu.
      */
-    // Signatur und Instanziierung anpassen
     public void addEntry(Track track) {
         history.add(new HistoryEntry(track));
     }

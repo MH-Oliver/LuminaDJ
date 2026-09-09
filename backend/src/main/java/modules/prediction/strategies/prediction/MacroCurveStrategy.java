@@ -22,8 +22,6 @@ public class MacroCurveStrategy implements PredictionStrategy {
         this.localDb = localDb;
         this.contextStrategy = contextStrategy;
     }
-
-    // 1. GIB DER KURVE MEHR GEWICHT (z.B. 3.0), DAMIT SIE DIE HISTORY ÜBERSTIMMT
     @Override
     public double getWeight() {
         return 3.0;
@@ -32,8 +30,6 @@ public class MacroCurveStrategy implements PredictionStrategy {
     @Override
     public PredictionFactor calculate(Track currentTrack) {
         UserContextDTO context = contextStrategy.getUserContext();
-
-        // Vergangene Minuten berechnen (Fallback auf 0, falls start null ist)
         long elapsedMinutes = 0;
         if (context.startTime() != null) {
             elapsedMinutes = java.time.Duration.between(context.startTime(), java.time.LocalTime.now()).toMinutes();
@@ -44,8 +40,6 @@ public class MacroCurveStrategy implements PredictionStrategy {
 
         Map<String, Double> stringWeights = new HashMap<>();
         Map<String, Double> interpolatedCentroids = new HashMap<>();
-
-        // 2. Ziel-Features (Centroids) interpolieren
         for (Map.Entry<Genre, Double> entry : currentWeights.entrySet()) {
             String genreName = entry.getKey().name().toLowerCase().replace('_', '-');
             double weight = entry.getValue();
@@ -59,8 +53,6 @@ public class MacroCurveStrategy implements PredictionStrategy {
                 }
             }
         }
-
-        // 3. NEU: Absolute Ziele in relative Faktoren (Multiplikatoren) umrechnen!
         Map<String, Double> featureFactors = new HashMap<>();
         for (Map.Entry<String, Double> entry : interpolatedCentroids.entrySet()) {
             String featureName = entry.getKey();
@@ -68,10 +60,8 @@ public class MacroCurveStrategy implements PredictionStrategy {
             double currentValue = currentTrack.features().getOrDefault(featureName, -1.0);
 
             if (currentValue > 0.0) {
-                // Faktor berechnen (Ziel / Aktuell)
                 featureFactors.put(featureName, targetValue / currentValue);
             } else {
-                // Fallback, falls das Feature im aktuellen Song 0 ist
                 featureFactors.put(featureName, 1.0);
             }
         }

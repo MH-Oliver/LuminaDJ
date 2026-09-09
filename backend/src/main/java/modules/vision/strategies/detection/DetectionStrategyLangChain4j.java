@@ -61,7 +61,6 @@ public class DetectionStrategyLangChain4j implements DetectionStrategy {
     public FrameDataDTO analyse(BufferedImage image) {
         try {
         } catch (IllegalStateException e) {
-            // No user-context strategy is configured; continue without contextual prompt enrichment.
         }
 
         try {

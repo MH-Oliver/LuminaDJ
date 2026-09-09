@@ -9,6 +9,4 @@ import { RouterOutlet } from '@angular/router';
   styleUrl: './app.css',
 })
 export class App {
-  // Der alte Test-Code ist weg.
-  // Die API-Calls werden jetzt von deinen Unterseiten (Setup, Session) übernommen.
 }

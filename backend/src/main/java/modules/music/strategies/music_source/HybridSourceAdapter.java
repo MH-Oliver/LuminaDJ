@@ -13,10 +13,7 @@ public class HybridSourceAdapter implements MusicSourceAdapter {
 
     private final LocalSongDatabaseAdapter localKnn;
     private final MusicSourceAdapter spotifySearchApi;
-
-    // Speichert IDs (sowohl CSV als auch Spotify)
     private final Set<String> playedTrackIds = new HashSet<>();
-    // Speichert Song-Namen (alles in Kleinbuchstaben), um Remixe/Dopplungen im Dataset zu blockieren
     private final Set<String> playedTrackNames = new HashSet<>();
 
     public HybridSourceAdapter(LocalSongDatabaseAdapter localKnn, MusicSourceAdapter spotifySearchApi) {
@@ -38,8 +35,6 @@ public class HybridSourceAdapter implements MusicSourceAdapter {
         );
 
         int subListSize = Math.min(10, bestCandidates.size());
-
-        // Notfall-Reset, falls das Set den kompletten Datensatz durchgespielt hat
         if (subListSize == 0) {
             System.out.println("Hybrid-Adapter | Reset der gespielten Tracks!");
             playedTrackIds.clear();

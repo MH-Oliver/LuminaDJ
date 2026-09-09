@@ -1,4 +1,3 @@
-// modules/music/strategies/music_player/spotify/SpotifyAuthenticator.java
 package modules.music.strategies.music_player.spotify;
 
 import com.typesafe.config.Config;
@@ -32,8 +31,6 @@ public class SpotifyAuthenticator {
                 .setRedirectUri(redirectUri)
                 .build();
     }
-
-    // NEU: Stellt die API-Instanz für den Adapter zur Verfügung
     public SpotifyApi getSpotifyApi() {
         return this.spotifyApi;
     }

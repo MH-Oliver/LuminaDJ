@@ -7,7 +7,7 @@
 
     <div class="connection-list">
 
-      <!-- SPOTIFY -->
+      
       <div class="connection-item" (click)="connectSpotify()">
         <mat-checkbox [checked]="isSpotifyConnected" [disabled]="true"></mat-checkbox>
         <span class="item-text" style="margin-left: 8px;">
@@ -21,7 +21,7 @@
         <span class="tooltip" title="Connect your Spotify account">i</span>
       </div>
 
-      <!-- KAMERA -->
+      
       <div class="connection-item" (click)="connectCamera()">
         <mat-checkbox [checked]="isCameraConnected" [disabled]="true"></mat-checkbox>
         <span class="item-text" style="margin-left: 8px;">
@@ -37,7 +37,7 @@
         <span class="tooltip" title="Connect your camera">i</span>
       </div>
 
-      <!-- SKIP KAMERA -->
+      
       <div class="connection-item" style="margin-top: -0.5rem;">
         <mat-checkbox [(ngModel)]="isCameraSkipped" name="skipCamera" [disabled]="isCameraConnected">
           <span style="color: var(--color-text-secondary);">Skip Camera Configuration</span>
@@ -46,7 +46,7 @@
 
     </div>
 
-    <!-- SUBMIT BUTTON FÜR SETUP -->
+    
     <app-button
       type="submit"
       variant="primary"

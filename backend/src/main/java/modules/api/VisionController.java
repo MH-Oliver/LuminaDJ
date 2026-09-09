@@ -27,7 +27,6 @@ public class VisionController {
         try {
             String foundIp = CameraDiscoverer.resolveCameraIp();
             if (foundIp == null) {
-                // Sauberer Fehler statt null-Response
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body(Map.of("error", "Es konnte automatisch keine Kamera im Netzwerk gefunden werden."));
             }
@@ -46,7 +45,6 @@ public class VisionController {
             gestureService.connect(ipAddress);
             return ResponseEntity.ok(Map.of("connectedIp", ipAddress));
         } catch (Exception e) {
-            // StackTrace abfangen und als Message an das Frontend geben
             return ResponseEntity.badRequest().body(Map.of("error", "Verbindung fehlgeschlagen: " + e.getMessage()));
         }
     }
@@ -63,7 +61,7 @@ public class VisionController {
         return ResponseEntity.ok(Map.of(
                 "image", "data:image/jpeg;base64," + base64Image,
                 "gestures", snapshot.confirmedGestureCounts(),
-                "status", snapshot.status() // NEU: Status an Frontend senden
+                "status", snapshot.status()
         ));
     }
 

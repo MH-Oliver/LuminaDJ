@@ -26,10 +26,6 @@ export class ContextApiService {
   private readonly baseUrl = 'http://127.0.0.1:8080';
 
   constructor(private readonly http: HttpClient) {}
-
-  // ==========================================
-  // MUSIC ENDPOINTS
-  // ==========================================
   getSpotifyAuthUrl(): Observable<any> {
     return this.http.get<any>(`${this.baseUrl}/music/spotify/url`);
   }
@@ -49,10 +45,6 @@ export class ContextApiService {
   loadGenre(query: string = ''): Observable<string[]> {
     return this.http.get<string[]>(`${this.baseUrl}/music/loadGenre?query=${encodeURIComponent(query)}`);
   }
-
-  // ==========================================
-  // VISION ENDPOINTS
-  // ==========================================
   deviceFound(): Observable<{ ip: string }> {
     return this.http.get<{ ip: string }>(`${this.baseUrl}/vision/deviceFound`);
   }
@@ -68,10 +60,6 @@ export class ContextApiService {
   toggleCameraProcessing(active: boolean): Observable<{ isActive: boolean }> {
     return this.http.post<{ isActive: boolean }>(`${this.baseUrl}/vision/toggleState`, { active });
   }
-
-  // ==========================================
-  // CONTEXT ENDPOINTS
-  // ==========================================
   sendContext(payload: UserContextDto): Observable<{ status: string }> {
     return this.http.post<{ status: string }>(`${this.baseUrl}/api/context`, payload);
   }
@@ -79,10 +67,6 @@ export class ContextApiService {
   getCurrentContext(): Observable<any> {
     return this.http.get<any>(`${this.baseUrl}/api/context/current`);
   }
-
-  // ==========================================
-  // SESSION ENDPOINTS
-  // ==========================================
   jumpSession(elapsedMinutes: number): Observable<any> {
     return this.http.post<any>(`${this.baseUrl}/session/jump`, { elapsedMinutes });
   }

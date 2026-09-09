@@ -1,10 +1,10 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { Router } from '@angular/router'; // NEU: Router importieren
+import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button'; // Wichtig für Material Buttons
+import { MatButtonModule } from '@angular/material/button';
 import { ContextApiService } from '../services/context-api.service';
 import { NotificationService } from '../services/notification.service';
 import { ButtonComponent } from '../shared/button/button.component';
@@ -21,7 +21,7 @@ declare global {
 @Component({
   selector: 'app-setup-page',
   standalone: true,
-  imports: [FormsModule, CommonModule, MatFormFieldModule, MatInputModule, ButtonComponent, MatCheckboxModule], // ButtonComponent hinzugefügt
+  imports: [FormsModule, CommonModule, MatFormFieldModule, MatInputModule, ButtonComponent, MatCheckboxModule],
   templateUrl: './setup-page.component.html',
   styleUrls: ['./setup-page.component.scss']
 })
@@ -29,8 +29,6 @@ export class SetupPageComponent implements OnInit, OnDestroy {
   isSpotifyConnected = false;
   isCameraConnected = false;
   isCameraSkipped = false;
-
-  // Camera Dialog State
   showCameraDialog = false;
   isDetecting = false;
   detectedIp = '';
@@ -42,7 +40,7 @@ export class SetupPageComponent implements OnInit, OnDestroy {
   constructor(
     private readonly apiService: ContextApiService,
     private readonly notificationService: NotificationService,
-    private readonly router: Router // NEU
+    private readonly router: Router
   ) {}
 
   ngOnInit() {
@@ -92,10 +90,7 @@ export class SetupPageComponent implements OnInit, OnDestroy {
         if (res.status === 'already_connected') {
           this.isSpotifyConnected = true;
         } else if (res.url) {
-          // 1. Öffnet den nativen Browser (Chrome, Firefox etc.) über Electron
           this.openInExternalBrowser(res.url);
-
-          // 2. Polling starten, um zu checken, ob der Login im echten Browser erfolgreich war
           if (this.spotifyPollTimer) clearInterval(this.spotifyPollTimer);
 
           this.spotifyPollTimer = setInterval(() => {

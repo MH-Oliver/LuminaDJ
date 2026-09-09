@@ -16,18 +16,16 @@
   font-family: var(--font-family-base);
   transition: all 0.2s ease;
 
-  /* =========================================
-     PRIMARY VARIANT
-     ========================================= */
+  
   &.btn-primary {
-    /* Ausgefüllt (Continue / Connect) */
+    
     &.is-flat {
       background-color: var(--color-text-primary);
       color: var(--color-bg-base);
       @include ai-button-glow;
     }
 
-    /* Umrandet (Auto Detect) */
+    
     &.is-stroked {
       background-color: transparent;
       color: var(--color-text-primary);
@@ -49,17 +47,15 @@
     }
   }
 
-  /* =========================================
-     DANGER VARIANT
-     ========================================= */
+  
   &.btn-danger {
-    /* Ausgefüllt */
+    
     &.is-flat {
       background-color: var(--color-danger-base);
       color: var(--color-text-primary);
     }
 
-    /* Umrandet (Cancel-Button) */
+    
     &.is-stroked {
       background-color: rgba(255, 77, 77, 0.1);
       color: var(--color-danger-base);

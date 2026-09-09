@@ -29,8 +29,6 @@ import java.time.format.DateTimeFormatter;
  * normalisierte Feature-Vektor in der wachsenden CSV gespeichert.
  */
 public class DataCollectorApp {
-
-    // Feste Liste der zu unterscheidenden Gesten. Ordnername = Label fürs spätere Training.
     private static final String[] GESTURES = {
             "offene_hand",
             "faust",
@@ -55,8 +53,6 @@ public class DataCollectorApp {
         }
         System.out.println("[INFO] Geste: " + gestureLabel);
         System.out.println("[INFO] Speichere Debug-Bilder in: " + runDir.getAbsolutePath());
-
-        // Eine gemeinsame, wachsende CSV-Datei für ALLE Gesten
         File landmarksCsvFile = new File("backend/src/main/resources/training_data/gesture_landmarks.csv");
 
         System.out.println("[INFO] Suche Kamera im Netzwerk...");
