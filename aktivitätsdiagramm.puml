@@ -8,56 +8,62 @@ skinparam NoteBorderColor #BDC3C7
 
 start
 
-:<b>Systemstart</b> (App.java);
-:Wähle <b>SessionVibe</b> (z.B. Workout)
-und generiere Timeline via <b>TimelineFactory</b>, oder <b>custom</b>;
+partition "Frontend (Benutzeroberfläche)" {
+  :Nutzer wählt Preset & Timeline-Länge;
+  :Sende Konfiguration an Backend;
+}
 
-:<b>SessionBootstrapper</b> berechnet perfekten
-Start-Song aus den Gewichten für Minute 0.0;
+partition "Backend (Initialisierung)" {
+  :<b>SessionBootstrapper</b> berechnet den perfekten
+  Start-Song anhand der Start-Genres;
+}
 
 repeat
   ' --- ZUSTAND: ABSPIELEN & BEOBACHTEN ---
   fork
     :<b>MusicPlayerAdapter</b>
-    Zustand: Song abspielen;
+    Zustand: Spielt Song ab (z.B. über Spotify);
   fork again
-    :<b>LiveFeedbackStrategy</b>
-    Zustand: Kamera wertet Publikums-Feedback
-    parallel zum Song aus;
+    :<b>GestureRecognitionService</b>
+    Zustand: Überwacht Kamera auf Gesten
+    (Wartet auf "offene Hand" zur Aktivierung);
+
+    if (Aktion ausgeführt?) then (ja)
+       :Z.B. Song priorisieren (<b>PrioritizeStrategy</b>),
+       überspringen oder pausieren;
+    else (nein)
+    endif
   end fork
 
   ' --- TRIGGER: ENDE ---
-  :<i>Trigger: Song ist fast beendet</i>;
+  :<i>Trigger: Song ist fast beendet</i>
+  <i>oder "Skip"-Geste wurde ausgeführt</i>;
 
   ' --- AUSWERTUNG ---
-  :Übergib bisherigen Song
-  an den <b>PredictionAggregator</b>;
+  :Bisheriger Song geht in die Historie;
 
-  partition "Auswertung & Vorhersage" {
-    :Iteriere über <b>List<PredictionStrategy></b>
-    (MacroCurve, History, LiveFeedback);
+  partition "Auswertung & Vorhersage (PredictionAggregator)" {
+    :Kombiniere die Strategien:
+    - <b>MacroCurveStrategy</b> (Timeline-Ziele)
+    - <b>HistoryStrategy</b> (Bisheriger Vibe)
+    - <b>PrioritizeStrategy</b> (Favorisierte Songs);
 
-    :Verechne Basis-Parameter des alten Songs
-    mit den Faktoren der Strategien;
-
-    :Generiere Ziel-Vektor (<b>PredictedAttributes</b>);
+    :Berechne die optimalen Ziel-Features
+    für den nächsten Song;
   }
 
   ' --- NÄCHSTER SONG FINDEN ---
-  partition "Song-Auswahl (LocalSongDatabaseAdapter)" {
-      :Suche Top-Kandidaten in lokaler CSV;
+  partition "Song-Auswahl (HybridSourceAdapter)" {
+      :<b>LocalSongDatabaseAdapter</b> sucht lokale Top-Kandidaten
+      (Filtert falsche Genres & beachtet Cooldown);
 
-      :<b>Cooldown-Prüfung:</b>
-      Ist Song im <b>PlayedSongRepository</b> gesperrt?
-      -> Falls ja: Überspringen;
-
-      :Verteile Strafen für falsches Genre
-      (Genre-Gravity) an verbleibende Kandidaten;
+      :<b>SpotifySourceAdapter</b> prüft als Fallback,
+      ob der gewählte Song online verfügbar ist;
   }
 
-  :Song gefunden;
-  :<b>PlayedSongRepository</b> markiert
-  neuen Song als gespielt;
+  :Neuer Song gefunden;
+  :<b>PlayedSongRepository</b> sperrt
+  den Song für die nächste Zeit;
 
 repeat while (Session aktiv?)
 
