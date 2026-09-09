@@ -27,24 +27,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Läuft im Hintergrund, sobald über {@code connect(ip)} eine Kamera verbunden wurde, und
- * hält kontinuierlich zwei Dinge bereit:
- * - das aktuelle Kamerabild mit eingezeichnetem Landmark-Skelett (als JPEG-Bytes)
- * - die Gesten, die über das 5-Sekunden-Hold-Verfahren bestätigt wurden (eine Hand muss
- *   mindestens 5 Sekunden lang ungefähr an derselben Stelle dieselbe Geste zeigen)
- * <p>
- * Bewusst getrennt von SmartphoneKameraStrategy/LiveFeedbackStrategy (die für die
- * Song-Empfehlungs-Pipeline gedacht sind, aktuell aber noch über LiveFeedbackStrategyMock
- * laufen) - dieser Service bedient ausschließlich die Live-Anzeige im Frontend.
- */
 @Service
 public class GestureRecognitionService {
 
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(3);
-    private static final long POLL_INTERVAL_MS = 500;
-    private static final long HOLD_DURATION_MS = 5000;
-    private static final double POSITION_TOLERANCE_PX = 60.0;
+    private static final long POLL_INTERVAL_MS = 100;
+
+    private static final long HOLD_ACTIVATION_MS = 1500;
+    private static final long HOLD_ACTION_MS = 1500;
+    private static final long READY_WINDOW_MS = 5000;
+    private static final double POSITION_TOLERANCE_PX = 90.0;
     private static final int K_NEAREST_NEIGHBORS = 5;
 
     static {
@@ -53,9 +45,6 @@ public class GestureRecognitionService {
 
     private final HttpClient httpClient = HttpClient.newBuilder().connectTimeout(REQUEST_TIMEOUT).build();
 
-    // Erst bei der ersten connect() geladen, nicht im Konstruktor - der Service wird von
-    // Spring beim App-Start instanziiert, aber die Modelle brauchen wir erst, wenn
-    // tatsächlich eine Kamera verbunden wird.
     private PalmDetector palmDetector;
     private HandLandmarkExtractor landmarkExtractor;
     private GestureClassifier gestureClassifier;
@@ -67,14 +56,11 @@ public class GestureRecognitionService {
     private final Map<String, Integer> confirmedGestureCounts = new ConcurrentHashMap<>();
     private volatile byte[] latestAnnotatedJpeg = null;
 
-    // Nur innerhalb des Polling-Threads gelesen/geschrieben - keine Synchronisation nötig.
+    // Globale Variable nur noch für die Kommunikation mit dem Frontend
+    private volatile String currentGlobalState = "IDLE";
+
     private final List<HoldTracker> activeHolds = new ArrayList<>();
 
-    /**
-     * Verbindet sich mit der Kamera unter der gegebenen IP und startet die
-     * Hintergrund-Auswertung. Ein erneuter Aufruf (z.B. anderes Gerät gewählt) stoppt zuerst
-     * die laufende Auswertung und startet mit der neuen IP neu.
-     */
     public synchronized void connect(String ipAddress) throws IOException {
         stop();
         if (palmDetector == null) {
@@ -86,6 +72,7 @@ public class GestureRecognitionService {
         this.confirmedGestureCounts.clear();
         this.activeHolds.clear();
         this.latestAnnotatedJpeg = null;
+        this.currentGlobalState = "IDLE";
     }
 
     public synchronized void stop() {
@@ -103,6 +90,7 @@ public class GestureRecognitionService {
     public void resetGestureCounts() {
         confirmedGestureCounts.clear();
         activeHolds.clear();
+        currentGlobalState = "IDLE";
     }
 
     public synchronized void pauseProcessing() {
@@ -121,25 +109,19 @@ public class GestureRecognitionService {
         }
     }
 
-    /**
-     * @return null, solange noch kein Bild verarbeitet wurde (z.B. direkt nach connect())
-     *         oder noch keine Kamera verbunden ist.
-     */
     public Snapshot getSnapshot() {
         byte[] jpeg = latestAnnotatedJpeg;
         if (jpeg == null) {
             return null;
         }
-        return new Snapshot(jpeg, new HashMap<>(confirmedGestureCounts));
+        return new Snapshot(jpeg, new HashMap<>(confirmedGestureCounts), currentGlobalState);
     }
 
     private void pollLoop() {
         System.out.println("GestureRecognitionService: Kamera-Auswertung gestartet");
-
         while (running) {
             try {
                 BufferedImage bufferedImage = fetchFrame();
-
                 if (bufferedImage != null) {
                     Mat frame = bufferedImageToMat(bufferedImage);
                     Mat annotated = processFrame(frame);
@@ -151,9 +133,7 @@ public class GestureRecognitionService {
                     annotated.release();
                     frame.release();
                 }
-
                 Thread.sleep(POLL_INTERVAL_MS);
-
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 break;
@@ -168,67 +148,133 @@ public class GestureRecognitionService {
         }
     }
 
-    /**
-     * Erkennt alle Hände, klassifiziert deren Geste, pflegt die Hold-Tracker (5-Sekunden-
-     * Bestätigung) und zeichnet Skelett + Status pro Hand auf eine Kopie des Frames.
-     */
     private Mat processFrame(Mat frame) {
         List<PalmDetector.PalmDetection> detections = palmDetector.detectAllPalms(frame);
         long now = System.currentTimeMillis();
         List<HoldTracker> stillActive = new ArrayList<>();
-
         Mat annotated = frame.clone();
-
         int handIndex = 0;
-        for (PalmDetector.PalmDetection detection : detections) {
-            handIndex++;
-            Rect handRoi = restrictToFrame(detection.box(), frame.cols(), frame.rows());
-            HandLandmarks landmarks = landmarkExtractor.extractLandmarks(frame, handRoi);
 
-            String statusText;
-            if (landmarks != null) {
-                double[] features = GestureFeatureExtractor.toFeatureVector(landmarks);
-                GestureClassifier.Prediction prediction = gestureClassifier.classify(features);
-                Point wrist = landmarks.points()[0];
+        // Wenn gar keine Hand erkannt wurde, überspringen wir das Tracking
+        if (!detections.isEmpty()) {
+            for (PalmDetector.PalmDetection detection : detections) {
+                handIndex++;
+                Rect handRoi = restrictToFrame(detection.box(), frame.cols(), frame.rows());
+                HandLandmarks landmarks = landmarkExtractor.extractLandmarks(frame, handRoi);
+                String statusText;
 
-                HoldTracker matched = findMatchingTracker(wrist, prediction.label());
-                if (matched != null) {
-                    activeHolds.remove(matched);
-                    if (!matched.confirmed && now - matched.firstSeenAt >= HOLD_DURATION_MS) {
-                        matched.confirmed = true;
-                        confirmedGestureCounts.merge(prediction.label(), 1, Integer::sum);
-                        System.out.println("[GESTE BESTÄTIGT] " + prediction.label());
+                if (landmarks != null) {
+                    double[] features = GestureFeatureExtractor.toFeatureVector(landmarks);
+                    GestureClassifier.Prediction prediction = gestureClassifier.classify(features);
+                    Point wrist = landmarks.points()[0];
+                    String label = prediction.label();
+
+                    HoldTracker matched = findMatchingTracker(wrist);
+
+                    // NEU: Hand existiert noch nicht im Tracker -> Neu anlegen
+                    if (matched == null) {
+                        matched = new HoldTracker();
+                        matched.position = wrist;
+                        if (label.equals("offene_hand")) {
+                            matched.state = "ACTIVATING";
+                            matched.firstSeenAt = now;
+                            statusText = "ACTIVATING... Hold open hand!";
+                        } else {
+                            matched.state = "IDLE";
+                            statusText = "Hand " + handIndex + ": " + label + " (Waiting for open hand)";
+                        }
                     }
+                    // Hand ist bereits bekannt -> Individuellen State auswerten
+                    else {
+                        if (matched.state.equals("IDLE")) {
+                            if (label.equals("offene_hand")) {
+                                matched.state = "ACTIVATING";
+                                matched.firstSeenAt = now;
+                                statusText = "ACTIVATING... Hold open hand!";
+                            } else {
+                                statusText = "Hand " + handIndex + ": " + label + " (Waiting for open hand)";
+                            }
+                        }
+                        else if (matched.state.equals("ACTIVATING")) {
+                            if (label.equals("offene_hand")) {
+                                if (now - matched.firstSeenAt >= HOLD_ACTIVATION_MS) {
+                                    matched.state = "READY";
+                                    matched.readySince = now;
+                                    statusText = "READY! Make your gesture now.";
+                                    System.out.println("[GESTURE STATE] Hand " + handIndex + " is READY - Waiting for action gesture");
+                                } else {
+                                    statusText = "ACTIVATING... " + (HOLD_ACTIVATION_MS - (now - matched.firstSeenAt)) + "ms left";
+                                }
+                            } else {
+                                matched.state = "IDLE";
+                                statusText = "Activation cancelled.";
+                            }
+                        }
+                        else if (matched.state.equals("READY")) {
+                            if (now - matched.readySince > READY_WINDOW_MS) {
+                                matched.state = "IDLE";
+                                statusText = "Time expired. Back to IDLE.";
+                            } else {
+                                if (label.equals("offene_hand")) {
+                                    matched.actionLabel = null;
+                                    statusText = "READY... " + (READY_WINDOW_MS - (now - matched.readySince))/1000 + "s left";
+                                } else {
+                                    if (matched.actionLabel == null || !matched.actionLabel.equals(label)) {
+                                        matched.actionLabel = label;
+                                        matched.actionStartedAt = now;
+                                    }
+                                    long actionHoldTime = now - matched.actionStartedAt;
+                                    if (actionHoldTime >= HOLD_ACTION_MS) {
+                                        confirmedGestureCounts.merge(label, 1, Integer::sum);
+                                        System.out.println("[GESTE BESTÄTIGT] " + label + " von Hand " + handIndex);
+                                        matched.state = "IDLE";
+                                        statusText = "ACTION: " + label + "!";
+                                    } else {
+                                        statusText = "HOLD " + label.toUpperCase() + "... " + (HOLD_ACTION_MS - actionHoldTime) + "ms";
+                                    }
+                                }
+                            }
+                        } else {
+                            statusText = "Hand " + handIndex + ": " + label;
+                        }
+                    }
+
+                    // Die Hand bleibt aktiv
                     stillActive.add(matched);
+                    HandLandmarkExtractor.drawLandmarksOnto(annotated, landmarks);
                 } else {
-                    HoldTracker fresh = new HoldTracker();
-                    fresh.label = prediction.label();
-                    fresh.position = wrist;
-                    fresh.firstSeenAt = now;
-                    stillActive.add(fresh);
+                    statusText = String.format("Hand %d: keine Landmarks", handIndex);
                 }
 
-                statusText = String.format("Hand %d: %s (%.0f%%)", handIndex,
-                        prediction.label(), prediction.confidence() * 100);
-                HandLandmarkExtractor.drawLandmarksOnto(annotated, landmarks);
-            } else {
-                statusText = String.format("Hand %d: keine Landmarks", handIndex);
+                Imgproc.rectangle(annotated, handRoi.tl(), handRoi.br(), new Scalar(255, 128, 0), 2);
+                Imgproc.putText(annotated, statusText, new Point(handRoi.x, Math.max(20, handRoi.y - 10)),
+                        Imgproc.FONT_HERSHEY_SIMPLEX, 0.7, new Scalar(0, 255, 255), 2);
             }
-
-            Imgproc.rectangle(annotated, handRoi.tl(), handRoi.br(), new Scalar(255, 128, 0), 2);
-            Imgproc.putText(annotated, statusText, new Point(handRoi.x, Math.max(20, handRoi.y - 10)),
-                    Imgproc.FONT_HERSHEY_SIMPLEX, 0.7, new Scalar(0, 255, 255), 2);
         }
 
         activeHolds.clear();
         activeHolds.addAll(stillActive);
 
+        // Globalen State für das Angular Frontend berechnen
+        String newGlobalState = "IDLE";
+        for (HoldTracker t : activeHolds) {
+            if (t.state.equals("READY")) {
+                newGlobalState = "READY"; // READY hat die höchste Priorität für die UI
+                break;
+            } else if (t.state.equals("ACTIVATING")) {
+                newGlobalState = "ACTIVATING";
+            }
+        }
+        this.currentGlobalState = newGlobalState;
+
+        Imgproc.putText(annotated, "GLOBAL STATUS: " + currentGlobalState, new Point(10, 30),
+                Imgproc.FONT_HERSHEY_SIMPLEX, 1.0, new Scalar(0, 0, 255), 2);
+
         return annotated;
     }
 
-    private HoldTracker findMatchingTracker(Point position, String label) {
+    private HoldTracker findMatchingTracker(Point position) {
         for (HoldTracker tracker : activeHolds) {
-            if (!tracker.label.equals(label)) continue;
             double dx = tracker.position.x - position.x;
             double dy = tracker.position.y - position.y;
             if (Math.sqrt(dx * dx + dy * dy) <= POSITION_TOLERANCE_PX) {
@@ -244,8 +290,8 @@ public class GestureRecognitionService {
                     .uri(URI.create(cameraUrl))
                     .timeout(REQUEST_TIMEOUT)
                     .build();
-            HttpResponse<byte[]> response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
 
+            HttpResponse<byte[]> response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
             if (response.statusCode() == 200) {
                 return ImageIO.read(new ByteArrayInputStream(response.body()));
             }
@@ -271,7 +317,6 @@ public class GestureRecognitionService {
     private static Mat bufferedImageToMat(BufferedImage bi) {
         BufferedImage convertedImg = new BufferedImage(bi.getWidth(), bi.getHeight(), BufferedImage.TYPE_3BYTE_BGR);
         convertedImg.getGraphics().drawImage(bi, 0, 0, null);
-
         byte[] data = ((DataBufferByte) convertedImg.getRaster().getDataBuffer()).getData();
         Mat mat = new Mat(bi.getHeight(), bi.getWidth(), CvType.CV_8UC3);
         mat.put(0, 0, data);
@@ -286,14 +331,18 @@ public class GestureRecognitionService {
         return new Rect(x, y, Math.max(0, width), Math.max(0, height));
     }
 
-    /** Verfolgt eine Hand, die gerade (noch nicht lange genug für eine Bestätigung) an
-     *  ungefähr derselben Stelle mit derselben Geste gehalten wird. */
     private static class HoldTracker {
-        String label;
         Point position;
+
+        // NEU: Eigener State pro Hand
+        String state = "IDLE";
+
         long firstSeenAt;
-        boolean confirmed = false;
+        long readySince;
+
+        String actionLabel = null;
+        long actionStartedAt = 0;
     }
 
-    public record Snapshot(byte[] jpegImage, Map<String, Integer> confirmedGestureCounts) {}
+    public record Snapshot(byte[] jpegImage, Map<String, Integer> confirmedGestureCounts, String status) {}
 }

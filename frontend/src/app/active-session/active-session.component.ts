@@ -35,7 +35,8 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
     coverUrl: 'https://via.placeholder.com/150/1e1e1e/ffffff?text=Album+Cover'
   };
 
-  availableGestures = ['offene_hand', 'faust', 'peace', 'daumen_hoch', 'zeigefinger'];
+  availableGestures = ['faust', 'peace', 'daumen_hoch', 'zeigefinger'];
+  private lastBackendStatus = 'IDLE';
   gestureMapping: { [key: string]: string } = {
     playPause: 'zeigefinger',
     skipGenre: 'peace',
@@ -178,6 +179,15 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
           this.isCameraReachable = true;
           this.cameraImage = data.image;
 
+          if (data.status) {
+            if (data.status === 'READY' && this.lastBackendStatus !== 'READY') {
+              this.notificationService.showSuccess('Gesten-Modus aktiv! Bitte Geste ausführen (5s Zeit).');
+            } else if (data.status === 'IDLE' && this.lastBackendStatus === 'READY') {
+              this.notificationService.showError('Gesten-Eingabe beendet / abgebrochen.');
+            }
+            this.lastBackendStatus = data.status;
+          }
+
           if (data.gestures) {
             const currentGestures = data.gestures;
 
@@ -204,8 +214,8 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
             const prioritizeCount = currentGestures[prioritizeGesture] || 0;
             const prevPrioritizeCount = this.previousGestures[prioritizeGesture] || 0;
             if (prioritizeCount > prevPrioritizeCount) {
-              this.notificationService.showSuccess(`Geste '${prioritizeGesture}' erkannt: Genre & Vibe priorisiert!`);
-              this.prioritizeCurrent();
+              // Das erledigt UI-Update (Herz), Spotify-Speicherung, Backend-Prio und Snackbar in einem!
+              this.toggleFavorite();
             }
 
             this.previousGestures = { ...currentGestures };
