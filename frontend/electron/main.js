@@ -1,41 +1,8 @@
 const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const { spawn } = require('node:child_process');
-const fs = require('node:fs');
 const path = require('node:path');
 
 let backendProcess;
-
-function loadEnvFromFile() {
-  const envPath = path.resolve(__dirname, '../../.env');
-  if (!fs.existsSync(envPath)) {
-    return {};
-  }
-
-  const parsed = {};
-  const lines = fs.readFileSync(envPath, 'utf8').split(/\r?\n/);
-
-  for (const rawLine of lines) {
-    const line = rawLine.trim();
-    if (!line || line.startsWith('#')) continue;
-
-    const separatorIndex = line.indexOf('=');
-    if (separatorIndex <= 0) continue;
-
-    const key = line.slice(0, separatorIndex).trim();
-    let value = line.slice(separatorIndex + 1).trim();
-
-    if (
-      (value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"))
-    ) {
-      value = value.slice(1, -1);
-    }
-
-    parsed[key] = value;
-  }
-
-  return parsed;
-}
 
 function startBackend() {
   const jarPath = app.isPackaged
@@ -45,40 +12,18 @@ function startBackend() {
   const cwdPath = app.isPackaged
     ? process.resourcesPath
     : path.resolve(__dirname, '../..');
-  const fileEnv = loadEnvFromFile();
-  const resolveEnvValue = (key) => {
-    const fromProcess = process.env[key];
-    if (typeof fromProcess === 'string' && fromProcess.trim().length > 0) {
-      return fromProcess;
-    }
-    const fromFile = fileEnv[key];
-    if (typeof fromFile === 'string' && fromFile.trim().length > 0) {
-      return fromFile;
-    }
-    return '';
-  };
 
-  const logStream = fs.createWriteStream(path.join(app.getPath('desktop'), 'lumina-error-log.txt'), { flags: 'a' });
-
-  // NEU: cwd nutzt jetzt die dynamische backendCwd Variable
   backendProcess = spawn('java', ['-jar', jarPath], {
     cwd: cwdPath,
     windowsHide: true,
-    env: {
-      ...process.env,
-    }
+    env: { ...process.env }
   });
-
-  // Standard-Ausgabe von Java in die Datei schreiben
-  backendProcess.stdout.pipe(logStream);
-  backendProcess.stderr.pipe(logStream);
 
   backendProcess.on('error', (error) => {
-    logStream.write(`\nFEHLER BEIM STARTEN VON JAVA: ${error.message}\n`);
+    console.error('Java Backend Fehler:', error.message);
   });
 
-  backendProcess.on('exit', (code) => {
-    logStream.write(`\nJAVA BEENDET MIT CODE: ${code}\n`);
+  backendProcess.on('exit', () => {
     backendProcess = undefined;
   });
 }
@@ -93,6 +38,7 @@ function createWindow() {
   const win = new BrowserWindow({
     width: 1200,
     height: 800,
+    icon: path.join(__dirname, '../icon.png'),
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
@@ -100,9 +46,8 @@ function createWindow() {
     },
   });
 
-  // Entfernt die native System-Menüleiste (Datei, Bearbeiten, Ansicht...)
+  // Entfernt die native System-Menüleiste
   win.removeMenu();
-  win.webContents.openDevTools();
 
   const startUrl = process.env.ELECTRON_START_URL;
   if (startUrl) {

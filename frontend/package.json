@@ -27,6 +27,7 @@
   "build": {
     "appId": "com.luminadj.app",
     "productName": "LuminaDJ",
+    "icon": "icon.png",
     "directories": {
       "output": "release/"
     },
