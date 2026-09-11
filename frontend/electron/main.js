@@ -58,7 +58,6 @@ function startBackend() {
     windowsHide: true,
     env: {
       ...process.env,
-      SPOTIFY_CLIENT_SECRET: resolveEnvValue('SPOTIFY_CLIENT_SECRET')
     }
   });
 
