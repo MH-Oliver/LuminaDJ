@@ -9,7 +9,8 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "start:desktop": "npm run build && electron .",
-    "start:live": "concurrently --kill-others \"npm start\" \"wait-on http://localhost:4200 && cross-env ELECTRON_START_URL=http://localhost:4200 electron .\""
+    "start:live": "concurrently --kill-others \"npm start\" \"wait-on http://localhost:4200 && cross-env ELECTRON_START_URL=http://localhost:4200 electron .\"",
+    "build:app": "ng build --base-href ./ && electron-builder"
   },
   "prettier": {
     "printWidth": 100,
@@ -23,6 +24,31 @@
       }
     ]
   },
+  "build": {
+    "appId": "com.luminadj.app",
+    "productName": "LuminaDJ",
+    "directories": {
+      "output": "release/"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "extraResources": [
+      {
+        "from": "../backend/target/lumina-backend-1.0-SNAPSHOT.jar",
+        "to": "lumina-backend-1.0-SNAPSHOT.jar"
+      },
+      {
+        "from": "../backend/src/main/resources/dataset.csv",
+        "to": "dataset.csv"
+      },
+      {
+        "from": "../backend/src/main/resources/models",
+        "to": "models"
+      }
+    ]
+  },
+
   "private": true,
   "dependencies": {
     "@angular/cdk": "^20.2.14",
@@ -45,6 +71,7 @@
     "concurrently": "^10.0.4",
     "cross-env": "^10.1.0",
     "electron": "^43.2.0",
+    "electron-builder": "^26.15.3",
     "jasmine-core": "~5.9.0",
     "karma": "~6.4.0",
     "karma-chrome-launcher": "~3.2.0",

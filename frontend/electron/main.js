@@ -38,7 +38,13 @@ function loadEnvFromFile() {
 }
 
 function startBackend() {
-  const jarPath = path.resolve(__dirname, '../../backend/target/lumina-backend-1.0-SNAPSHOT.jar');
+  const jarPath = app.isPackaged
+    ? path.join(process.resourcesPath, 'lumina-backend-1.0-SNAPSHOT.jar')
+    : path.resolve(__dirname, '../../backend/target/lumina-backend-1.0-SNAPSHOT.jar');
+
+  const cwdPath = app.isPackaged
+    ? process.resourcesPath
+    : path.resolve(__dirname, '../..');
   const fileEnv = loadEnvFromFile();
   const resolveEnvValue = (key) => {
     const fromProcess = process.env[key];
@@ -52,20 +58,27 @@ function startBackend() {
     return '';
   };
 
+  const logStream = fs.createWriteStream(path.join(app.getPath('desktop'), 'lumina-error-log.txt'), { flags: 'a' });
+
+  // NEU: cwd nutzt jetzt die dynamische backendCwd Variable
   backendProcess = spawn('java', ['-jar', jarPath], {
-    cwd: path.resolve(__dirname, '../..'),
-    stdio: 'inherit',
+    cwd: cwdPath,
     windowsHide: true,
     env: {
       ...process.env,
     }
   });
 
+  // Standard-Ausgabe von Java in die Datei schreiben
+  backendProcess.stdout.pipe(logStream);
+  backendProcess.stderr.pipe(logStream);
+
   backendProcess.on('error', (error) => {
-    console.error('Backend-Prozess konnte nicht gestartet werden:', error);
+    logStream.write(`\nFEHLER BEIM STARTEN VON JAVA: ${error.message}\n`);
   });
 
-  backendProcess.on('exit', () => {
+  backendProcess.on('exit', (code) => {
+    logStream.write(`\nJAVA BEENDET MIT CODE: ${code}\n`);
     backendProcess = undefined;
   });
 }
@@ -89,6 +102,7 @@ function createWindow() {
 
   // Entfernt die native System-Menüleiste (Datei, Bearbeiten, Ansicht...)
   win.removeMenu();
+  win.webContents.openDevTools();
 
   const startUrl = process.env.ELECTRON_START_URL;
   if (startUrl) {
