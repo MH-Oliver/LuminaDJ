@@ -57,6 +57,16 @@ export class SessionSetupComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+
+    this.apiService.getSpotifyProfile().subscribe({
+      next: (res) => {
+        if (res.username) {
+          this.spotifyUser = res.username;
+        }
+      },
+      error: (err) => console.error('Fehler beim Abrufen des Spotify-Profils:', err)
+    });
+
     this.apiService.loadPresets().subscribe({
       next: (presets) => this.availablePresets = presets,
       error: (err) => console.error('Fehler beim Laden der Presets:', err)

@@ -57,4 +57,18 @@ public class MusicController {
                 .collect(Collectors.toList());
         return ResponseEntity.ok(matchingGenres);
     }
+
+    @GetMapping("/spotify/profile")
+    public ResponseEntity<Map<String, String>> getSpotifyProfile() {
+        if (authenticator.isAuthenticated()) {
+            try {
+                String username = authenticator.getSpotifyApi().getCurrentUsersProfile().build().execute().getDisplayName();
+                return ResponseEntity.ok(Map.of("username", username));
+            } catch (Exception e) {
+                System.err.println("Fehler beim Abrufen des Spotify-Profils: " + e.getMessage());
+            }
+        }
+        return ResponseEntity.ok(Map.of("username", "Spotify User"));
+    }
+
 }
