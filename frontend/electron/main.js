@@ -6,8 +6,8 @@ let backendProcess;
 
 function startBackend() {
   const jarPath = app.isPackaged
-    ? path.join(process.resourcesPath, 'lumina-backend-1.0-SNAPSHOT.jar')
-    : path.resolve(__dirname, '../../backend/target/lumina-backend-1.0-SNAPSHOT.jar');
+    ? path.join(process.resourcesPath, 'lumina-backend.jar')
+    : path.resolve(__dirname, '../../backend/target/lumina-backend.jar');
 
   const cwdPath = app.isPackaged
     ? process.resourcesPath

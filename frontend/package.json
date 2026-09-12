@@ -1,6 +1,6 @@
 {
   "name": "frontend",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "main": "electron/main.js",
   "scripts": {
     "ng": "ng",
@@ -36,8 +36,8 @@
     },
     "extraResources": [
       {
-        "from": "../backend/target/lumina-backend-1.0-SNAPSHOT.jar",
-        "to": "lumina-backend-1.0-SNAPSHOT.jar"
+        "from": "../backend/target/lumina-backend.jar",
+        "to": "lumina-backend.jar"
       },
       {
         "from": "../backend/src/main/resources/dataset.csv",
