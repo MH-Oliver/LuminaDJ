@@ -292,13 +292,12 @@ public class GestureRecognitionService {
     }
 
     private static File resolveGestureModelFile() throws IOException {
-        File modelFile = new File("backend/src/main/resources/models/gesture_classifier.csv");
+        File modelFile = new File("models/gesture_classifier.csv");
         if (!modelFile.exists()) {
-            modelFile = new File("src/main/resources/models/gesture_classifier.csv");
+            modelFile = new File("backend/src/main/resources/models/gesture_classifier.csv");
         }
         if (!modelFile.exists()) {
-            throw new IOException("Kein trainiertes Gesten-Modell gefunden unter: " + modelFile.getAbsolutePath()
-                    + " - erst DataCollectorApp und TrainGestureClassifierApp laufen lassen.");
+            modelFile = new File("src/main/resources/models/gesture_classifier.csv");
         }
         return modelFile;
     }

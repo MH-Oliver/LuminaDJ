@@ -13,7 +13,7 @@ import java.util.List;
 
 /**
  * Extrahiert 21 Hand-Keypoints (MediaPipe-Hand-Schema) aus einem Bildausschnitt,
- * der bereits eine Hand enthält (z.B. der Crop aus {@link HandDetector}).
+ * der bereits eine Hand enthält.
  * <p>
  * Nutzt das offizielle, Apache-2.0-lizenzierte ONNX-Modell aus dem OpenCV Zoo
  * (opencv/handpose_estimation_mediapipe, "2023feb"-Variante).
@@ -37,18 +37,12 @@ public class HandLandmarkExtractor {
     public HandLandmarkExtractor() {
 
 
-        File modelFile = new File("backend/src/main/resources/models/handpose_estimation_mediapipe_2023feb.onnx");
+        File modelFile = new File("models/handpose_estimation_mediapipe_2023feb.onnx");
+        if (!modelFile.exists()) {
+            modelFile = new File("backend/src/main/resources/models/handpose_estimation_mediapipe_2023feb.onnx");
+        }
         if (!modelFile.exists()) {
             modelFile = new File("src/main/resources/models/handpose_estimation_mediapipe_2023feb.onnx");
-        }
-
-        if (!modelFile.exists()) {
-            throw new RuntimeException(
-                    "[FEHLER] Landmark-Modell nicht gefunden unter: " + modelFile.getAbsolutePath() +
-                            "\nBitte handpose_estimation_mediapipe_2023feb.onnx von " +
-                            "https://huggingface.co/opencv/handpose_estimation_mediapipe herunterladen " +
-                            "und unter backend/src/main/resources/models/ ablegen."
-            );
         }
 
         this.landmarkNet = Dnn.readNetFromONNX(modelFile.getAbsolutePath());
@@ -60,7 +54,7 @@ public class HandLandmarkExtractor {
 
     /**
      * Extrahiert die 21 Hand-Keypoints aus dem übergebenen Frame, ausgehend von einer
-     * bereits erkannten Hand-Bounding-Box (z.B. aus {@link HandDetector#detectHand(Mat)}).
+     * bereits erkannten Hand-Bounding-Box
      *
      * @param frame    Das Original-Kamerabild (BGR, wie von OpenCV üblich)
      * @param handBbox Grobe Bounding Box der Hand im Original-Frame
