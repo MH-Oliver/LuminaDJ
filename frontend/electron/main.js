@@ -1,5 +1,5 @@
 const { app, BrowserWindow, ipcMain, shell } = require('electron');
-const { spawn } = require('node:child_process');
+const { spawn, exec} = require('node:child_process');
 const path = require('node:path');
 
 let backendProcess;
@@ -30,7 +30,13 @@ function startBackend() {
 
 function stopBackend() {
   if (backendProcess && !backendProcess.killed) {
-    backendProcess.kill('SIGTERM');
+    if (process.platform === 'win32') {
+      exec(`taskkill /F /T /PID ${backendProcess.pid}`, (err) => {
+        if (err) console.error('Fehler beim Beenden des Java-Prozesses:', err);
+      });
+    } else {
+      backendProcess.kill('SIGTERM');
+    }
   }
 }
 
