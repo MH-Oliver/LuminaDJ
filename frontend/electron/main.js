@@ -1,69 +1,26 @@
 const { app, BrowserWindow, ipcMain, shell } = require('electron');
-const { spawn } = require('node:child_process');
-const fs = require('node:fs');
+const { spawn, exec} = require('node:child_process');
 const path = require('node:path');
 
 let backendProcess;
 
-function loadEnvFromFile() {
-  const envPath = path.resolve(__dirname, '../../.env');
-  if (!fs.existsSync(envPath)) {
-    return {};
-  }
-
-  const parsed = {};
-  const lines = fs.readFileSync(envPath, 'utf8').split(/\r?\n/);
-
-  for (const rawLine of lines) {
-    const line = rawLine.trim();
-    if (!line || line.startsWith('#')) continue;
-
-    const separatorIndex = line.indexOf('=');
-    if (separatorIndex <= 0) continue;
-
-    const key = line.slice(0, separatorIndex).trim();
-    let value = line.slice(separatorIndex + 1).trim();
-
-    if (
-      (value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"))
-    ) {
-      value = value.slice(1, -1);
-    }
-
-    parsed[key] = value;
-  }
-
-  return parsed;
-}
-
 function startBackend() {
-  const jarPath = path.resolve(__dirname, '../../backend/target/lumina-backend-1.0-SNAPSHOT.jar');
-  const fileEnv = loadEnvFromFile();
-  const resolveEnvValue = (key) => {
-    const fromProcess = process.env[key];
-    if (typeof fromProcess === 'string' && fromProcess.trim().length > 0) {
-      return fromProcess;
-    }
-    const fromFile = fileEnv[key];
-    if (typeof fromFile === 'string' && fromFile.trim().length > 0) {
-      return fromFile;
-    }
-    return '';
-  };
+  const jarPath = app.isPackaged
+    ? path.join(process.resourcesPath, 'lumina-backend.jar')
+    : path.resolve(__dirname, '../../backend/target/lumina-backend.jar');
+
+  const cwdPath = app.isPackaged
+    ? process.resourcesPath
+    : path.resolve(__dirname, '../..');
 
   backendProcess = spawn('java', ['-jar', jarPath], {
-    cwd: path.resolve(__dirname, '../..'),
-    stdio: 'inherit',
+    cwd: cwdPath,
     windowsHide: true,
-    env: {
-      ...process.env,
-      SPOTIFY_CLIENT_SECRET: resolveEnvValue('SPOTIFY_CLIENT_SECRET')
-    }
+    env: { ...process.env }
   });
 
   backendProcess.on('error', (error) => {
-    console.error('Backend-Prozess konnte nicht gestartet werden:', error);
+    console.error('Java Backend Fehler:', error.message);
   });
 
   backendProcess.on('exit', () => {
@@ -73,7 +30,13 @@ function startBackend() {
 
 function stopBackend() {
   if (backendProcess && !backendProcess.killed) {
-    backendProcess.kill('SIGTERM');
+    if (process.platform === 'win32') {
+      exec(`taskkill /F /T /PID ${backendProcess.pid}`, (err) => {
+        if (err) console.error('Fehler beim Beenden des Java-Prozesses:', err);
+      });
+    } else {
+      backendProcess.kill('SIGTERM');
+    }
   }
 }
 
@@ -81,6 +44,7 @@ function createWindow() {
   const win = new BrowserWindow({
     width: 1200,
     height: 800,
+    icon: path.join(__dirname, '../icon.png'),
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
@@ -88,7 +52,7 @@ function createWindow() {
     },
   });
 
-  // Entfernt die native System-Menüleiste (Datei, Bearbeiten, Ansicht...)
+  // Entfernt die native System-Menüleiste
   win.removeMenu();
 
   const startUrl = process.env.ELECTRON_START_URL;

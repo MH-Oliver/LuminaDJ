@@ -43,17 +43,12 @@ public class PalmDetector {
         this.scoreThreshold = scoreThreshold;
         this.nmsThreshold = nmsThreshold;
 
-        File modelFile = new File("backend/src/main/resources/models/palm_detection_mediapipe_2023feb.onnx");
+        File modelFile = new File("models/palm_detection_mediapipe_2023feb.onnx");
         if (!modelFile.exists()) {
-            modelFile = new File("src/main/resources/models/palm_detection_mediapipe_2023feb.onnx");
+            modelFile = new File("backend/src/main/resources/models/palm_detection_mediapipe_2023feb.onnx");
         }
         if (!modelFile.exists()) {
-            throw new RuntimeException(
-                    "[FEHLER] Palm-Detection-Modell nicht gefunden unter: " + modelFile.getAbsolutePath() +
-                            "\nBitte palm_detection_mediapipe_2023feb.onnx von " +
-                            "https://huggingface.co/opencv/opencv_zoo/resolve/main/models/palm_detection_mediapipe/palm_detection_mediapipe_2023feb.onnx " +
-                            "herunterladen und unter backend/src/main/resources/models/ ablegen."
-            );
+            modelFile = new File("src/main/resources/models/palm_detection_mediapipe_2023feb.onnx");
         }
 
         this.net = Dnn.readNetFromONNX(modelFile.getAbsolutePath());

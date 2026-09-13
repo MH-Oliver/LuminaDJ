@@ -13,9 +13,14 @@ public final class PathResolver {
             return path.normalize().toString();
         }
 
-        List<Path> candidates = List.of(path, Path.of("backend").resolve(path));
+        List<Path> candidates = List.of(
+                path.getFileName(),
+                path,
+                Path.of("backend").resolve(path)
+        );
+
         for (Path candidate : candidates) {
-            if (Files.exists(candidate) || (candidate.getParent() != null && Files.exists(candidate.getParent()))) {
+            if (Files.exists(candidate)) {
                 return candidate.normalize().toString();
             }
         }

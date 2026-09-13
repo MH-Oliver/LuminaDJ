@@ -53,12 +53,12 @@ class MacroCurveStrategyTest {
         assertEquals(0.5, factor.genreWeights().get("rock"), 0.001, "Rock-Gewicht sollte 50% sein");
         assertEquals(0.5, factor.genreWeights().get("pop"), 0.001, "Pop-Gewicht sollte 50% sein");
 
-        // 6. NEU: Überprüfen, ob der Multiplikator korrekt berechnet wird.
+        // 6. Überprüfen, ob der Multiplikator korrekt berechnet wird.
         // Ziel-Energy = (0.8 * 0.5) + (0.4 * 0.5) = 0.6
         // Faktor = Ziel (0.6) / Aktuell (0.6) = 1.0
         assertEquals(1.0, factor.features().get("energy"), 0.001, "Der Multiplikator für Energy muss 1.0 sein");
 
-        // 7. NEU: Überprüfen, ob das höhere Gewicht der Strategie korrekt gesetzt ist
+        // 7. Überprüfen, ob das höhere Gewicht der Strategie korrekt gesetzt ist
         assertEquals(3.0, strategy.getWeight(), 0.001, "Die MacroCurveStrategy sollte ein Gewicht von 3.0 haben");
     }
 }
