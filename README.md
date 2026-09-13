@@ -14,6 +14,22 @@ Das absolute Highlight: Du kannst die Musik komplett freihändig über deine Web
 
 ---
 
+## 📑 Inhaltsverzeichnis
+
+* [📖 Anwendungshandbuch & Demo](#-anwendungshandbuch--demo)
+    * [✨ Freihändige Gestensteuerung](#-freihändige-gestensteuerung)
+    * [🖥️ Die Benutzeroberfläche](#-die-benutzeroberfläche)
+* [🏗️ Architektur](#-architektur)
+    * [🧩 Klassendiagramm](#-klassendiagramm)
+    * [⚙️ Ablauf der Musik-Session](#️-ablauf-der-musik-session)
+    * [🖐️ Gestenerkennung (Pipeline)](#️gestenerkennung)
+* [🚀 Projekt starten & bauen](#-projekt-starten--bauen)
+    * [Voraussetzungen](#voraussetzungen)
+    * [1. Lokale Entwicklung](#1-lokale-entwicklung-start-luminadj-full-build)
+    * [2. Release erstellen](#2-release-erstellen-app-release)
+
+---
+
 ## 📖 Anwendungshandbuch & Demo
 
 ### ✨ Freihändige Gestensteuerung
@@ -77,6 +93,14 @@ Der Prozess läuft in einer Endlosschleife, bis die Session beendet wird. Parall
 <p align="center">
   <img src="docs/assets/aktivitaetsdiagramm.png" alt="Aktivitätsdiagramm" width="600" />
 </p>
+
+### 🖐️ Gestenerkennung (Pipeline)
+Die Kernfunktion der App – die kamerabasierte Musiksteuerung – läuft in einer vierstufigen Pipeline ab. Um Leistung und Genauigkeit zu maximieren, arbeiten dabei drei verschiedene KI-Modelle zusammen:
+
+<p align="center">
+  <img src="docs/assets/gestureDetection.png" alt="Gesten-Erkennung-Pipeline" width="600" />
+</p>
+
 
 ## 🚀 Projekt starten & bauen
 

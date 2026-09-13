@@ -1,0 +1,44 @@
+@startuml
+skinparam defaultTextAlignment center
+skinparam monochrome true
+
+start
+
+:Neues Kamerabild (Frame) empfangen;
+
+partition "Phase 1: Hand-Lokalisierung" {
+    :Modell 1: Handflächen-Erkennung;
+    if (Hand gefunden?) then (Nein)
+        :Abbruch (Warten auf nächsten Frame);
+        stop
+    else (Ja)
+        :Bildausschnitt der Hand isolieren;
+    endif
+}
+
+partition "Phase 2: Skelett-Extraktion" {
+    :Modell 2: Landmark-Extraktion;
+    if (21 Keypoints erkannt?) then (Nein)
+        :Abbruch (Warten auf nächsten Frame);
+        stop
+    else (Ja)
+        :Koordinaten normalisieren\n(Größen- und Positionsunabhängig);
+    endif
+}
+
+partition "Phase 3: Klassifikation" {
+    :Modell 3: K-NN Klassifikator;
+    :Geste benennen\n(z.B. 'Offene Hand', 'Faust');
+}
+
+partition "Phase 4: Zeitliche Bestätigung" {
+    if (Geste wird stabil gehalten?) then (Nein)
+        :Zwischenstand merken\n(Warten auf nächsten Frame);
+        stop
+    else (Ja)
+        :Aktion an System übergeben\n(z.B. 'Ready' oder 'Action');
+    endif
+}
+
+stop
+@enduml
