@@ -21,8 +21,6 @@ public class SpotifyAuthenticator {
     private final SpotifyApi spotifyApi;
     private final Preferences prefs = Preferences.userNodeForPackage(SpotifyAuthenticator.class);
     private static final String PREF_REFRESH_TOKEN = "spotify_refresh_token";
-
-    // NEU: Speichert den Verifier zwischen dem Aufruf der URL und dem Callback
     private String currentCodeVerifier;
 
     public SpotifyAuthenticator() {
@@ -91,7 +89,7 @@ public class SpotifyAuthenticator {
 
     public String getAuthorizationUrl() {
         try {
-            generatePKCE(); // Schlüssel vor der Anfrage generieren
+            generatePKCE();
             String challenge = getCodeChallenge(this.currentCodeVerifier);
 
             AuthorizationCodeUriRequest uriRequest = spotifyApi.authorizationCodeUri()
