@@ -34,6 +34,10 @@ export class ContextApiService {
     return this.http.get<{ connected: boolean }>(`${this.baseUrl}/music/spotify/check`);
   }
 
+  getSpotifyProfile(): Observable<{ username: string }> {
+    return this.http.get<{ username: string }>(`${this.baseUrl}/music/spotify/profile`);
+  }
+
   loadPresets(): Observable<string[]> {
     return this.http.get<string[]>(`${this.baseUrl}/music/loadPresets`);
   }

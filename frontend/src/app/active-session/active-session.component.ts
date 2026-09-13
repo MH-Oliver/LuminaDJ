@@ -80,6 +80,16 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+
+    this.apiService.getSpotifyProfile().subscribe({
+      next: (res) => {
+        if (res.username) {
+          this.spotifyUser = res.username;
+        }
+      },
+      error: (err) => console.error('Fehler beim Abrufen des Spotify-Profils:', err)
+    });
+
     this.isCameraSkipped = sessionStorage.getItem('skipCamera') === 'true';
     if (this.isCameraSkipped) {
       this.isCameraProcessing = false;

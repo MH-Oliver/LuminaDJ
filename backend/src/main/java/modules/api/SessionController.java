@@ -11,10 +11,16 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalTime;
 import java.util.Map;
 
+/**
+ * Controller zur Steuerung der aktiven Musik-Session.
+ * Nimmt Befehle wie Start, Stopp, Überspringen oder Favorisieren entgegen und
+ * liefert dem Frontend regelmäßige Updates über den aktuell laufenden Song.
+ */
 @RestController
 @RequestMapping("/session")
 @CrossOrigin(origins = "*")
 public class SessionController {
+
     private final ActiveSessionService sessionService;
     private final GestureRecognitionService gestureService;
 
@@ -27,10 +33,13 @@ public class SessionController {
         this.gestureService = gestureService;
     }
 
+    /**
+     * Liefert alle Informationen zum aktuell laufenden Song (Titel, Cover, Fortschritt)
+     * sowie die verbleibende Zeit der Session für die UI-Anzeige.
+     */
     @GetMapping("/update")
     public ResponseEntity<Map<String, Object>> updateSession() {
         DjSessionController sessionController = sessionService.getActiveSession();
-
         if (sessionController == null || sessionController.getCurrentTrack() == null) {
             return ResponseEntity.ok(Map.of("currentSong", Map.of(
                     "Name", "Wird gestartet...",
@@ -43,7 +52,6 @@ public class SessionController {
         }
 
         Track currentTrack = sessionController.getCurrentTrack();
-
         boolean isNewTrack = cachedTrackId == null || !cachedTrackId.equals(currentTrack.id());
         boolean hasFailedCover = cachedCoverUrl.contains("Kein+Cover");
 
@@ -52,7 +60,6 @@ public class SessionController {
                 cachedTrackId = currentTrack.id();
                 cachedDurationMs = 180000;
             }
-
             try {
                 if (SpotifyAdapter.spotifyApi != null) {
                     String pureId = currentTrack.id().replace("spotify:track:", "");
@@ -96,24 +103,28 @@ public class SessionController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Springt in der musikalischen Zeitachse (Timeline) vor oder zurück,
+     * um z.B. ein neues Genre früher zu starten.
+     */
     @PostMapping("/jump")
     public ResponseEntity<Map<String, String>> jumpSession(@RequestBody Map<String, Integer> payload) {
         DjSessionController sessionController = sessionService.getActiveSession();
         if (sessionController != null && payload.containsKey("elapsedMinutes")) {
             int elapsedMinutes = payload.get("elapsedMinutes");
             UserContextDTO c = sessionController.getContext();
-
             LocalTime newStartTime = LocalTime.now().minusMinutes(elapsedMinutes);
-
             sessionController.setContext(new UserContextDTO(
                     c.tempo(), c.location(), newStartTime, c.timeline(), c.songCooldownMinutes(), c.totalMinutes()
             ));
-
             sessionController.getPlayer().skip();
         }
         return ResponseEntity.ok(Map.of("status", "jumped"));
     }
 
+    /**
+     * Überspringt den aktuellen Song und spielt sofort das nächste Lied ab.
+     */
     @PostMapping("/skipSong")
     public ResponseEntity<Map<String, String>> skipSong() {
         DjSessionController sessionController = sessionService.getActiveSession();
@@ -127,6 +138,9 @@ public class SessionController {
         return ResponseEntity.ok(Map.of("nextSong", "Wird geladen..."));
     }
 
+    /**
+     * Priorisiert die Eigenschaften (Vibe, Genre) des aktuellen Songs für zukünftige Empfehlungen.
+     */
     @PostMapping("/prioritize")
     public ResponseEntity<Map<String, String>> prioritizeSong() {
         DjSessionController sessionController = sessionService.getActiveSession();
@@ -137,6 +151,9 @@ public class SessionController {
         return ResponseEntity.badRequest().body(Map.of("error", "Keine aktive Session"));
     }
 
+    /**
+     * Unterbricht die aktuelle Session vorübergehend, damit der Nutzer die Timeline bearbeiten kann.
+     */
     @PostMapping("/edit")
     public ResponseEntity<Map<String, Object>> editSession() {
         DjSessionController sessionController = sessionService.getActiveSession();
@@ -149,6 +166,9 @@ public class SessionController {
         return ResponseEntity.ok(Map.of("status", "stopped", "message", "Session gestoppt."));
     }
 
+    /**
+     * Bricht die gesamte Musik-Session ab und löscht den Zustand im Backend.
+     */
     @PostMapping("/cancel")
     public ResponseEntity<Void> cancelSession() {
         DjSessionController sessionController = sessionService.getActiveSession();
@@ -162,6 +182,9 @@ public class SessionController {
         return ResponseEntity.ok().build();
     }
 
+    /**
+     * Fügt den aktuellen Song zu den Spotify-Favoriten des Nutzers hinzu oder entfernt ihn.
+     */
     @PostMapping("/favorite")
     public ResponseEntity<Map<String, Object>> toggleFavorite(@RequestBody Map<String, Boolean> payload) {
         DjSessionController sessionController = sessionService.getActiveSession();
@@ -174,6 +197,9 @@ public class SessionController {
         return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Keine aktive Session"));
     }
 
+    /**
+     * Pausiert die Musikwiedergabe oder setzt sie fort.
+     */
     @PostMapping("/playPause")
     public ResponseEntity<Map<String, String>> togglePlayPause() {
         DjSessionController session = sessionService.getActiveSession();
@@ -187,6 +213,9 @@ public class SessionController {
         return ResponseEntity.ok(Map.of("status", "toggled"));
     }
 
+    /**
+     * Springt zu einer bestimmten zeitlichen Position innerhalb des aktuellen Songs.
+     */
     @PostMapping("/seek")
     public ResponseEntity<Map<String, String>> seek(@RequestBody Map<String, Object> payload) {
         DjSessionController session = sessionService.getActiveSession();
@@ -197,6 +226,9 @@ public class SessionController {
         return ResponseEntity.ok(Map.of("status", "seeked"));
     }
 
+    /**
+     * Startet den aktuell laufenden Song wieder von ganz vorne.
+     */
     @PostMapping("/previous")
     public ResponseEntity<Map<String, String>> previous() {
         DjSessionController session = sessionService.getActiveSession();

@@ -9,6 +9,10 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Base64;
 import java.util.Map;
 
+/**
+ * Controller zur Steuerung der Smartphone-Kamera und der Gestenerkennung.
+ * Wird verwendet, um das Live-Bild im Frontend anzuzeigen und Kamera-Verbindungen herzustellen.
+ */
 @RestController
 @RequestMapping("/vision")
 @CrossOrigin(origins = "*")
@@ -22,6 +26,9 @@ public class VisionController {
         this.gestureService = gestureService;
     }
 
+    /**
+     * Sucht im lokalen WLAN automatisch nach einem Smartphone, das die Kamera-App für LuminaDJ geöffnet hat.
+     */
     @GetMapping("/deviceFound")
     public ResponseEntity<?> deviceFound() {
         try {
@@ -37,6 +44,9 @@ public class VisionController {
         }
     }
 
+    /**
+     * Verbindet das Backend fest mit der übergebenen IP-Adresse der Smartphone-Kamera.
+     */
     @PostMapping("/selectedDevice")
     public ResponseEntity<?> selectedDevice(@RequestBody Map<String, String> payload) {
         String ipAddress = payload.get("ip");
@@ -49,6 +59,10 @@ public class VisionController {
         }
     }
 
+    /**
+     * Liefert das aktuelle Kamerabild (als Base64-String) inklusive der aktuell erkannten
+     * Gesten für die Anzeige in der Benutzeroberfläche.
+     */
     @GetMapping("/currentFrame")
     public ResponseEntity<Map<String, Object>> currentFrame() {
         GestureRecognitionService.Snapshot snapshot = gestureService.getSnapshot();
@@ -56,7 +70,6 @@ public class VisionController {
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                     .body(Map.of("error", "Noch kein Bild verfügbar - ist eine Kamera verbunden?"));
         }
-
         String base64Image = Base64.getEncoder().encodeToString(snapshot.jpegImage());
         return ResponseEntity.ok(Map.of(
                 "image", "data:image/jpeg;base64," + base64Image,
@@ -65,12 +78,19 @@ public class VisionController {
         ));
     }
 
+    /**
+     * Setzt die Zähler für die erkannten Gesten zurück.
+     */
     @PostMapping("/resetGestures")
     public ResponseEntity<Void> resetGestures() {
         gestureService.resetGestureCounts();
         return ResponseEntity.ok().build();
     }
 
+    /**
+     * Pausiert oder reaktiviert die Kamera-Bildverarbeitung, um Ressourcen zu sparen,
+     * falls das Kamerabild im Frontend eingeklappt wird.
+     */
     @PostMapping("/toggleState")
     public ResponseEntity<Map<String, Boolean>> toggleState(@RequestBody Map<String, Boolean> payload) {
         boolean active = payload.getOrDefault("active", true);
